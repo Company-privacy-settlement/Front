@@ -1,5 +1,7 @@
 # Core Front
 
+[한국어](README.md) · [简体中文](README.zh-CN.md) · [English](README.en.md)
+
 NEAR 기반 기업 간 정산·근로자 지급 프로토콜을 소개하는 Next.js 랜딩과 해커톤 데모입니다. 컨트랙트와 서버/SDK는 별도 저장소로 유지합니다.
 
 - `/`: 프로토콜 랜딩, 분산 vault·공유 익명성·선택적 공개·수수료 설명
@@ -66,4 +68,4 @@ public/vendor                자체 호스팅 검증기와 라이선스
 - [Core](https://github.com/Company-privacy-settlement/Core): 서버/SDK, 기업 자격·증빙 데이터 모델, 체인 통합 검증
 - [Front](https://github.com/Company-privacy-settlement/Front): 이 Next.js 프론트
 
-세 저장소는 실행/빌드 시 로컬 형제 폴더에 의존하지 않습니다. 프론트에는 비밀키나 proving key를 포함하지 않습니다. 외부 분석/트래킹과 원격 폰트 요청도 없습니다.
+Front의 실행·빌드는 로컬 형제 저장소 폴더에 의존하지 않습니다. 프론트에는 비밀키나 proving key를 포함하지 않습니다. 외부 분석/트래킹과 원격 폰트 요청도 없습니다.
