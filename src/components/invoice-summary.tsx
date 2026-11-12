@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { FileCheck2, RefreshCw, Download } from "lucide-react";
+import { FileCheck2, RefreshCw, Download, Check, Clock3 } from "lucide-react";
 import {
   HttpGateway,
   invoiceQuote,
@@ -43,7 +43,8 @@ export function InvoiceSummary({
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const i = signed.invoice,
-    q = invoiceQuote(i);
+    q = invoiceQuote(i),
+    coverage = status ? BigInt(status.paidTokens) * 100n / BigInt(status.expectedTokens) : 0n;
   async function refresh() {
     setBusy(true);
     setError("");
@@ -72,7 +73,7 @@ export function InvoiceSummary({
             {i.units === 1 ? "" : "s"}
           </p>
         </div>
-        <FileCheck2 size={28} />
+        <span className="merchant-badge"><FileCheck2 size={13}/> Signed invoice</span>
       </div>
       <div className="invoice-amount">
         <span>Recipient receives · token atomic units</span>
@@ -115,9 +116,10 @@ export function InvoiceSummary({
         </p>
       )}
       {status && (
-        <div className="invoice-status" aria-live="polite">
+        <div className={`invoice-status invoice-state-${status.state}`} aria-live="polite">
           <span className="mini-tag">MERCHANT WALLET VERIFIED · NOT KYB</span>
-          <h3>{invoiceStates[status.state]}</h3>
+          <h3>{["paid", "paid_late", "overpaid"].includes(status.state) ? <Check size={18}/> : <Clock3 size={18}/>} {invoiceStates[status.state]}</h3>
+          <progress className="invoice-coverage" aria-label="Confirmed invoice coverage" max={100} value={Number(coverage > 100n ? 100n : coverage)}/>
           <div className="quote-lines">
             <div>
               <span>Confirmed principal · token atomic units</span>

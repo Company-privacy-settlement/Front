@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { useRef, useState, type ChangeEvent } from "react";
 import {
-  ArrowLeft,
   ArrowUpRight,
   Check,
   Download,
@@ -10,7 +9,7 @@ import {
   ShieldCheck,
   Wallet,
 } from "lucide-react";
-import { Brand } from "./brand";
+import { SettlementFrame } from "./merchant-shell";
 import { IndexedActivityPanel } from "./indexed-activity";
 import { InvoiceSummary } from "./invoice-summary";
 import {
@@ -159,52 +158,20 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
   const op = operations.find((o) => o.id === selected),
     quote = policy?.tokenId ? feeQuote(policy) : null;
   return (
-    <div className="live-page">
-      <header className="site-header">
-        <div className="site-nav container">
-          <Brand />
-          <span className="environment">
-            <span className="dot" /> NEAR testnet
-          </span>
-          <Link className="text-link" href="/app/">
-            <ArrowLeft size={15} /> Demo workspace
-          </Link>
+    <SettlementFrame checkout={!!invoice} summary={invoice && <InvoiceSummary key={invoice.invoice.id + api} signed={invoice} api={api} enabled={verified} onChecked={setInvoiceStatus}/> }>
+        <div className="merchant-page-heading">
+          <div><div className="merchant-page-kicker">{invoice ? "PRIVATE PAYMENT" : "MONEY MOVEMENT"}</div><h1>{invoice ? "Pay with your wallet" : "Settlements"}</h1><p>{invoice ? "Review the request, connect your wallet, and approve each payment step." : "Prepare transfers, review wallet approvals, and follow finalized settlement."}</p></div>
+          {!invoice && <a href="#prepared-payment" className="button button-dark"><ArrowUpRight size={15}/> Review a payment</a>}
         </div>
-      </header>
-      <main className="live-content container">
-        <div className="dashboard-heading">
-          <div>
-            <div className="eyebrow">SIGN WITH YOUR OWN WALLET</div>
-            <h1>
-              Private settlement.
-              <br />
-              One reviewed step at a time.
-            </h1>
-            <p>
-              Connect your deployed FT group, import a prepared payment, and
-              follow its finalized state.
-            </p>
+        {invoice ? <div className="checkout-method"><span className="checkout-method-icon"><Wallet size={22}/></span><div><strong>Private token payment</strong><span>NEAR testnet · Your connected wallet</span></div><ShieldCheck size={19}/></div> : <>
+          <div className="merchant-tabs" aria-label="Settlement workspace"><span aria-current="page">Overview</span><a href="#prepared-payment">Local operations</a><Link href="/invoices/">Invoices <ArrowUpRight size={13}/></Link></div>
+          <div className="settlement-readiness" aria-label="Settlement readiness">
+            <a href="#settlement-group"><span>Payment group</span><strong>{verified ? "Verified" : policy ? "Ready to verify" : "Not configured"}</strong><small>{verified ? "API matches your trusted policy" : "Import an independently trusted policy"}</small></a>
+            <a href="#settlement-wallet"><span>Wallet</span><strong>{payer ? "Connected" : "Not connected"}</strong><small>{payer || "Connect a NEAR testnet wallet"}</small></a>
+            <a href="#settlement-journal"><span>Local journal</span><strong>{unlocked ? `${operations.length} operation${operations.length === 1 ? "" : "s"}` : "Locked"}</strong><small>{unlocked ? "Encrypted records in this browser" : "Unlock to view your own operations"}</small></a>
           </div>
-          <div className="icon-tile">
-            <ShieldCheck size={30} />
-          </div>
-        </div>
-        <div className="demo-notice">
-          <ShieldCheck size={18} />
-          <span>
-            Development testnet workspace. Setup is required; no funded group is
-            preconfigured. Each approval can spend testnet assets and NEAR gas.
-          </span>
-        </div>
-        {invoice && (
-          <InvoiceSummary
-            key={invoice.invoice.id + api}
-            signed={invoice}
-            api={api}
-            enabled={verified}
-            onChecked={setInvoiceStatus}
-          />
-        )}
+        </>}
+        <div className="demo-notice"><ShieldCheck size={16}/><span>Development testnet. Configure your own funded group. Each wallet approval can spend testnet assets and NEAR gas.</span></div>
         {error && (
           <p className="live-feedback error-text" role="alert">
             {error}
@@ -217,7 +184,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
           </p>
         )}
         <div className="live-setup">
-          <section className="panel live-card">
+          <section className="panel live-card" id="settlement-group">
             <div className="eyebrow">01 · TRUSTED GROUP</div>
             <h2>Choose your deployment</h2>
             <p>
@@ -308,7 +275,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
               )}
             </button>
           </section>
-          <section className="panel live-card">
+          <section className="panel live-card" id="settlement-wallet">
             <div className="eyebrow">02 · YOUR SIGNER</div>
             <h2>A wallet you control</h2>
             <p>
@@ -352,7 +319,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
               </button>
             )}
             <div className="live-divider" />
-            <div className="eyebrow">03 · ENCRYPTED JOURNAL</div>
+            <div className="eyebrow" id="settlement-journal">03 · ENCRYPTED JOURNAL</div>
             <h2>
               {unlocked
                 ? "Your journal is unlocked"
@@ -432,7 +399,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
             )}
           </section>
         </div>
-        <section className="panel live-card">
+        <section className="panel live-card settlement-operations" id="prepared-payment">
           <div className="panel-heading">
             <div>
               <div className="eyebrow">04 · PREPARED PAYMENT</div>
@@ -686,19 +653,6 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
           availability and RPC responses are trust dependencies. Testnet use
           does not certify KYB, tax or legal compliance.
         </p>
-      </main>
-      <footer className="site-footer container">
-        <Brand />
-        <Link href="/invoices/">Create a payment invoice</Link>
-        <Link href="/app/">Explore the simulated demo</Link>
-        <a
-          href="https://github.com/Company-privacy-settlement/Core/blob/main/docs/WALLET.md"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Integration guide <ArrowUpRight size={13} />
-        </a>
-      </footer>
-    </div>
+    </SettlementFrame>
   );
 }

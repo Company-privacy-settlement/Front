@@ -10,7 +10,9 @@ A Next.js landing page and hackathon demo for private B2B settlement and employe
 
 ## Visual language
 
-Visual styling follows [NEAR.org](https://www.near.org/): a black-and-white foundation, vivid green accents, thin borders, regular-weight grotesk typography and a centered light-field hero. The landing, demo, testnet workspace, invoices and checkout share `src/app/near-theme.css`. DM Sans is self-hosted; `public/core-field.svg` is original code-authored artwork. Core keeps its own identity; this design reference does not imply affiliation or endorsement.
+The landing follows [NEAR.org](https://www.near.org/): black and white, vivid green, thin borders and a centered light-field hero. Operational screens follow [Stripe Invoicing](https://stripe.com/invoicing) and [Checkout](https://stripe.com/payments/checkout): light navigation, compact forms, purple action buttons and clear status panels. `src/app/merchant-theme.css` scopes this style to the demo, invoices, checkout and settlements; `src/app/near-theme.css` preserves the landing. DM Sans is self-hosted; `public/core-field.svg` is original artwork. Core retains its own brand and payment protocol; these references do not imply affiliation or a Stripe integration.
+
+The invoice editor previews the actual draft title, recipient, fixed-note count, token principal and add-on fee. Amounts remain token atomic units because the trusted group policy does not supply token display decimals. Drafts are not saved. Checkout separates signed request details from payer controls; settlement readiness reflects the verified policy, wallet and local journal, without inventing a custodial balance.
 
 ## Run locally
 

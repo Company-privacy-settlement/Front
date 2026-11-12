@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ShieldAlert, LoaderCircle, ArrowLeft } from "lucide-react";
+import { Brand } from "./brand";
 import {
   invoiceFromFragment,
   verifySignedInvoice,
@@ -29,21 +31,19 @@ export function InvoiceCheckout() {
   }, []);
   if (error)
     return (
-      <main className="container live-content">
-        <h1>Invoice could not be verified</h1>
+      <div className="merchant-ui checkout-empty"><header className="checkout-topbar"><Brand/><span className="merchant-mode">Testnet checkout</span></header><main className="checkout-error-card">
+        <span className="checkout-error-icon"><ShieldAlert size={26}/></span><h1>Invoice could not be verified</h1>
         <p role="alert" className="error-text">
           {error}
         </p>
         <Link href="/invoices/" className="button button-outline">
-          Open invoices
+          <ArrowLeft size={15}/> Open invoices
         </Link>
-      </main>
+      </main></div>
     );
   if (!signed)
     return (
-      <main className="container live-content">
-        <p role="status">Verifying signed payment request…</p>
-      </main>
+      <div className="merchant-ui checkout-empty"><header className="checkout-topbar"><Brand/><span className="merchant-mode">Testnet checkout</span></header><main className="checkout-error-card"><LoaderCircle className="spin" size={24}/><p role="status">Verifying signed payment request…</p></main></div>
     );
   return <LiveWorkspace invoice={signed} />;
 }

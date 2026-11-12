@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { useState, type ChangeEvent } from "react";
 import { ArrowUpRight, Copy, Download, FilePlus2, Wallet } from "lucide-react";
-import { Brand } from "./brand";
+import { MerchantShell } from "./merchant-shell";
+import { InvoicePreview } from "./invoice-preview";
 import { InvoiceSummary, saveJson } from "./invoice-summary";
 import {
   HttpGateway,
@@ -11,7 +12,6 @@ import {
   invoiceLink,
   verifySignedInvoice,
   invoiceRoot,
-  invoiceQuote,
   feeQuote,
   canonical,
   type Policy,
@@ -81,37 +81,13 @@ export function InvoiceWorkspace() {
     );
   }
   return (
-    <div className="live-page">
-      <header className="site-header">
-        <div className="site-nav container">
-          <Brand />
-          <span className="environment">NEAR testnet · Invoices</span>
-          <Link href="/live/" className="text-link">
-            Settlement workspace <ArrowUpRight size={15} />
-          </Link>
+    <MerchantShell section="Invoices">
+        <div className="merchant-page-heading">
+          <div><div className="merchant-page-kicker">BILLING / INVOICES</div><h1>Create an invoice</h1><p>Request a private payment. Share a link. Track confirmed settlement.</p></div>
+          <a href="#existing-invoice" className="button button-outline"><FilePlus2 size={15}/> Open saved invoice</a>
         </div>
-      </header>
-      <main className="container live-content">
-        <div className="dashboard-heading">
-          <div>
-            <div className="eyebrow">RECEIVE WITH CORE</div>
-            <h1>
-              Your invoice.
-              <br />
-              Their private payment.
-            </h1>
-            <p>
-              Create a signed payment request, share a checkout link, and
-              reconcile confirmed settlement.
-            </p>
-          </div>
-          <FilePlus2 size={32} />
-        </div>
-        <div className="demo-notice">
-          Development FT checkout. Prices are fixed token units with no fiat
-          conversion. You retain control of the payout wallet; the API stores no
-          invoice business terms.
-        </div>
+        <div className="merchant-tabs" aria-label="Invoice workspace"><span aria-current="page">Create invoice</span><Link href="/app/?view=payments">Payment activity <ArrowUpRight size={13}/></Link></div>
+        <div className="demo-notice"><span className="merchant-badge">Testnet</span><span>Fixed token units. Your wallet receives the principal; fees are added on top.</span></div>
         {error && (
           <p className="live-feedback error-text" role="alert">
             {error}
@@ -122,10 +98,11 @@ export function InvoiceWorkspace() {
             {notice}
           </p>
         )}
-        <div className="live-setup">
-          <section className="panel live-card">
-            <div className="eyebrow">01 · GROUP & MERCHANT</div>
-            <h2>Where you receive</h2>
+        <div className="invoice-builder">
+          <div className="invoice-editor">
+          <section className="panel live-card invoice-connection">
+            <div className="eyebrow">PAYMENT DESTINATION</div>
+            <h2>Business & payment account</h2>
             <label className="form-label">
               Core API origin
               <input
@@ -182,9 +159,9 @@ export function InvoiceWorkspace() {
               signing key is created.
             </p>
           </section>
-          <section className="panel live-card">
-            <div className="eyebrow">02 · PAYMENT TERMS</div>
-            <h2>What you request</h2>
+          <section className="panel live-card invoice-details">
+            <div className="eyebrow">INVOICE DETAILS</div>
+            <h2>Payment details</h2>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -271,8 +248,10 @@ export function InvoiceWorkspace() {
               legal documents out of this shared request.
             </p>
           </section>
+          </div>
+          <InvoicePreview policy={policy} merchant={merchant} recipient={recipient} title={title} reference={reference} units={units} hours={hours}/>
         </div>
-        <section className="panel live-card">
+        <section className="panel live-card saved-invoice" id="existing-invoice">
           <h2>Open an existing signed invoice</h2>
           <label className="form-label">
             Signed invoice JSON
@@ -353,18 +332,6 @@ export function InvoiceWorkspace() {
             />
           </>
         )}
-      </main>
-      <footer className="site-footer container">
-        <Brand />
-        <Link href="/app/">Explore demo</Link>
-        <a
-          href="https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICES.md"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Invoice architecture <ArrowUpRight size={13} />
-        </a>
-      </footer>
-    </div>
+    </MerchantShell>
   );
 }

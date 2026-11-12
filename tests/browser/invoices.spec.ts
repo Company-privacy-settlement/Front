@@ -275,6 +275,24 @@ async function plan(signed: SignedInvoice, nf: string, wrong = false) {
     },
   };
 }
+test("invoice draft preview updates exact token amounts and rejects out-of-range note counts", async ({ page }) => {
+  await page.goto("/invoices/");
+  const preview = page.getByRole("complementary", { name: "Invoice preview" });
+  await expect(preview.getByText("Unsigned draft", { exact: true })).toBeVisible();
+  await page.getByLabel("Trusted FT policy JSON").setInputFiles({ name: "policy.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(policy)) });
+  await page.getByLabel("Invoice title", { exact: true }).fill("Service milestone");
+  await page.getByLabel("Payout NEAR account").fill("recipient.testnet");
+  await page.getByLabel("Number of notes").fill("32");
+  await expect(preview.getByText("Service milestone", { exact: true })).toBeVisible();
+  await expect(preview.getByText("recipient.testnet", { exact: true })).toBeVisible();
+  await expect(preview.locator(".invoice-paper-total>strong")).toHaveText("32000000");
+  await expect(preview.locator(".invoice-paper-fee>strong")).toHaveText("48000");
+  await page.getByLabel("Number of notes").fill("33");
+  await expect(preview.locator(".invoice-paper-total>strong")).toHaveText("—");
+  await page.getByLabel("Number of notes").fill("2");
+  await expect(preview.locator(".invoice-paper-total>strong")).toHaveText("2000000");
+  await expect(preview.locator(".invoice-paper-fee>strong")).toHaveText("3000");
+});
 test("recipient signs an invoice, payer rejects another invoice proof, and two confirmed notes cover the request", async ({
   page,
 }, info) => {
@@ -283,6 +301,7 @@ test("recipient signs an invoice, payer rejects another invoice proof, and two c
   const f = await fixture(page),
     created = await issue(page);
   expect(created.signed.invoice.units).toBe(2);
+  await page.screenshot({ path: info.outputPath("invoice-created.png"), fullPage: true });
   const file = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download signed invoice" }).click();
   expect((await file).suggestedFilename()).toContain("core-invoice-");
@@ -293,6 +312,7 @@ test("recipient signs an invoice, payer rejects another invoice proof, and two c
   await expect(
     page.getByRole("heading", { name: "Design milestone", exact: true }),
   ).toBeVisible();
+  await page.screenshot({ path: info.outputPath("checkout.png"), fullPage: true });
   await page.getByLabel("Core API origin").fill("https://core-api.example");
   await page
     .getByLabel("Trusted policy JSON")

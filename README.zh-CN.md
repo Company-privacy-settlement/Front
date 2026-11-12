@@ -10,7 +10,9 @@
 
 ## 视觉语言
 
-视觉风格参考 [NEAR 官方网站](https://www.near.org/)：黑白基调、鲜绿色点缀、细边框、常规字重和居中光场首屏。首页、演示、测试网工作区、发票和付款页面共用 `src/app/near-theme.css`。DM Sans 字体本地托管，`public/core-field.svg` 为代码生成的原创图形。Core 保持独立品牌；设计参考不代表合作或背书。
+首页参考 [NEAR 官方网站](https://www.near.org/)的黑白、鲜绿色与居中光场首屏。业务界面参考 [Stripe Invoicing](https://stripe.com/invoicing) 和 [Checkout](https://stripe.com/payments/checkout)，使用浅色导航、紧凑表单、紫色操作按钮与清晰状态面板。`src/app/merchant-theme.css` 仅作用于演示、发票、付款和结算，`src/app/near-theme.css` 保持首页风格。DM Sans 本地托管，`public/core-field.svg` 为原创图形。Core 保持独立品牌及支付协议；参考设计不代表合作或接入 Stripe。
+
+发票编辑器实时预览实际草稿的标题、收款人、固定票据数量、代币本金和额外费用。可信策略没有代币显示精度，因此金额仍显示为代币最小单位。草稿不保存。付款页分开展示签名账单和付款操作，结算就绪状态来自已验证策略、钱包及本地加密日志，不虚构托管余额。
 
 ## 本地运行
 

@@ -88,7 +88,7 @@ async function configure(page: Page) {
 async function connect(page: Page) {
   await page.getByRole("button", { name: "Connect testnet wallet" }).click();
   await page.getByText("Fixture Wallet", { exact: true }).click();
-  await expect(page.getByText(payer, { exact: true })).toBeVisible();
+  await expect(page.locator(".live-wallet").getByText(payer, { exact: true })).toBeVisible();
 }
 async function importPlan(page: Page) {
   await expect(page.getByLabel("Public FT payment plan")).toBeEnabled();
