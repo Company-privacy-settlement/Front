@@ -148,6 +148,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
   }
   async function invoiceGate(root?: string) {
     if (!invoice) return;
+    setInvoiceStatus(null);
     requireOpenInvoice(invoice.invoice);
     const status = await new HttpGateway(api).invoiceStatus(invoice);
     setInvoiceStatus(status);

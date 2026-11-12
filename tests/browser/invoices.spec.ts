@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type Route } from "@playwright/test";
 import { generateKeyPairSync, createHash, sign } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import {
@@ -356,6 +356,16 @@ test("recipient signs an invoice, payer rejects another invoice proof, and two c
   await page.getByRole("button", { name: "Create journal" }).click();
   const input = page.getByLabel("Public FT payment plan");
   await expect(input).toBeEnabled();
+  const statusUrl = "https://core-api.example/v1/invoices/status";
+  const failStatus = (route: Route) => route.fulfill({ status: 503, json: { error: "INDEX_READ_FAILED" }, headers: { "access-control-allow-origin": "*" } });
+  await page.route(statusUrl, failStatus);
+  await page.getByRole("button", { name: "Verify merchant & refresh payment" }).click();
+  await expect(page.locator(".invoice-error")).toContainText("503");
+  await expect(input).toBeDisabled();
+  await expect(page.locator(".invoice-status")).toHaveCount(0);
+  await page.unroute(statusUrl, failStatus);
+  await page.getByRole("button", { name: "Verify merchant & refresh payment" }).click();
+  await expect(input).toBeEnabled();
   await input.setInputFiles({
     name: "wrong.json",
     mimeType: "application/json",
@@ -408,6 +418,30 @@ test("recipient signs an invoice, payer rejects another invoice proof, and two c
     .locator(".invoice-summary")
     .screenshot({ path: info.outputPath("invoice-paid.png") });
   expect(errors).toEqual([]);
+});
+test("a late invoice lookup cannot restore verified status after deployment trust changes", async ({ page }) => {
+  await fixture(page);
+  const created = await issue(page);
+  await page.goto(created.link);
+  await page.getByLabel("Core API origin").fill("https://core-api.example");
+  const policyFile = { name: "policy.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(policy)) };
+  await page.getByLabel("Trusted policy JSON").setInputFiles(policyFile);
+  await page.getByRole("button", { name: "Verify API policy" }).click();
+  let release!: () => void, started!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  const observed = new Promise<void>(resolve => { started = resolve; });
+  const statusUrl = "https://core-api.example/v1/invoices/status";
+  await page.route(statusUrl, async route => { started(); await held; await route.fallback(); });
+  await page.getByRole("button", { name: "Verify merchant & refresh payment" }).click();
+  await observed;
+  // Reimport invalidates prior API trust while the independent summary read is pending.
+  await page.getByLabel("Trusted policy JSON").setInputFiles(policyFile);
+  await expect(page.getByRole("button", { name: "Verify API policy", exact: true })).toBeVisible();
+  const response = page.waitForResponse(statusUrl);
+  release(); await (await response).finished();
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  await expect(page.locator(".invoice-status")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Verify merchant & refresh payment" })).toBeDisabled();
 });
 test("changing a signed invoice invalidates checkout before any payment interface appears", async ({
   page,

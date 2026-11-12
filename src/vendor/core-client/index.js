@@ -1005,13 +1005,17 @@ function validateInvoiceStatus(input, invoice) {
   if (invoice.version === 2 && (s.settlementRoot !== null || !Array.isArray(s.settlementRoots) || s.settlementRoots.length !== invoice.units || s.settlementRoots.some((r) => typeof r !== "string" || !/^[a-f0-9]{64}$/.test(r)) || new Set(s.settlementRoots).size !== invoice.units))
     throw new Error("Invalid per-payment invoice references");
   const nullifiers = /* @__PURE__ */ new Set(), recordIndices = /* @__PURE__ */ new Set();
+  let latePayments = 0;
   for (const entry of s.confirmations) {
     const r = object(entry);
     if (typeof r.nullifier !== "string" || !/^(0|[1-9][0-9]*)$/.test(r.nullifier) || nullifiers.has(r.nullifier) || typeof r.recordIndex !== "number" || !Number.isSafeInteger(r.recordIndex) || r.recordIndex < 0 || recordIndices.has(r.recordIndex) || invoice.version === 2 && !s.settlementRoots.includes(String(r.settlementRoot)) || typeof r.blockHeight !== "number" || !Number.isSafeInteger(r.blockHeight) || r.blockHeight < 0 || r.blockHeight > c.height || typeof r.late !== "boolean")
       throw new Error("Invalid invoice confirmation");
     nullifiers.add(r.nullifier);
     recordIndices.add(r.recordIndex);
+    if (r.late) latePayments++;
   }
+  if (late !== BigInt(latePayments) * unit)
+    throw new Error("Invoice late total differs from confirmed payments");
   if (invoice.version === 2) {
     const unique = new Set(s.confirmations.map((entry) => object(entry).settlementRoot)).size;
     if (s.reusedPaymentReferences !== s.confirmations.length - unique) throw new Error("Invalid invoice reference reuse count");

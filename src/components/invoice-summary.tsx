@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileCheck2, RefreshCw, Download, Check, Clock3 } from "lucide-react";
 import {
   HttpGateway,
@@ -37,13 +37,14 @@ export function InvoiceSummary({
   signed: SignedInvoice;
   api: string;
   enabled?: boolean;
-  onChecked?: (s: InvoiceStatus) => void;
+  onChecked?: (s: InvoiceStatus | null) => void;
 }) {
   const [status, setStatus] = useState<InvoiceStatus | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [paymentIndex, setPaymentIndex] = useState(0),
     [roots, setRoots] = useState<string[]>([]);
+  const generation = useRef(0);
   const i = signed.invoice,
     q = invoiceQuote(i),
     coverage = status ? BigInt(status.paidTokens) * 100n / BigInt(status.expectedTokens) : 0n;
@@ -58,23 +59,38 @@ export function InvoiceSummary({
     invoicePaymentRoots(i).then(r => { if (active) setRoots(r); }).catch(e => { if (active) setError(e.message); });
     return () => { active = false; };
   }, [i]);
+  useEffect(() => {
+    generation.current++;
+    setStatus(null);
+    setBusy(false);
+    setError("");
+    onChecked?.(null);
+    return () => { generation.current++; };
+  }, [signed, api, enabled, onChecked]);
   async function refresh() {
+    const requestGeneration = generation.current;
     setBusy(true);
     setError("");
+    setStatus(null);
+    onChecked?.(null);
     try {
       const s = await new HttpGateway(api).invoiceStatus(signed);
+      const references = await invoicePaymentRoots(i);
+      if (requestGeneration !== generation.current) return;
       setStatus(s);
       if (i.version === 2) {
-        const references = await invoicePaymentRoots(i), used = new Set(s.confirmations.map(c => c.settlementRoot));
+        const used = new Set(s.confirmations.map(c => c.settlementRoot));
         const next = references.findIndex(r => !used.has(r));
         if (next >= 0) setPaymentIndex(next);
       }
       onChecked?.(s);
     } catch (e) {
+      if (requestGeneration !== generation.current) return;
       setStatus(null);
+      onChecked?.(null);
       setError(e instanceof Error ? e.message : "Invoice verification failed");
     } finally {
-      setBusy(false);
+      if (requestGeneration === generation.current) setBusy(false);
     }
   }
   return (

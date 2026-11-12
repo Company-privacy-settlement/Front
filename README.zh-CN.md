@@ -4,6 +4,8 @@
 
 新发票条款 v2 通过 Payment unit 选择器为每个付款单位提供独立签名引用，旧版 v1 保持共同引用。逐单位下载 action 后在本地生成证明。新付款授权前检查已索引的引用复用；并发或索引延迟仍可能导致复用，实际付款全部计入。需配合更新的 Core API。分散托管采用共享票据和一个付款金库，不是本金连续跳转。收款地址、金额、时间和签名者仍然公开，链接持有者和 API 可以关联引用。参见[隐私模型](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PRIVACY.md)。
 
+刷新中、查询失败或可信部署设置变化时清除发票状态，并忽略已失效请求的迟到响应。新查询成功后才能导入付款计划，原绑定目标的恢复流程保持不变。更新后的 Core 索引直接查询已签名引用集合。参见[审查与回归验证](https://github.com/Company-privacy-settlement/Core/blob/main/docs/REVIEW-2026-11-12.md)。
+
 这是介绍 NEAR 隐私企业间结算与员工付款协议的 Next.js 官网和黑客松演示。合约与服务器/SDK 代码分别保存在独立仓库中。
 
 - `/`：协议介绍页，说明分散 vault、共享匿名集、选择性披露及手续费。
