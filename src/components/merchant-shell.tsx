@@ -3,17 +3,14 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowDown, ArrowUpRight, ArrowLeftRight, ChevronRight, FileCheck2, Home, Layers3, LockKeyhole, Menu, Wallet, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowDown, ArrowUpRight, ArrowLeftRight, BookOpen, ChevronRight, FileCheck2, LockKeyhole, Menu, Wallet, ShieldCheck } from "lucide-react";
 import { Brand, NearMark } from "./brand";
 
 const navigation = [
-  { title: "Overview", href: "/app/", icon: Home },
-  { title: "Payments", href: "/app/?view=payments", icon: ArrowUpRight },
   { title: "Invoices", href: "/invoices/", icon: FileCheck2 },
   { title: "Settlements", href: "/live/", icon: ArrowLeftRight },
   { title: "Business verification", href: "/kyb/", icon: ShieldCheck },
-  { title: "Vaults", href: "/app/?view=vaults", icon: Layers3 },
-  { title: "Proofs & receipts", href: "/app/?view=proofs", icon: LockKeyhole },
+  { title: "Documentation", href: "/docs/", icon: BookOpen },
 ];
 function WorkspaceLinks({ section }: { section: string }) {
   return <>{navigation.map(({ title, href, icon: Icon }) => <Link key={title} href={href} aria-current={section === title ? "page" : undefined}><Icon size={17}/>{title}</Link>)}</>;
@@ -49,6 +46,6 @@ export function SettlementFrame({ checkout, summary, children }: { checkout: boo
       <aside className="checkout-bill"><div className="checkout-bill-inner">{summary}<div className="checkout-trust"><LockKeyhole size={14}/><span>Private settlement on NEAR. Your wallet approves every transaction.</span></div></div></aside>
       <div className="checkout-payment live-content" id="checkout-payment">{children}</div>
     </main>
-    <footer className="checkout-footer"><Brand/><span>Private payments, with proof you can share.</span><Link href="/">About Core <ArrowUpRight size={12}/></Link></footer>
+    <footer className="checkout-footer"><Brand/><span>Private payments, with proof you can share.</span><Link href="/docs/">Documentation <ArrowUpRight size={12}/></Link></footer>
   </div>;
 }

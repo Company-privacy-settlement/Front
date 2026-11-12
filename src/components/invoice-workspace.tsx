@@ -80,7 +80,7 @@ export function InvoiceWorkspace() {
           <div><h1>Create an invoice</h1><p>Request a private payment. Share a link. Track confirmed settlement.</p></div>
           <a href="#existing-invoice" className="button button-outline"><FilePlus2 size={15}/> Open saved invoice</a>
         </div>
-        <div className="merchant-tabs" aria-label="Invoice workspace"><span aria-current="page">Create invoice</span><Link href="/app/?view=payments">Payment activity <ArrowUpRight size={13}/></Link></div>
+        <div className="merchant-tabs" aria-label="Invoice workspace"><span aria-current="page">Create invoice</span><Link href="/live/">Payment activity <ArrowUpRight size={13}/></Link></div>
         <div className="demo-notice"><span className="merchant-badge">Testnet</span><span>Fixed token units. Your wallet receives the principal; fees are added on top.</span></div>
         {error && (
           <p className="live-feedback error-text" role="alert">

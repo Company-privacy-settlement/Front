@@ -1,3 +1,3 @@
-import { Dashboard } from '@/components/dashboard';
-export const metadata = { title: 'Workspace' };
-export default function Workspace() { return <Dashboard/>; }
+import { LegacyWorkspace } from '@/components/legacy-workspace';
+export const metadata = { title: 'Documentation', robots: { index: false, follow: true } };
+export default function Workspace() { return <LegacyWorkspace/>; }

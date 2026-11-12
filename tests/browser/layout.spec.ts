@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('workspaces fit a narrow viewport and keep long-form actions reachable without scrolling the body', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
-  for (const path of ['/app/', '/invoices/', '/live/', '/kyb/business/', '/kyb/documents/', '/kyb/status/', '/pay/']) {
+  for (const path of ['/docs/', '/docs/sdk-api/', '/invoices/', '/live/', '/kyb/business/', '/kyb/documents/', '/kyb/status/', '/pay/']) {
     await page.goto(path);
     const size = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, scrollWidth: document.documentElement.scrollWidth, scrollHeight: document.documentElement.scrollHeight }));
     expect(size.scrollWidth, path).toBeLessThanOrEqual(size.width);
