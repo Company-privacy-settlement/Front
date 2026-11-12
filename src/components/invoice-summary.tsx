@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FileCheck2, RefreshCw, Download, Check, Clock3 } from "lucide-react";
 import {
   HttpGateway,
   invoiceQuote,
-  invoiceRoot,
+  invoicePaymentRoots,
   type SignedInvoice,
   type InvoiceStatus,
 } from "@/vendor/core-client/index.js";
@@ -41,16 +41,34 @@ export function InvoiceSummary({
 }) {
   const [status, setStatus] = useState<InvoiceStatus | null>(null),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [paymentIndex, setPaymentIndex] = useState(0),
+    [roots, setRoots] = useState<string[]>([]);
   const i = signed.invoice,
     q = invoiceQuote(i),
     coverage = status ? BigInt(status.paidTokens) * 100n / BigInt(status.expectedTokens) : 0n;
+  const selectedRoot = roots[paymentIndex] ?? "",
+    usedReference = i.version === 2 && !!status?.confirmations.some(c => c.settlementRoot === selectedRoot);
+  useEffect(() => {
+    let active = true;
+    setRoots([]);
+    setPaymentIndex(0);
+    setStatus(null);
+    setError("");
+    invoicePaymentRoots(i).then(r => { if (active) setRoots(r); }).catch(e => { if (active) setError(e.message); });
+    return () => { active = false; };
+  }, [i]);
   async function refresh() {
     setBusy(true);
     setError("");
     try {
       const s = await new HttpGateway(api).invoiceStatus(signed);
       setStatus(s);
+      if (i.version === 2) {
+        const references = await invoicePaymentRoots(i), used = new Set(s.confirmations.map(c => c.settlementRoot));
+        const next = references.findIndex(r => !used.has(r));
+        if (next >= 0) setPaymentIndex(next);
+      }
       onChecked?.(s);
     } catch (e) {
       setStatus(null);
@@ -97,6 +115,14 @@ export function InvoiceSummary({
         separate from KYB. Private payments also require NEAR storage and gas;
         funding private notes has its own deposit fee.
       </p>
+      <div className="invoice-payment-reference">
+        <label className="form-label">Payment unit<select value={paymentIndex} onChange={e => setPaymentIndex(Number(e.target.value))} disabled={!roots.length || busy}>
+          {roots.map((root, index) => <option value={index} key={root}> {i.version === 2 ? `Payment ${index + 1} of ${i.units}` : "Legacy shared reference"}{status?.confirmations.some(c => c.settlementRoot === root) ? " · Indexed payment recorded" : ""}</option>)}
+        </select></label>
+        <p>{i.version === 2 ? "Each payment unit uses a different signed reference. The payout account, amount and timing remain public; link holders and the API can still associate these payments." : "Legacy invoice: every payment shares one public reference. New invoices use per-payment references; this signed request cannot be silently upgraded."}</p>
+        <button className="button button-outline" disabled={!selectedRoot || !enabled || usedReference} onClick={() => saveJson({ kind: "withdraw", target: i.recipient, disclosureRoot: selectedRoot }, `invoice-action-${i.id}-${paymentIndex + 1}.json`)}><Download size={14}/> Download proof action</button>
+        {usedReference && <p className="small-note">This reference already has an indexed payment. Choose an unused payment unit.</p>}
+      </div>
       <button
         className="button button-dark"
         disabled={busy || !enabled}
@@ -142,6 +168,7 @@ export function InvoiceSummary({
               <strong>{status.checkedAt.height}</strong>
             </div>
           </div>
+          {!!status.reusedPaymentReferences && <p className="invoice-reference-warning" role="status">Repeated public references detected: {status.reusedPaymentReferences}. Funds remain included in confirmed totals; review the reference reuse.</p>}
           <p>
             As of {status.checkedAt.updatedAt}. This reads confirmed registry
             records in the index, not the latest chain head. A wallet submission
@@ -176,12 +203,10 @@ export function InvoiceSummary({
         <button
           className="text-link"
           onClick={() =>
-            void invoiceRoot(i).then((root) =>
-              navigator.clipboard.writeText(root),
-            )
+            void navigator.clipboard.writeText(selectedRoot)
           }
         >
-          Copy settlement root
+          Copy selected payment reference
         </button>
       </details>
     </section>

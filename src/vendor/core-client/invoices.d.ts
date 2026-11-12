@@ -1,7 +1,6 @@
 import type { Policy } from "./types.js";
 export declare const INVOICE_SIGNING_RECIPIENT = "core.invoice.v1";
-export type Invoice = {
-    version: 1;
+type InvoiceTerms = {
     id: string;
     merchantAccount: string;
     recipient: string;
@@ -13,6 +12,12 @@ export type Invoice = {
     expiresAt: string;
     nonce: string;
 };
+export type Invoice = InvoiceTerms & ({
+    version: 1;
+} | {
+    version: 2;
+    paymentNonces: string[];
+});
 export type InvoiceSignature = {
     accountId: string;
     publicKey: string;
@@ -32,7 +37,9 @@ export type InvoiceProof = {
 export type InvoiceState = "awaiting_payment" | "partial" | "paid" | "paid_late" | "overpaid" | "expired" | "partial_expired" | "review_required";
 export type InvoiceStatus = {
     invoiceHash: string;
-    settlementRoot: string;
+    settlementRoot: string | null;
+    settlementRoots?: string[];
+    reusedPaymentReferences?: number;
     state: InvoiceState;
     expectedTokens: string;
     paidTokens: string;
@@ -48,6 +55,7 @@ export type InvoiceStatus = {
     };
     chainFreshnessChecked: false;
     confirmations: {
+        settlementRoot?: string;
         recordIndex: number;
         nullifier: string;
         blockHeight: number;
@@ -59,9 +67,21 @@ export type InvoiceStatus = {
     }[];
 };
 export declare function parseInvoice(input: unknown): Invoice;
+export declare function createInvoice(input: Omit<InvoiceTerms, "id" | "nonce">): Invoice;
 export declare function parseSignedInvoice(input: unknown): SignedInvoice;
 export declare function invoiceHash(invoice: Invoice): Promise<string>;
-export declare function invoiceRoot(invoice: Invoice): Promise<string>;
+export declare function invoiceRootsFromHash(hash: string, nonces: unknown): Promise<string[]>;
+export declare function invoicePaymentRoots(invoice: Invoice): Promise<string[]>;
+export declare function invoiceRoot(invoice: Invoice, paymentIndex?: number): Promise<string>;
+export declare function invoiceStatusRequest(invoice: Invoice): Promise<{
+    version?: 2 | undefined;
+    paymentNonces?: string[] | undefined;
+    invoiceHash: string;
+    recipient: string;
+    units: number;
+    expiresAt: string;
+}>;
+export declare function assertInvoiceReferenceAvailable(invoice: Invoice, root: string, status: InvoiceStatus): Promise<void>;
 export declare function invoiceMessage(hash: string, network: Policy["network"]): string;
 export declare function nonceBytes(nonce: string): Uint8Array<ArrayBuffer>;
 export declare function invoiceSigningDigest(hash: string, network: Policy["network"], nonce: string): Promise<Uint8Array<ArrayBuffer>>;
@@ -82,3 +102,4 @@ export declare function matchInvoicePlan(input: unknown, invoice: Invoice, payer
 export declare function invoiceLink(origin: string, signed: SignedInvoice): string;
 export declare function invoiceFromFragment(fragment: string): SignedInvoice;
 export declare function validateInvoiceStatus(input: unknown, invoice: Invoice): InvoiceStatus;
+export {};

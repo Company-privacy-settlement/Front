@@ -764,9 +764,10 @@ function parseInvoice(input) {
     "units",
     "createdAt",
     "expiresAt",
-    "nonce"
+    "nonce",
+    ...o.version === 2 ? ["paymentNonces"] : []
   ]);
-  if (o.version !== 1 || typeof o.id !== "string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
+  if (o.version !== 1 && o.version !== 2 || typeof o.id !== "string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
     o.id
   ) || typeof o.units !== "number" || !Number.isInteger(o.units) || o.units < 1 || o.units > 32)
     throw new Error("Invoice requires 1\u201332 fixed-denomination notes");
@@ -778,8 +779,7 @@ function parseInvoice(input) {
   const recipient = account(o.recipient);
   if (recipient === policy.registry || recipient.endsWith("." + policy.registry))
     throw new Error("Invoice must pay an external recipient");
-  return {
-    version: 1,
+  const terms = {
     id: o.id,
     merchantAccount: account(o.merchantAccount),
     recipient,
@@ -791,6 +791,22 @@ function parseInvoice(input) {
     expiresAt,
     nonce: hex2(o.nonce)
   };
+  if (o.version === 1) return { ...terms, version: 1 };
+  const paymentNonces = parsePaymentNonces(o.paymentNonces, terms.units);
+  if (paymentNonces.includes(terms.nonce)) throw new Error("Invoice signing and payment nonces must differ");
+  return { ...terms, version: 2, paymentNonces };
+}
+function parsePaymentNonces(input, units) {
+  if (!Array.isArray(input) || input.length < 1 || input.length > 32 || units !== void 0 && input.length !== units)
+    throw new Error("Provide one unique nonce per invoice payment unit");
+  const values = input.map(hex2);
+  if (new Set(values).size !== values.length) throw new Error("Invoice payment nonces must be distinct");
+  return values;
+}
+function createInvoice(input) {
+  if (!Number.isInteger(input.units) || input.units < 1 || input.units > 32) throw new Error("Invoice requires 1\u201332 fixed-denomination notes");
+  const random = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join("");
+  return parseInvoice({ ...input, version: 2, id: crypto.randomUUID(), nonce: random(), paymentNonces: Array.from({ length: input.units }, random) });
 }
 function parseSignedInvoice(input) {
   const o = object(input);
@@ -809,10 +825,41 @@ function parseSignedInvoice(input) {
   };
 }
 async function invoiceHash(invoice) {
-  return sha256("core:invoice:v1|" + canonical(parseInvoice(invoice)));
+  const i = parseInvoice(invoice);
+  return sha256(`core:invoice:v${i.version}|` + canonical(i));
 }
-async function invoiceRoot(invoice) {
-  return sha256("core:invoice:settlement:v1|" + await invoiceHash(invoice));
+async function invoiceRootsFromHash(hash3, nonces) {
+  hex2(hash3);
+  return Promise.all(parsePaymentNonces(nonces).map((nonce) => sha256(`core:invoice:payment:v2|${hash3}|${nonce}`)));
+}
+async function invoicePaymentRoots(invoice) {
+  const i = parseInvoice(invoice), digest = await invoiceHash(i);
+  return i.version === 1 ? [await sha256("core:invoice:settlement:v1|" + digest)] : invoiceRootsFromHash(digest, i.paymentNonces);
+}
+async function invoiceRoot(invoice, paymentIndex) {
+  const roots = await invoicePaymentRoots(invoice);
+  if (invoice.version === 2 && roots.length > 1 && paymentIndex === void 0) throw new Error("Choose a payment index for this v2 invoice");
+  const index = paymentIndex ?? 0;
+  if (!Number.isInteger(index) || index < 0 || index >= roots.length) throw new Error("Invalid invoice payment index");
+  return roots[index];
+}
+async function invoiceStatusRequest(invoice) {
+  const i = parseInvoice(invoice);
+  return {
+    invoiceHash: await invoiceHash(i),
+    recipient: i.recipient,
+    units: i.units,
+    expiresAt: i.expiresAt,
+    ...i.version === 2 ? { version: 2, paymentNonces: [...i.paymentNonces] } : {}
+  };
+}
+async function assertInvoiceReferenceAvailable(invoice, root, status) {
+  const roots = await invoicePaymentRoots(invoice);
+  if (status.invoiceHash !== await invoiceHash(invoice) || !roots.includes(root)) throw new Error("Payment reference is not bound to this invoice");
+  if (invoice.version === 2 ? status.settlementRoot !== null || canonical(status.settlementRoots) !== canonical(roots) : status.settlementRoot !== roots[0]) throw new Error("Invoice reference set differs from signed terms");
+  validateInvoiceStatus(status, invoice);
+  if (invoice.version === 2 && status.confirmations.some((c) => c.settlementRoot === root))
+    throw new Error("This payment reference already has an indexed payment; choose an unused reference");
 }
 function invoiceMessage(hash3, network) {
   return `Core invoice v1
@@ -910,7 +957,7 @@ function requireOpenInvoice(invoice, now = Date.now()) {
 async function matchInvoicePlan(input, invoice, payer) {
   requireOpenInvoice(invoice);
   const p = await preparedPayment(input, invoice.policy, payer);
-  if (p.reference.kind !== "withdrawal" || p.reference.expectedRecipient !== invoice.recipient || p.reference.expectedDisclosureRoot !== await invoiceRoot(invoice))
+  if (p.reference.kind !== "withdrawal" || p.reference.expectedRecipient !== invoice.recipient || !(await invoicePaymentRoots(invoice)).includes(p.reference.expectedDisclosureRoot ?? ""))
     throw new Error("Payment proof must bind this invoice root and recipient");
   return p;
 }
@@ -955,12 +1002,19 @@ function validateInvoiceStatus(input, invoice) {
   const c = object(s.checkedAt);
   if (typeof c.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(c.hash) || typeof c.height !== "number" || !Number.isSafeInteger(c.height) || c.height < 0 || typeof c.updatedAt !== "string" || !Number.isFinite(Date.parse(c.updatedAt)))
     throw new Error("Invalid invoice checkpoint");
-  const nullifiers = /* @__PURE__ */ new Set();
+  if (invoice.version === 2 && (s.settlementRoot !== null || !Array.isArray(s.settlementRoots) || s.settlementRoots.length !== invoice.units || s.settlementRoots.some((r) => typeof r !== "string" || !/^[a-f0-9]{64}$/.test(r)) || new Set(s.settlementRoots).size !== invoice.units))
+    throw new Error("Invalid per-payment invoice references");
+  const nullifiers = /* @__PURE__ */ new Set(), recordIndices = /* @__PURE__ */ new Set();
   for (const entry of s.confirmations) {
     const r = object(entry);
-    if (typeof r.nullifier !== "string" || !/^(0|[1-9][0-9]*)$/.test(r.nullifier) || nullifiers.has(r.nullifier) || typeof r.recordIndex !== "number" || !Number.isSafeInteger(r.recordIndex) || r.recordIndex < 0 || typeof r.blockHeight !== "number" || !Number.isSafeInteger(r.blockHeight) || r.blockHeight < 0 || r.blockHeight > c.height || typeof r.late !== "boolean")
+    if (typeof r.nullifier !== "string" || !/^(0|[1-9][0-9]*)$/.test(r.nullifier) || nullifiers.has(r.nullifier) || typeof r.recordIndex !== "number" || !Number.isSafeInteger(r.recordIndex) || r.recordIndex < 0 || recordIndices.has(r.recordIndex) || invoice.version === 2 && !s.settlementRoots.includes(String(r.settlementRoot)) || typeof r.blockHeight !== "number" || !Number.isSafeInteger(r.blockHeight) || r.blockHeight < 0 || r.blockHeight > c.height || typeof r.late !== "boolean")
       throw new Error("Invalid invoice confirmation");
     nullifiers.add(r.nullifier);
+    recordIndices.add(r.recordIndex);
+  }
+  if (invoice.version === 2) {
+    const unique = new Set(s.confirmations.map((entry) => object(entry).settlementRoot)).size;
+    if (s.reusedPaymentReferences !== s.confirmations.length - unique) throw new Error("Invalid invoice reference reuse count");
   }
   return input;
 }
@@ -1203,13 +1257,8 @@ var HttpGateway = class {
     return signed;
   }
   async invoiceStatus(input) {
-    const signed = await this.verifyInvoice(input), hash3 = await invoiceHash(signed.invoice), result = await this.request("/v1/invoices/status", {
-      invoiceHash: hash3,
-      recipient: signed.invoice.recipient,
-      units: signed.invoice.units,
-      expiresAt: signed.invoice.expiresAt
-    });
-    if (result.invoiceHash !== hash3 || result.settlementRoot !== await invoiceRoot(signed.invoice) || result.expectedTokens !== invoiceQuote(signed.invoice).principalTokens || ![
+    const signed = await this.verifyInvoice(input), hash3 = await invoiceHash(signed.invoice), result = await this.request("/v1/invoices/status", await invoiceStatusRequest(signed.invoice)), roots = await invoicePaymentRoots(signed.invoice);
+    if (result.invoiceHash !== hash3 || (signed.invoice.version === 1 ? result.settlementRoot !== roots[0] : result.settlementRoot !== null || canonical(result.settlementRoots) !== canonical(roots)) || result.expectedTokens !== invoiceQuote(signed.invoice).principalTokens || ![
       "awaiting_payment",
       "partial",
       "paid",
@@ -1255,17 +1304,22 @@ export {
   OperationJournal,
   SettlementSession,
   activityKinds,
+  assertInvoiceReferenceAvailable,
   browserJournalStorage,
   canonical,
+  createInvoice,
   feeQuote,
   invoiceFromFragment,
   invoiceHash,
   invoiceLink,
   invoiceMessage,
+  invoicePaymentRoots,
   invoiceProof,
   invoiceQuote,
   invoiceRoot,
+  invoiceRootsFromHash,
   invoiceSigningDigest,
+  invoiceStatusRequest,
   matchInvoicePlan,
   nonceBytes,
   parseActivityPage,

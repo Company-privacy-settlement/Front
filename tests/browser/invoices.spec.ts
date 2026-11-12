@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { generateKeyPairSync, createHash, sign } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import {
   invoiceFromFragment,
   invoiceRoot,
@@ -44,7 +45,8 @@ async function fixture(page: Page) {
       base58(
         key.publicKey.export({ format: "der", type: "spki" }).subarray(-32),
       ),
-    settled = new Set<string>();
+    settled = new Set<string>(),
+    paymentRoots = new Map<string, string>();
   let invoiceDigest = "";
   const bodies: unknown[] = [];
   await page.exposeFunction(
@@ -78,8 +80,9 @@ async function fixture(page: Page) {
       };
     },
   );
-  await page.exposeFunction("fixtureInvoicePay", (nullifier: string) => {
-    settled.add(nullifier);
+  await page.exposeFunction("fixtureInvoicePay", (payment: { nullifier: string; root: string }) => {
+    settled.add(payment.nullifier);
+    paymentRoots.set(payment.nullifier, payment.root);
   });
   await page.route(
     "https://raw.githubusercontent.com/hot-dao/**/manifest.json",
@@ -119,7 +122,7 @@ async function fixture(page: Page) {
         }),
       signAndSendTransaction: async (p: any) => {
         const msg = JSON.parse(p.actions[0].params.args.msg);
-        await (window as any).fixtureInvoicePay(msg.public_inputs[0]);
+        await (window as any).fixtureInvoicePay({ nullifier: msg.public_inputs[0], root: msg.disclosure_root });
         return { transaction: { hash: "B".repeat(44), signer_id: account() } };
       },
     };
@@ -147,12 +150,12 @@ async function fixture(page: Page) {
     } else if (path === "/v1/invoices/status") {
       const n = settled.size,
         expected = BigInt(body.units) * 1000000n,
-        paid = BigInt(n) * 1000000n;
+        paid = BigInt(n) * 1000000n,
+        roots = body.version === 2 ? body.paymentNonces.map((nonce: string) => createHash("sha256").update(`core:invoice:payment:v2|${body.invoiceHash}|${nonce}`).digest("hex")) : [];
       json = {
         invoiceHash: body.invoiceHash,
-        settlementRoot: createHash("sha256")
-          .update("core:invoice:settlement:v1|" + body.invoiceHash)
-          .digest("hex"),
+        settlementRoot: body.version === 2 ? null : createHash("sha256").update("core:invoice:settlement:v1|" + body.invoiceHash).digest("hex"),
+        ...(body.version === 2 ? { settlementRoots: roots, reusedPaymentReferences: settled.size - new Set([...settled].map(v => paymentRoots.get(v))).size } : {}),
         state: n === body.units ? "paid" : n ? "partial" : "awaiting_payment",
         expectedTokens: expected.toString(),
         paidTokens: paid.toString(),
@@ -164,6 +167,7 @@ async function fixture(page: Page) {
         checkedAt: { hash, height: 200, updatedAt: new Date().toISOString() },
         chainFreshnessChecked: false,
         confirmations: [...settled].map((v, i) => ({
+          ...(body.version === 2 ? { settlementRoot: paymentRoots.get(v) } : {}),
           recordIndex: i,
           nullifier: v,
           blockHeight: 150,
@@ -249,8 +253,8 @@ const field = (s: string) => {
   b[0] &= 31;
   return BigInt("0x" + b.toString("hex")).toString();
 };
-async function plan(signed: SignedInvoice, nf: string, wrong = false) {
-  const root = wrong ? "ff".repeat(32) : await invoiceRoot(signed.invoice),
+async function plan(signed: SignedInvoice, nf: string, wrong = false, paymentIndex = 0) {
+  const root = wrong ? "ff".repeat(32) : await invoiceRoot(signed.invoice, paymentIndex),
     domain = field(`core:ft:v3|testnet|forest.testnet|usdc.testnet|1000000`),
     context = field(
       `core:action:ft:v3|${domain}|withdraw|${vault}|recipient.testnet|${root}`,
@@ -301,6 +305,8 @@ test("recipient signs an invoice, payer rejects another invoice proof, and two c
   const f = await fixture(page),
     created = await issue(page);
   expect(created.signed.invoice.units).toBe(2);
+  expect(created.signed.invoice.version).toBe(2);
+  expect(await invoiceRoot(created.signed.invoice, 0)).not.toBe(await invoiceRoot(created.signed.invoice, 1));
   await page.screenshot({ path: info.outputPath("invoice-created.png"), fullPage: true });
   const file = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download signed invoice" }).click();
@@ -335,6 +341,13 @@ test("recipient signs an invoice, payer rejects another invoice proof, and two c
   await expect(
     page.getByText("Awaiting payment", { exact: true }),
   ).toBeVisible();
+  for (const index of [0, 1]) {
+    await page.getByRole("combobox", { name: "Payment unit", exact: true }).selectOption(String(index));
+    const download = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download proof action" }).click();
+    const path = await (await download).path();
+    expect(JSON.parse(await readFile(path!, "utf8"))).toEqual({ kind: "withdraw", target: created.signed.invoice.recipient, disclosureRoot: await invoiceRoot(created.signed.invoice, index) });
+  }
   await page.getByRole("button", { name: "Connect testnet wallet" }).click();
   await page.getByText("Invoice Fixture Wallet", { exact: true }).click();
   await page
@@ -352,12 +365,12 @@ test("recipient signs an invoice, payer rejects another invoice proof, and two c
     "invoice root",
   );
   expect(f.settled.size).toBe(0);
-  for (const nf of ["42", "43"]) {
+  for (const [paymentIndex, nf] of ["42", "43"].entries()) {
     await expect(input).toBeEnabled();
     await input.setInputFiles({
       name: "payment.json",
       mimeType: "application/json",
-      buffer: Buffer.from(JSON.stringify(await plan(created.signed, nf))),
+      buffer: Buffer.from(JSON.stringify(await plan(created.signed, nf, false, paymentIndex))),
     });
     await page
       .getByRole("button", { name: "Approve payment in wallet" })
@@ -374,6 +387,15 @@ test("recipient signs an invoice, payer rejects another invoice proof, and two c
         { exact: true },
       ),
     ).toBeVisible();
+    if (paymentIndex === 0) {
+      await expect(page.getByRole("combobox", { name: "Payment unit", exact: true })).toHaveValue("1");
+      await page.getByRole("combobox", { name: "Payment unit", exact: true }).selectOption("0");
+      await expect(page.getByRole("button", { name: "Download proof action" })).toBeDisabled();
+      await page.getByRole("combobox", { name: "Payment unit", exact: true }).selectOption("1");
+      await input.setInputFiles({ name: "reused-reference.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(await plan(created.signed, "44", false, 0))) });
+      await expect(page.locator(".live-feedback[role=alert]")).toContainText("already has an indexed payment");
+      expect(f.settled.size).toBe(1);
+    }
   }
   expect(f.settled.size).toBe(2);
   await expect(input).toBeDisabled();

@@ -75,6 +75,8 @@ test('KYB jurisdiction changes clear stale evidence and leaving or reloading dis
   await step(page, 'Overview').click();
   await page.getByRole('button', { name: 'Use sample business details' }).click();
   await step(page, 'Business details').click();
+  await expect(page).toHaveURL(/\/kyb\/business\/$/);
+  await expect(page.getByLabel('Legal business name')).toHaveValue('Meridian Studio Example Ltd');
   await page.reload();
   await expect(page.getByLabel('Legal business name')).toHaveValue('');
   await expect(page.getByLabel('Registration jurisdiction')).toHaveValue('');

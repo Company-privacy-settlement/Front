@@ -8,10 +8,9 @@ import { InvoiceSummary, saveJson } from "./invoice-summary";
 import {
   HttpGateway,
   parsePolicy,
-  parseInvoice,
+  createInvoice,
   invoiceLink,
   verifySignedInvoice,
-  invoiceRoot,
   feeQuote,
   canonical,
   type Policy,
@@ -57,9 +56,7 @@ export function InvoiceWorkspace() {
     const gateway = new HttpGateway(api);
     if (canonical(await gateway.policy()) !== canonical(policy))
       throw new Error("API policy does not match");
-    const invoice = parseInvoice({
-      version: 1,
-      id: crypto.randomUUID(),
+    const invoice = createInvoice({
       merchantAccount: merchant,
       recipient,
       title: title.trim(),
@@ -68,9 +65,6 @@ export function InvoiceWorkspace() {
       units,
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + hours * 3600000).toISOString(),
-      nonce: Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) =>
-        b.toString(16).padStart(2, "0"),
-      ).join(""),
     });
     const result = await signInvoice(invoice);
     await gateway.verifyInvoice(result);
@@ -301,23 +295,7 @@ export function InvoiceWorkspace() {
                 <a className="button button-outline" href={link}>
                   Open checkout <ArrowUpRight size={15} />
                 </a>
-                <button
-                  className="button button-outline"
-                  onClick={() =>
-                    void run(async () => {
-                      saveJson(
-                        {
-                          kind: "withdraw",
-                          target: signed.invoice.recipient,
-                          disclosureRoot: await invoiceRoot(signed.invoice),
-                        },
-                        `invoice-action-${signed.invoice.id}.json`,
-                      );
-                    })
-                  }
-                >
-                  Download proof action
-                </button>
+
               </div>
               <p>
                 The link carries signed terms in its URL fragment. Share it

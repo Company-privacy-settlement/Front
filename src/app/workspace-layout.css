@@ -113,3 +113,13 @@ html, body { overscroll-behavior: none; }
   .checkout-topbar { height: auto; min-height: 67px; padding-block: 12px; flex-wrap: wrap; }
   .checkout-topbar .checkout-continue { order: 1; flex-basis: 100%; max-width: none; justify-content: flex-end; }
 }
+.privacy-explainer { border: 1px solid #dce3de; background: #f5faf7; border-radius: 5px; padding: 15px 18px; margin-block: 20px; color: #52665a; }
+.privacy-explainer summary { cursor: pointer; font-size: 12px; font-weight: 550; }
+.privacy-explainer p { font-size: 11px; line-height: 1.8; margin-top: 12px; }
+.invoice-payment-reference { padding: 17px; margin: 18px 0; border: 1px solid #dce3de; background: #f7fbf8; border-radius: 5px; }
+.merchant-ui .invoice-payment-reference .form-label { margin: 0 0 12px; }
+.merchant-ui .invoice-payment-reference>p { font-size: 11px; margin-bottom: 14px; }
+.invoice-payment-reference .button { width: 100%; }
+.merchant-ui .invoice-reference-warning { color: #906321; border: 1px solid #e6cb9b; border-radius: 4px; padding: 10px; background: #fffcf4; }
+.network-bottom>span:not(.network-caption) { min-width: 0; }
+@media(max-width:760px) { .network-bottom>span:not(.network-caption) { font-size: 8px; line-height: 1.5; } }

@@ -2,6 +2,8 @@
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md)
 
+New invoice terms v2 provide a Payment unit selector and distinct signed references for each unit; legacy v1 still opens with its common reference. Download an action for each unit before local proof generation. Checkout checks indexed reference reuse before new payment approvals; concurrent/stale-index races remain possible and actual repeated payouts remain counted. Use the matching updated Core API. Distributed custody means one shared note set and one payout vault, not sequential principal hops. Recipient addresses, amounts, timing and signers remain public; link holders and the API can associate the references. See [Core privacy model](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PRIVACY.md).
+
 A Next.js landing page and hackathon demo for private B2B settlement and employee payments on NEAR. Contracts and server/SDK code are maintained in separate repositories.
 
 - `/`: protocol landing page explaining distributed vaults, shared anonymity, selective disclosure, and fees.

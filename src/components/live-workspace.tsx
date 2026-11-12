@@ -25,7 +25,8 @@ import {
   type Review,
   type SignedInvoice,
   type InvoiceStatus,
-  invoiceRoot,
+  invoicePaymentRoots,
+  assertInvoiceReferenceAvailable,
   matchInvoicePlan,
   requireOpenInvoice,
 } from "@/vendor/core-client/index.js";
@@ -96,13 +97,13 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
       if (journal.current) {
         try {
           const all = await journal.current.list(),
-            root = invoice ? await invoiceRoot(invoice.invoice) : null;
+            roots = invoice ? await invoicePaymentRoots(invoice.invoice) : [];
           setOperations(
             invoice
               ? all.filter(
                   (o) =>
                     o.reference.kind === "withdrawal" &&
-                    o.reference.expectedDisclosureRoot === root &&
+                    roots.includes(o.reference.expectedDisclosureRoot ?? "") &&
                     o.reference.expectedRecipient === invoice.invoice.recipient,
                 )
               : all,
@@ -145,11 +146,12 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
     setReview(await session.current.review(id));
     setSelected(id);
   }
-  async function invoiceGate() {
+  async function invoiceGate(root?: string) {
     if (!invoice) return;
     requireOpenInvoice(invoice.invoice);
     const status = await new HttpGateway(api).invoiceStatus(invoice);
     setInvoiceStatus(status);
+    if (root) await assertInvoiceReferenceAvailable(invoice.invoice, root, status);
     if (!["awaiting_payment", "partial"].includes(status.state))
       throw new Error(
         "This invoice is already covered or needs merchant review",
@@ -183,6 +185,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
             {notice}
           </p>
         )}
+        <details className="privacy-explainer"><summary>Privacy model & public information</summary><p>Principal remains in independent vaults. A shared ZK note proves the right to withdraw without naming the input note; funds are not forwarded through a chain of vaults. Payout accounts, fixed token amounts, timing and transaction signers remain public. Effective anonymity is not measured by the vault count.</p><p>KYB documents and business terms stay outside contract calls. The API can observe preparation and status requests. Share receipt openings only with the intended reviewer.</p></details>
         <div className="live-setup">
           <section className="panel live-card" id="settlement-group">
 
@@ -432,8 +435,8 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                   if (!session.current) throw new Error("Unlock the journal");
                   const plan = JSON.parse(await fileText(e, 8192));
                   if (invoice) {
-                    await invoiceGate();
-                    await matchInvoicePlan(plan, invoice.invoice, payer);
+                    const payment = await matchInvoicePlan(plan, invoice.invoice, payer);
+                    await invoiceGate(payment.reference.expectedDisclosureRoot);
                   }
                   const o = await session.current.importPlan(plan);
                   setOperations(await journal.current!.list());
@@ -548,8 +551,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                                 op.reference.kind !== "withdrawal" ||
                                 op.reference.expectedRecipient !==
                                   invoice.invoice.recipient ||
-                                op.reference.expectedDisclosureRoot !==
-                                  (await invoiceRoot(invoice.invoice))
+                                !(await invoicePaymentRoots(invoice.invoice)).includes(op.reference.expectedDisclosureRoot ?? "")
                               )
                                 throw new Error(
                                   "Operation is not bound to this invoice",
@@ -558,7 +560,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                                 review.kind !== "retry" &&
                                 review.kind !== "refund"
                               )
-                                await invoiceGate();
+                                await invoiceGate(op.reference.expectedDisclosureRoot);
                             }
                             try {
                               await session.current!.submitReviewed(
