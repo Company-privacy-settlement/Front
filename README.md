@@ -29,9 +29,26 @@ npm run test:e2e
 
 Browser tests serve the built `out/` directory with a temporary server on port 3000 and run on desktop and mobile viewports.
 
+## Testnet wallet workspace
+
+`/live/` executes real, reviewed calls for a **user-configured testnet FT shared group**. No public funded deployment is bundled. It uses NEAR Connect 0.12.0; keys stay in the selected wallet. Each token registration, NEAR storage prepayment, token payment or bound recovery call requires a separate review and wallet approval.
+
+1. Run Core’s read-only API with an actual `CORE_POLICY_FILE`, `CORE_RPC_URL`, and the exact Front origin in `CORE_ALLOWED_ORIGINS`. Use an HTTPS API when accessing a hosted Front.
+2. Enter the API origin, import a policy obtained independently of the API, and verify that every pinned value matches.
+3. Connect a testnet wallet and create/unlock an encrypted local journal with a passphrase of at least 12 characters.
+4. Import the **public FT plan JSON** produced by Core CLI `shared-deposit-args` or `shared-spend-args`. Private notes/proofs are generated locally with the CLI; the journal is not a private-note backup.
+5. Review exact destinations, atomic token amounts, attached NEAR and additional gas. Sign one step, then refresh until the bound deposit is `Active` or withdrawal is `Complete`.
+6. Export the encrypted journal. A lost wallet response blocks another signature; verify the original transaction hash or observe its bound on-chain record to resume. There is no automatic resend or passphrase recovery.
+
+The browser journal uses PBKDF2-SHA256 and AES-256-GCM, with Web Locks excluding concurrent tabs. Unlocking exposes public operation metadata in page memory; Lock clears the client passphrase. Unsupported locks fail closed. Restoring a backup requires empty storage and preserves existing histories by refusing overwrite. The configured API can observe public preparation/status requests.
+
+The browser execution client is vendored from Core in `src/vendor/core-client/` with declarations and a SHA-256 manifest; `npm run build` verifies the hashes. Front builds independently of sibling checkouts. To refresh it, run Core’s `npm run build:client`, then Front’s `npm run sync:core`. See [Core wallet integration](https://github.com/Company-privacy-settlement/Core/blob/main/docs/WALLET.md).
+
+Browser tests use a standard injected fixture wallet and mocked public reads. Core’s sandbox validates actual WASM/proofs and wallet-session execution. A funded external-wallet test against a public testnet deployment remains outstanding.
+
 ## Demo scope
 
-Deposits and withdrawals are **simulated entirely in the browser**. Wallet connections, EOA generation/private-key storage, live on-chain queries, transaction signing/broadcasting, and dynamic payout proof generation are not connected. The UI does not present contracts as deployed on testnet. Example companies and people are demo data.
+On `/app/`, deposits and withdrawals are **simulated entirely in the browser**. Its balances and example companies/people are demo data. Real reviewed wallet calls are in the separate, explicitly configured `/live/` workspace. EOA key generation and dynamic browser proof generation remain outside both interfaces.
 
 The workspace starts with a 20 NEAR demo wallet, three private notes, and 12 NEAR of total liquidity across three vaults. Depositing a fixed 1 NEAR note increases notes and liquidity; a payment decreases notes and the selected vault's liquidity. Only deposits occupy new tree leaves. State is stored in localStorage and cleared with Reset demo. The sample UI does not request real keys or real enterprise personal data.
 
@@ -49,13 +66,16 @@ Network gas is additional for real transactions. The demo charges no gas and sho
 - **Groth16**: `public/data/proof-vector.json` uses Contract's cross-vault A→B test vector and Core's verifying key. It converts Arkworks little-endian proof encoding to snarkjs format and performs BN254 pairing verification. This verifies the mathematical proof against public inputs such as the root, domain, and nullifier without identifying the input note. It is a **recorded test proof**, not a proof of a simulated UI payment. It uses a development trusted setup.
 - **Receipt integrity**: Web Crypto SHA-256 creates a salted Merkle commitment over eight fields. Only selected field openings are verified and exported as JSON. The format matches Core SDK's disclosure module. It proves that values match the local commitment; it does not certify on-chain payment, enterprise identity, or tax compliance. Opening a receipt creates a new sample commitment.
 
-The demo includes sample US/Abu Dhabi payment flows. Real KYB/KYC providers, AI tax/legal preparation, wallet signing, and testnet connections are future integrations. The code and UI are hackathon development work without a production security audit.
+The demo includes sample US/Abu Dhabi payment flows. Real KYB/KYC providers and AI tax/legal preparation remain future integrations. The code and UI are hackathon development work without a production security audit.
 
 ## Structure
 
 ```text
 src/app/page.tsx              Landing page
 src/app/app/page.tsx          Demo entry
+src/app/live/page.tsx         Configured testnet wallet entry
+src/components/live-workspace.tsx Wallet review and encrypted recovery
+src/vendor/core-client       Verified browser SDK bundle and declarations
 src/components/dashboard.tsx Dashboard and payment/receipt flows
 src/lib/demo.ts               BigInt fees and local state transitions
 src/lib/receipts.ts           Selective disclosure commitments
@@ -68,4 +88,4 @@ public/vendor                Self-hosted verifier and license
 - [Core](https://github.com/Company-privacy-settlement/Core): server/SDK integration code, enterprise credential/evidence data models, and chain integration validation.
 - [Front](https://github.com/Company-privacy-settlement/Front): this Next.js frontend.
 
-Running and building Front does not require sibling repository directories. The frontend contains no private keys or proving keys. It makes no external analytics/tracking or remote font requests.
+Running and building Front does not require sibling repository directories. The frontend contains no private keys or proving keys. It makes no external analytics/tracking or remote font requests. Wallet connection loads NEAR Connect’s public wallet manifest and provider interfaces on demand.
