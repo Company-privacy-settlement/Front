@@ -637,9 +637,9 @@ var SettlementSession = class {
       );
     const first = preflight.prerequisites[0];
     if (first) {
-      const call = validatePrerequisite(first, this.policy, o.payer, r), hash2 = await sha256(canonical(call));
+      const call = validatePrerequisite(first, this.policy, o.payer, r), hash3 = await sha256(canonical(call));
       if (o.attempts.some(
-        (a) => a.kind === "prerequisite" && a.state === "confirmed" && a.callHash === hash2
+        (a) => a.kind === "prerequisite" && a.state === "confirmed" && a.callHash === hash3
       ))
         return result(
           "wait",
@@ -730,6 +730,178 @@ var SettlementSession = class {
   }
 };
 
+// sdk/client/activity.ts
+var activityKinds = [
+  "deposit",
+  "transfer",
+  "withdrawal_requested",
+  "withdrawal_failed",
+  "withdrawal_retried",
+  "withdrawal_succeeded"
+];
+var count = (v) => {
+  if (typeof v !== "number" || !Number.isSafeInteger(v) || v < 0)
+    throw new Error("Invalid index count");
+  return v;
+};
+var hash2 = (v) => {
+  if (typeof v !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(v))
+    throw new Error("Invalid chain hash");
+  return v;
+};
+var block = (v) => {
+  const b = object(v);
+  return { hash: hash2(b.hash), height: count(b.height) };
+};
+var time = (v) => {
+  if (typeof v !== "string" || !Number.isFinite(Date.parse(v)))
+    throw new Error("Invalid index timestamp");
+  return v;
+};
+var atomic2 = (v) => {
+  if (typeof v !== "string" || !/^(0|[1-9][0-9]*)$/.test(v) || v.length > 39 || BigInt(v) >= 1n << 128n)
+    throw new Error("Invalid indexed amount");
+  return v;
+};
+function parseIndexStatus(input, policy) {
+  const s = object(input);
+  if (s.enabled !== true || s.scope !== "configured_registry_records" || s.chainFreshnessChecked !== false || canonical(parsePolicy(s.policy)) !== canonical(policy))
+    throw new Error("Index policy or scope mismatch");
+  const claims = object(s.claims);
+  if (claims.completeBusinessHistory !== false || claims.taxFilingAccepted !== false)
+    throw new Error("Unsupported index claim");
+  const indexedRecords = count(s.indexedRecords), linkedRecords = count(s.linkedRecords), c = s.checkpoint === null ? null : object(s.checkpoint), checkpoint = c ? {
+    block: block(c.block),
+    nextIndex: count(c.nextIndex),
+    sourceRecordCount: count(c.sourceRecordCount),
+    updatedAt: time(c.updatedAt)
+  } : null;
+  if (linkedRecords > indexedRecords || checkpoint && (checkpoint.nextIndex !== indexedRecords || checkpoint.sourceRecordCount < indexedRecords) || !checkpoint && indexedRecords !== 0 || s.remainingRecords !== (checkpoint ? checkpoint.sourceRecordCount - indexedRecords : null))
+    throw new Error("Inconsistent index coverage");
+  const candidates = {};
+  for (const [k, v] of Object.entries(object(s.candidates))) {
+    if (!["pending", "linked", "unrelated", "invalid"].includes(k))
+      throw new Error("Invalid provenance queue state");
+    candidates[k] = count(v);
+  }
+  let discovery;
+  if (s.discovery !== void 0) {
+    const d = object(s.discovery);
+    if (typeof d.enabled !== "boolean" || d.enabled !== (d.state !== null))
+      throw new Error("Invalid discovery status");
+    let state = null;
+    if (d.state !== null) {
+      const x = object(d.state), cur = x.current === null ? null : object(x.current);
+      state = {
+        startHeight: count(x.startHeight),
+        lastComplete: x.lastComplete === null ? null : block(x.lastComplete),
+        current: cur ? {
+          block: block(cur.block),
+          offset: count(cur.offset),
+          total: count(cur.total)
+        } : null,
+        scannedTransactions: count(x.scannedTransactions),
+        candidatesFound: count(x.candidatesFound),
+        updatedAt: time(x.updatedAt),
+        blocked: x.blocked === null ? null : typeof x.blocked === "string" && /^[A-Z_]{1,64}$/.test(x.blocked) ? x.blocked : (() => {
+          throw new Error("Invalid discovery error");
+        })()
+      };
+      if (state.current && state.current.offset > state.current.total)
+        throw new Error("Invalid discovery offset");
+    }
+    discovery = { enabled: d.enabled, state };
+  }
+  return {
+    enabled: true,
+    policy,
+    checkpoint,
+    indexedRecords,
+    linkedRecords,
+    remainingRecords: s.remainingRecords,
+    candidates,
+    ...discovery ? { discovery } : {},
+    scope: "configured_registry_records",
+    claims: { completeBusinessHistory: false, taxFilingAccepted: false },
+    chainFreshnessChecked: false
+  };
+}
+function parseActivityPage(input, policy) {
+  const p = object(input), index = parseIndexStatus(p.index, policy), upper = count(object(p.snapshot).upperExclusive);
+  if (p.scope !== "configured_registry_records" || upper > index.indexedRecords || !Array.isArray(p.items) || p.items.length > 50 || p.nextCursor !== null && (typeof p.nextCursor !== "string" || p.nextCursor.length > 1024 || !/^[A-Za-z0-9_-]+$/.test(p.nextCursor)))
+    throw new Error("Invalid activity page");
+  const items = p.items.map((value) => {
+    const item = object(value), r = object(item.record), kind = r.kind;
+    if (!activityKinds.includes(kind))
+      throw new Error("Unsupported journal event");
+    const root = r.disclosure_root;
+    if (typeof root !== "string" || !/^[a-f0-9]{64}$/.test(root))
+      throw new Error("Invalid receipt root");
+    const record = {
+      index: count(r.index),
+      kind,
+      commitment: r.commitment === null ? null : scalar(r.commitment),
+      nullifier: r.nullifier === null ? null : scalar(r.nullifier),
+      vault: r.vault === null ? null : account(r.vault),
+      recipient: r.recipient === null ? null : account(r.recipient),
+      disclosure_root: root,
+      block_height: count(r.block_height),
+      timestamp_ns: atomic2(r.timestamp_ns),
+      amount: atomic2(r.amount),
+      asset_token_id: r.asset_token_id === null ? null : account(r.asset_token_id),
+      protocol_fee_charged: atomic2(r.protocol_fee_charged),
+      protocol_fee_earned: atomic2(r.protocol_fee_earned),
+      storage_fee_charged: atomic2(r.storage_fee_charged)
+    };
+    if (record.amount !== policy.denomination || record.asset_token_id !== (policy.tokenId ?? null) || record.index >= upper)
+      throw new Error("Activity asset or snapshot mismatch");
+    const fee = (BigInt(policy.denomination) * 15n / 10000n).toString();
+    if (record.protocol_fee_charged !== (["deposit", "withdrawal_requested"].includes(kind) ? fee : "0") || record.protocol_fee_earned !== (["deposit", "withdrawal_succeeded"].includes(kind) ? fee : "0") || record.storage_fee_charged !== ([
+      "deposit",
+      "transfer",
+      "withdrawal_requested",
+      "withdrawal_retried"
+    ].includes(kind) ? "20000000000000000000000" : "0"))
+      throw new Error("Indexed fee policy mismatch");
+    if (kind === "deposit" ? record.commitment === null || record.nullifier !== null || record.vault === null || record.recipient !== null : kind === "transfer" ? record.commitment === null || record.nullifier === null || record.vault !== null || record.recipient !== null : record.commitment !== null || record.nullifier === null || record.vault === null || record.recipient === null)
+      throw new Error("Indexed action binding mismatch");
+    if (record.vault && !new RegExp(
+      `^v[a-f0-9]{32}\\.${policy.registry.replaceAll(".", "\\.")}$`
+    ).test(record.vault))
+      throw new Error("Indexed vault is outside the trusted group");
+    const observedAt = block(item.observedAt);
+    if (record.block_height > observedAt.height || index.checkpoint && observedAt.height > index.checkpoint.block.height)
+      throw new Error("Activity is outside its observed final block");
+    let provenance = null;
+    if (item.provenance !== null) {
+      const a = object(item.provenance), t = object(a.transaction);
+      if (!["succeeded", "failed"].includes(String(a.outerOutcome)) || !Array.isArray(a.receipts) || a.receipts.length < 1 || a.receipts.length > 50)
+        throw new Error("Invalid provenance");
+      provenance = {
+        transaction: { hash: hash2(t.hash), signer: account(t.signer) },
+        outerOutcome: a.outerOutcome,
+        receipts: a.receipts.map((v) => {
+          const x = object(v);
+          return { id: hash2(x.id), blockHash: hash2(x.blockHash) };
+        }),
+        verifiedAt: block(a.verifiedAt)
+      };
+    }
+    return { record, observedAt, provenance };
+  });
+  if (items.some(
+    (item, i) => i > 0 && item.record.index >= items[i - 1].record.index
+  ))
+    throw new Error("Activity page is not in descending order");
+  return {
+    items,
+    nextCursor: p.nextCursor,
+    snapshot: { upperExclusive: upper },
+    index,
+    scope: "configured_registry_records"
+  };
+}
+
 // sdk/client/http.ts
 var HttpGateway = class {
   url;
@@ -749,7 +921,21 @@ var HttpGateway = class {
       cache: "no-store",
       signal: AbortSignal.timeout(25e3)
     });
-    if (!r.ok) throw new Error(`Core API request failed (${r.status})`);
+    if (!r.ok) {
+      let code;
+      try {
+        const e = await r.json();
+        if ([
+          "INDEX_DISABLED",
+          "INDEX_NOT_READY",
+          "INDEX_READ_FAILED",
+          "INVALID_CURSOR"
+        ].includes(e.error))
+          code = e.error;
+      } catch {
+      }
+      throw new CoreApiError(r.status, code);
+    }
     return r.json();
   }
   async policy() {
@@ -764,14 +950,47 @@ var HttpGateway = class {
   verify(transaction, call) {
     return this.request("/v1/transactions/verify", { transaction, call });
   }
+  async trusted(policy) {
+    if (canonical(await this.policy()) !== canonical(policy))
+      throw new Error("API policy differs from the trusted group");
+  }
+  async indexStatus(policy) {
+    await this.trusted(policy);
+    return parseIndexStatus(await this.request("/v1/index/status"), policy);
+  }
+  async activity(policy, query = {}) {
+    await this.trusted(policy);
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(query))
+      if (v !== void 0 && v !== "") params.set(k, String(v));
+    return parseActivityPage(
+      await this.request(
+        "/v1/activity" + (params.size ? "?" + params.toString() : "")
+      ),
+      policy
+    );
+  }
+};
+var CoreApiError = class extends Error {
+  constructor(status, code) {
+    super(`Core API request failed (${status}${code ? `: ${code}` : ""})`);
+    this.status = status;
+    this.code = code;
+  }
+  status;
+  code;
 };
 export {
+  CoreApiError,
   HttpGateway,
   OperationJournal,
   SettlementSession,
+  activityKinds,
   browserJournalStorage,
   canonical,
   feeQuote,
+  parseActivityPage,
+  parseIndexStatus,
   parsePolicy,
   preparedPayment,
   sha256

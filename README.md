@@ -46,6 +46,8 @@ The browser execution client is vendored from Core in `src/vendor/core-client/` 
 
 Browser tests use a standard injected fixture wallet and mocked public reads. Core’s sandbox validates actual WASM/proofs and wallet-session execution. A funded external-wallet test against a public testnet deployment remains outstanding.
 
+After verifying the group policy, `/live/` also reads public group activity from the configured API. It shows indexed events, linked/unresolved provenance, outer transaction outcome, checkpoint age, automatic-discovery coverage/waiting status, event/recipient filters and stable load-more pages. No wallet or unlocked journal is needed for public reads. The UI validates the policy, asset, principal and fee fields before rendering records. Disabled/unavailable indexing is explicit and never replaced with demo data. Enable Core’s worker with `CORE_INDEX_DB` and optionally `CORE_DISCOVERY_START_HEIGHT`; refresh reads the database, not the current chain head. These events do not certify complete company history or tax filing.
+
 ## Demo scope
 
 On `/app/`, deposits and withdrawals are **simulated entirely in the browser**. Its balances and example companies/people are demo data. Real reviewed wallet calls are in the separate, explicitly configured `/live/` workspace. EOA key generation and dynamic browser proof generation remain outside both interfaces.

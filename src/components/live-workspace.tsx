@@ -11,6 +11,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { Brand } from "./brand";
+import { IndexedActivityPanel } from './indexed-activity';
 import {
   OperationJournal,
   SettlementSession,
@@ -598,6 +599,7 @@ export function LiveWorkspace() {
             </div>
           </div>
         </section>
+        {verified&&policy&&<IndexedActivityPanel key={`${api}:${canonical(policy)}`} api={api} policy={policy}/>}
         <p className="small-note live-footnote">
           This journal contains public settlement metadata, not spendable
           private notes. The read-only Core API can observe requests; its

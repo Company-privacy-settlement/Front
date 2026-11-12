@@ -1,3 +1,4 @@
+import { type ActivityFilters } from "./activity.js";
 import type { Call, Gateway, Policy, Preflight, Reference, Observation, TxRef, Verification } from "./types.js";
 export declare class HttpGateway implements Gateway {
     readonly url: string;
@@ -7,4 +8,15 @@ export declare class HttpGateway implements Gateway {
     preflight(request: Parameters<Gateway["preflight"]>[0]): Promise<Preflight>;
     observe(reference: Reference): Promise<Observation>;
     verify(transaction: TxRef, call: Call): Promise<Verification>;
+    private trusted;
+    indexStatus(policy: Policy): Promise<import("./activity.js").IndexStatus>;
+    activity(policy: Policy, query?: ActivityFilters & {
+        limit?: number;
+        cursor?: string;
+    }): Promise<import("./activity.js").ActivityPage>;
+}
+export declare class CoreApiError extends Error {
+    readonly status: number;
+    readonly code?: string | undefined;
+    constructor(status: number, code?: string | undefined);
 }
