@@ -14,6 +14,14 @@ The landing follows [NEAR.org](https://www.near.org/): black and white, vivid gr
 
 The invoice editor previews the actual draft title, recipient, fixed-note count, token principal and add-on fee. Amounts remain token atomic units because the trusted group policy does not supply token display decimals. Drafts are not saved. Checkout separates signed request details from payer controls; settlement readiness reflects the verified policy, wallet and local journal, without inventing a custodial balance.
 
+## Business verification / KYB
+
+`/kyb/` is a separate, six-page demo intake: overview → business → people/ownership → documents → review → status. It distinguishes US, Abu Dhabi mainland and ADGM registration. Every page is directly addressable; Next.js navigation preserves the in-memory draft inside this workspace. Refreshing or leaving the KYB layout discards it. Use sample information only. No localStorage, sessionStorage, backend or provider receives this draft.
+
+The evidence step accepts sample PDF/PNG/JPEG metadata up to 10 MB per file; file contents are never read or uploaded. Four evidence records are required for this demo checklist, with optional source-of-funds material. This is an intake template, not a determination of jurisdiction-specific legal requirements. Provider identity checks, screening and review are not connected.
+
+Preparation requires complete business/ownership/evidence sections and an authority acknowledgement. Editing any intake field invalidates preparation and acknowledgement; changing jurisdiction also clears location/registration/authority and selected evidence. The downloadable sample request explicitly sets `verified: false`, `credentialIssued: false` and `providerSubmission: "not_sent"`. The status page does not issue a KYB credential or change payment eligibility. Official references are linked for provider assessment; they are not tax advice or statutory filings.
+
 ## Run locally
 
 Requires Node.js 22 or later.

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowDown, ArrowUpRight, ArrowLeftRight, ChevronRight, FileCheck2, Home, Layers3, LockKeyhole, Menu, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowDown, ArrowUpRight, ArrowLeftRight, ChevronRight, FileCheck2, Home, Layers3, LockKeyhole, Menu, Wallet, ShieldCheck } from "lucide-react";
 import { Brand, NearMark } from "./brand";
 
 const navigation = [
@@ -10,6 +10,7 @@ const navigation = [
   { title: "Payments", href: "/app/?view=payments", icon: ArrowUpRight },
   { title: "Invoices", href: "/invoices/", icon: FileCheck2 },
   { title: "Settlements", href: "/live/", icon: ArrowLeftRight },
+  { title: "Business verification", href: "/kyb/", icon: ShieldCheck },
   { title: "Vaults", href: "/app/?view=vaults", icon: Layers3 },
   { title: "Proofs & receipts", href: "/app/?view=proofs", icon: LockKeyhole },
 ];
