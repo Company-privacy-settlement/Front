@@ -1,6 +1,6 @@
 # Core Front
 
-[한국어](README.md) · [简体中文](README.zh-CN.md) · [English](README.en.md)
+[English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md)
 
 这是介绍 NEAR 隐私企业间结算与员工付款协议的 Next.js 官网和黑客松演示。合约与服务器/SDK 代码分别保存在独立仓库中。
 
