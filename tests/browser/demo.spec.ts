@@ -1,0 +1,50 @@
+import { test, expect } from '@playwright/test';
+test('landing, payment, persisted balance, deposit, receipt disclosure and search', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+  await page.goto('/'); expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth)); await expect(page.getByRole('heading', { level: 1 })).toContainText('Move money.');
+  await page.getByText('What does this demo actually do?').click(); await expect(page.getByText('The app simulates deposits')).toBeVisible();
+  await page.getByRole('link', { name: 'Explore the demo' }).click();
+  await expect(page.locator('.balance-card .metric-value')).toContainText('3.00');
+  await page.getByRole('button', { name: 'New payment' }).click();
+  await page.getByLabel('Send to').selectOption('alex');
+  await page.getByRole('button', { name: 'Review payment' }).click();
+  await expect(page.locator('.quote-total')).toContainText('0.0215 NEAR');
+  await page.getByRole('button', { name: 'Simulate payment' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('.balance-card .metric-value')).toContainText('2.00');
+  await page.reload(); await expect(page.locator('.balance-card .metric-value')).toContainText('2.00');
+  await page.getByRole('button', { name: 'Add funds', exact: true }).click();
+  await page.getByRole('button', { name: 'Review deposit' }).click();
+  await expect(page.locator('.quote-total')).toContainText('1.0215 NEAR');
+  await page.getByRole('button', { name: 'Simulate deposit' }).click();
+  await expect(page.locator('.balance-card .metric-value')).toContainText('3.00');
+  await page.getByRole('button', { name: /Open receipt for Alex Morgan PAY-2026-011/ }).click();
+  await page.getByRole('button', { name: 'Verify integrity' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Selected fields match' })).toBeVisible();
+  const file = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export 3 fields' }).click(); expect((await file).suggestedFilename()).toContain('core-receipt');
+  await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: 'View all', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Search activity' }).fill('not-found'); await expect(page.getByText('No matching activity')).toBeVisible();
+  await page.getByRole('button', { name: 'Clear filters' }).click(); await expect(page.locator('.activity-table tbody tr')).toHaveCount(5);
+  const width = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]); expect(width[0]).toBeLessThanOrEqual(width[1]); expect(errors).toEqual([]);
+});
+test('recorded Groth16 proof verifies in browser and altered public input fails', async ({ page }) => {
+  await page.goto('/app/?view=proofs');
+  await page.getByRole('button', { name: 'Verify recorded proof', exact: true }).click();
+  await expect(page.getByText('Proof is valid', { exact: true })).toBeVisible({ timeout: 40_000 });
+  await page.route('**/data/proof-vector.json', async route => {
+    const response = await route.fetch(); const data = await response.json(); data.publicSignals[0] = '0'; await route.fulfill({ json: data });
+  });
+  await page.getByRole('button', { name: 'Verify proof again', exact: true }).click();
+  await expect(page.locator('.error-text[role=alert]')).toContainText('did not verify', { timeout: 40_000 });
+});
+test('mobile navigation, reset confirmation and empty private balance', async ({ page, isMobile }) => {
+  await page.goto('/app/');
+  if (isMobile) await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('button', { name: 'Vaults', exact: true }).click(); await expect(page.getByText('Different vault. Same private note.')).toBeVisible();
+  if (isMobile) await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('button', { name: 'Reset demo', exact: true }).click(); await page.getByRole('button', { name: 'Keep workspace' }).click();
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('core-workspace-v1')!); s.notes = 0; localStorage.setItem('core-workspace-v1', JSON.stringify(s)); });
+  await page.goto('/app/'); await page.getByRole('button', { name: 'New payment' }).click();
+  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Add funds'); await expect(page.getByRole('button', { name: 'Review payment' })).toBeDisabled();
+});
