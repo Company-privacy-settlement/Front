@@ -8,6 +8,10 @@ A Next.js landing page and hackathon demo for private B2B settlement and employe
 - `/app/`: demo dashboard, deposits/payments, vault liquidity, activity search, and exports.
 - `/app/?view=proofs`: real in-browser verification of a recorded Groth16 proof and selectively disclosed receipts.
 
+## Visual language
+
+Visual styling follows [NEAR.org](https://www.near.org/): a black-and-white foundation, vivid green accents, thin borders, regular-weight grotesk typography and a centered light-field hero. The landing, demo, testnet workspace, invoices and checkout share `src/app/near-theme.css`. DM Sans is self-hosted; `public/core-field.svg` is original code-authored artwork. Core keeps its own identity; this design reference does not imply affiliation or endorsement.
+
 ## Run locally
 
 Requires Node.js 22 or later.
