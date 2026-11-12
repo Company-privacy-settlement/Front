@@ -137,7 +137,7 @@ export function IndexedActivityPanel({
     >
       <div className="activity-heading">
         <div>
-          <div className="eyebrow">PUBLIC GROUP ACTIVITY</div>
+
           <h2 id="indexed-activity-title">A record you can inspect.</h2>
           <p>
             Finalized journal events for this group. Your encrypted operation

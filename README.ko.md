@@ -10,7 +10,9 @@ NEAR 기반 기업 간 정산·근로자 지급 프로토콜을 소개하는 Nex
 
 ## 디자인 기준
 
-랜딩은 [NEAR 공식 홈페이지](https://www.near.org/)의 검정·흰색, 그린과 중앙 정렬 히어로를 따릅니다. 업무 화면은 [Stripe Invoicing](https://stripe.com/invoicing)과 [Checkout](https://stripe.com/payments/checkout)을 참고해 밝은 내비게이션, 간결한 폼, 보라색 액션 버튼과 상태 패널로 구성합니다. `src/app/merchant-theme.css`는 데모·인보이스·결제·정산에만 적용하며 `src/app/near-theme.css`는 랜딩을 유지합니다. DM Sans는 자체 호스팅하고 `public/core-field.svg`는 자체 그래픽입니다. Core의 독립 브랜드·결제 프로토콜을 유지하며 제휴나 Stripe 연동을 의미하지 않습니다.
+랜딩과 앱은 [NEAR 공식 홈페이지](https://www.near.org/)를 참고한 검정·흰색·선명한 그린, 보통 굵기의 타이포그래피와 얇은 테두리를 공유합니다. 인보이스 편집·결제·정산의 기존 작업 구조를 유지하며 랜딩과 앱의 제목 위 장식 문구를 제거했습니다. `src/app/near-theme.css`, `src/app/merchant-theme.css`, `src/app/workspace-layout.css`가 공통 색상과 작업 영역을 구성하고 KYB 스타일은 `src/app/kyb/kyb.css`에 있습니다. DM Sans는 자체 호스팅하고 `public/core-field.svg`는 자체 그래픽입니다. Core의 독립 브랜드와 프로토콜을 유지합니다.
+
+앱은 동적 화면 높이에 맞춰 내비게이션과 푸터를 고정하고 본문 안에서 스크롤합니다. 결제 화면도 하나의 세로 스크롤 영역을 사용합니다. 페이지 이동 시 본문을 처음 위치로 돌리고 스크롤이 바깥 페이지로 이어지지 않게 합니다. 작은 화면에서도 긴 폼·표·검토 상세에 접근할 수 있습니다.
 
 인보이스 편집기는 실제 초안의 제목·수취인·고정 노트 수·토큰 원금·추가 수수료를 미리 보여줍니다. 정책에 토큰 표시 소수점 정보가 없으므로 금액은 최소 단위로 표시합니다. 초안은 저장하지 않습니다. 결제는 서명된 청구 내역과 송금자 절차를 분리하며 정산 연결 상태는 검증한 정책·지갑·로컬 저널에서 가져옵니다.
 

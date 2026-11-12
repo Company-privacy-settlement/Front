@@ -10,7 +10,9 @@ A Next.js landing page and hackathon demo for private B2B settlement and employe
 
 ## Visual language
 
-The landing follows [NEAR.org](https://www.near.org/): black and white, vivid green, thin borders and a centered light-field hero. Operational screens follow [Stripe Invoicing](https://stripe.com/invoicing) and [Checkout](https://stripe.com/payments/checkout): light navigation, compact forms, purple action buttons and clear status panels. `src/app/merchant-theme.css` scopes this style to the demo, invoices, checkout and settlements; `src/app/near-theme.css` preserves the landing. DM Sans is self-hosted; `public/core-field.svg` is original artwork. Core retains its own brand and payment protocol; these references do not imply affiliation or a Stripe integration.
+The landing and app use one [NEAR.org](https://www.near.org/)-inspired visual language: black and white, vivid green accents, regular-weight type and thin borders. The invoice editor, checkout and settlement layouts retain the existing task flow. Decorative text above headings is removed throughout the landing and app. `src/app/near-theme.css`, `src/app/merchant-theme.css` and `src/app/workspace-layout.css` provide the shared palette and workspace layout; KYB styles live in `src/app/kyb/kyb.css`. DM Sans is self-hosted and `public/core-field.svg` is original artwork. Core retains its own brand and protocol.
+
+App shells fit the dynamic viewport, keep navigation and footer in place, and scroll their main content area. Checkout has one vertical content scroller. Route changes reset the main reading position, while scroll containment prevents chaining into the page. Long forms, tables and reviewed-call details remain reachable on smaller screens.
 
 The invoice editor previews the actual draft title, recipient, fixed-note count, token principal and add-on fee. Amounts remain token atomic units because the trusted group policy does not supply token display decimals. Drafts are not saved. Checkout separates signed request details from payer controls; settlement readiness reflects the verified policy, wallet and local journal, without inventing a custodial balance.
 

@@ -10,7 +10,9 @@
 
 ## 视觉语言
 
-首页参考 [NEAR 官方网站](https://www.near.org/)的黑白、鲜绿色与居中光场首屏。业务界面参考 [Stripe Invoicing](https://stripe.com/invoicing) 和 [Checkout](https://stripe.com/payments/checkout)，使用浅色导航、紧凑表单、紫色操作按钮与清晰状态面板。`src/app/merchant-theme.css` 仅作用于演示、发票、付款和结算，`src/app/near-theme.css` 保持首页风格。DM Sans 本地托管，`public/core-field.svg` 为原创图形。Core 保持独立品牌及支付协议；参考设计不代表合作或接入 Stripe。
+首页与应用统一采用参考 [NEAR 官方网站](https://www.near.org/)的黑白、鲜绿色、常规字重与细边框，保留发票编辑、付款及结算的原有任务结构。首页及应用中标题上方的装饰文字已移除。`src/app/near-theme.css`、`src/app/merchant-theme.css` 和 `src/app/workspace-layout.css` 提供共享配色与工作区布局，KYB 样式位于 `src/app/kyb/kyb.css`。DM Sans 本地托管，`public/core-field.svg` 为原创图形，Core 保持独立品牌与协议。
+
+应用适配动态视口高度，固定导航和页脚，仅滚动正文；付款页也使用单一纵向滚动区域。路由切换重置正文阅读位置，限制滚动向外层页面传递。较小屏幕仍可访问长表单、表格与交易审阅详情。
 
 发票编辑器实时预览实际草稿的标题、收款人、固定票据数量、代币本金和额外费用。可信策略没有代币显示精度，因此金额仍显示为代币最小单位。草稿不保存。付款页分开展示签名账单和付款操作，结算就绪状态来自已验证策略、钱包及本地加密日志，不虚构托管余额。
 

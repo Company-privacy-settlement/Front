@@ -83,7 +83,7 @@ export function InvoiceWorkspace() {
   return (
     <MerchantShell section="Invoices">
         <div className="merchant-page-heading">
-          <div><div className="merchant-page-kicker">BILLING / INVOICES</div><h1>Create an invoice</h1><p>Request a private payment. Share a link. Track confirmed settlement.</p></div>
+          <div><h1>Create an invoice</h1><p>Request a private payment. Share a link. Track confirmed settlement.</p></div>
           <a href="#existing-invoice" className="button button-outline"><FilePlus2 size={15}/> Open saved invoice</a>
         </div>
         <div className="merchant-tabs" aria-label="Invoice workspace"><span aria-current="page">Create invoice</span><Link href="/app/?view=payments">Payment activity <ArrowUpRight size={13}/></Link></div>
@@ -101,7 +101,7 @@ export function InvoiceWorkspace() {
         <div className="invoice-builder">
           <div className="invoice-editor">
           <section className="panel live-card invoice-connection">
-            <div className="eyebrow">PAYMENT DESTINATION</div>
+
             <h2>Business & payment account</h2>
             <label className="form-label">
               Core API origin
@@ -160,7 +160,7 @@ export function InvoiceWorkspace() {
             </p>
           </section>
           <section className="panel live-card invoice-details">
-            <div className="eyebrow">INVOICE DETAILS</div>
+
             <h2>Payment details</h2>
             <form
               onSubmit={(e) => {
@@ -272,7 +272,7 @@ export function InvoiceWorkspace() {
         {signed && (
           <>
             <section className="panel live-card invoice-share">
-              <div className="eyebrow">03 · SHARE CHECKOUT</div>
+
               <h2>Ready for your payer</h2>
               <label className="form-label">
                 Payment link

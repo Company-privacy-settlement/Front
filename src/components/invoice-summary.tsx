@@ -66,7 +66,7 @@ export function InvoiceSummary({
     >
       <div className="activity-heading">
         <div>
-          <div className="eyebrow">RECIPIENT-ISSUED PAYMENT REQUEST</div>
+
           <h2 id="invoice-title">{i.title}</h2>
           <p>
             {i.reference} · {i.units} fixed-denomination note

@@ -1,0 +1,115 @@
+/* One NEAR visual system, with viewport-bounded application scrolling. */
+html, body { overscroll-behavior: none; }
+.merchant-ui {
+  --ink: #111;
+  --muted: #626262;
+  --line: #dedede;
+  --green: #007e52;
+  --accent: #007e52;
+  --lime: #00ec97;
+  background: #f7f8f7;
+  color: #111;
+  min-height: 0;
+  max-width: 100%;
+}
+.merchant-ui :is(h1, h2, h3) { color: #111; }
+.merchant-ui :is(.merchant-page-heading h1, .dashboard-heading h1, .kyb-page-heading h2) { font-weight: 450; letter-spacing: -.9px; }
+.merchant-ui .button-dark { background: #00ec97; border-color: #00ec97; color: #062418; box-shadow: none; }
+.merchant-ui .button-dark:hover:not(:disabled) { background: #00d78a; border-color: #00d78a; }
+.merchant-ui :is(.panel, .metric-card, .balance-card, .invoice-paper) { border-color: #dce3de; border-radius: 5px; box-shadow: none; }
+.merchant-ui .merchant-sidebar, .merchant-ui .sidebar { background: #080e0b; border-right: 1px solid #243229; color: #d8e8df; scrollbar-color: #344c3e transparent; }
+.merchant-ui .merchant-sidebar .brand, .merchant-ui .sidebar .brand { color: #fff; }
+.merchant-ui .merchant-sidebar .brand-dot, .merchant-ui .sidebar .brand-dot { color: #00ec97; }
+.merchant-ui .merchant-sidebar :is(.merchant-account strong, .merchant-network strong), .merchant-ui .workspace-switch strong, .merchant-ui .sidebar-profile strong { color: #e9f5ef; }
+.merchant-ui .merchant-sidebar :is(.merchant-account span, .merchant-network span), .merchant-ui :is(.workspace-switch span, .workspace-switch>svg, .sidebar-profile span) { color: #a0b6a8; }
+.merchant-ui .merchant-monogram, .merchant-ui .workspace-monogram, .merchant-ui .sidebar-profile .avatar { background: #193324; border-color: #31523f; color: #9ae4bb; }
+.merchant-ui .merchant-network, .merchant-ui .workspace-switch { background: #101f16; border-color: #2c4235; }
+.merchant-ui .merchant-network>.near-mark { color: #00ec97; }
+.merchant-ui .merchant-sidebar nav a, .merchant-ui .sidebar nav button { color: #a9bfb1; }
+.merchant-ui .merchant-sidebar nav a:hover, .merchant-ui .sidebar nav button:hover { background: #172a1e; color: #f0fff6; }
+.merchant-ui .merchant-sidebar nav a[aria-current=page], .merchant-ui .sidebar nav button.active { background: #00ec97; color: #062418; font-weight: 550; }
+.merchant-ui .sidebar nav .nav-dot, .merchant-ui .sidebar nav button.active .nav-dot { background: #007e52; }
+.merchant-ui .merchant-back, .merchant-ui .sidebar-link { color: #a0b6a8; }
+.merchant-ui .merchant-back:hover, .merchant-ui .sidebar-link:hover { color: #00ec97; }
+.merchant-ui .sidebar-privacy { background: #102318; border-color: #294633; }
+.merchant-ui .sidebar-privacy strong { color: #dceee3; }
+.merchant-ui .sidebar-privacy p { color: #a0b6a8; }
+.merchant-ui .sidebar-privacy :is(.privacy-symbol, a) { color: #00ec97; }
+.merchant-ui .sidebar-profile { border-color: #294633; }
+.merchant-ui .merchant-topbar, .merchant-ui .app-header { background: #fff; border-color: #dedede; }
+.merchant-ui .merchant-sidebar nav { margin-top: 4px; }
+.merchant-ui .balance-card { background: radial-gradient(ellipse at 100% 0, #005b39, #0b1f14 55%, #080e0b); color: #fff; border-color: #143423; }
+.merchant-ui .workspace-main .balance-card .metric-label, .merchant-ui .balance-card .metric-value>span { color: #b7d1c1; }
+.merchant-ui .workspace-main .balance-card-footer>span:first-child { color: #00ec97; }
+.merchant-ui .workspace-main .balance-card-footer>span:last-child { color: #b7d1c1; }
+.merchant-ui .metric-value { font-weight: 450; }
+.merchant-ui .bar { background: #dfe9e2; }
+.merchant-ui .bar-current { background: #00dc8b; }
+.merchant-ui .modal-heading h2 { margin-top: 0; }
+.merchant-ui .kyb-page-heading h2 { margin-top: 0; }
+.merchant-ui .invoice-summary .activity-heading h2 { margin-top: 0; }
+.landing .bottom-cta h2 { margin-top: 0; }
+
+/* The body stays still. The main workspace is the only content scroller. */
+.merchant-shell, .workspace.merchant-ui { height: 100dvh; overflow: hidden; }
+.merchant-main, .merchant-ui .workspace-main { height: 100%; min-height: 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.merchant-topbar, .merchant-ui .app-header { flex-shrink: 0; }
+.merchant-content.live-content, .merchant-ui .dashboard-content {
+  width: 100%; min-width: 0; min-height: 0; max-height: 100%; flex: 1;
+  overflow-y: auto; overflow-x: hidden; overscroll-behavior: none;
+  scrollbar-gutter: stable; scroll-padding-top: 24px; scroll-behavior: auto;
+}
+.merchant-footer { flex-shrink: 0; margin-top: 0; padding-block: 16px; }
+.merchant-ui .dashboard-content { padding-bottom: 0; }
+.merchant-sidebar, .merchant-ui .sidebar, .merchant-mobile-menu nav, .modal-body { overscroll-behavior: none; }
+.merchant-sidebar>*, .merchant-ui .sidebar>* { flex-shrink: 0; }
+.merchant-mobile-menu nav { max-height: calc(100dvh - 59px); overflow-y: auto; }
+.merchant-ui :is(.live-card, .invoice-editor, .invoice-preview, .live-review, .live-history, .kyb-step-content, .merchant-page-heading>div, .invoice-summary .activity-heading>div) { min-width: 0; }
+.merchant-ui :is(.invoice-summary h2, .merchant-page-heading h1) { overflow-wrap: anywhere; }
+.merchant-ui .table-scroll { max-width: 100%; overscroll-behavior: none; }
+.merchant-ui .live-card pre { overscroll-behavior: none; }
+
+/* Checkout shares one vertical scroll area; the bill has no nested scrollbar. */
+.checkout-page { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+.checkout-topbar, .checkout-footer { flex-shrink: 0; }
+.checkout-topbar { background: #080e0b; border-color: #243229; }
+.merchant-ui .checkout-topbar .brand { color: #fff; }
+.merchant-ui .checkout-topbar .brand-dot { color: #00ec97; }
+.checkout-topbar .merchant-mode { color: #bcdfcb; border-color: #35533f; background: #162c1e; }
+.checkout-topbar :is(.checkout-back, .checkout-continue) { color: #d2ecdd; }
+.checkout-layout { flex: 1; min-height: 0; min-width: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: none; scrollbar-gutter: stable; scroll-padding-top: 24px; }
+.checkout-bill { background: #f0f5f2; border-color: #dce3de; }
+.checkout-bill-inner { position: static; max-height: none; overflow: visible; padding-right: 0; }
+.checkout-footer { background: #fff; padding-block: 15px; }
+.checkout-empty { height: 100dvh; min-height: 0; overflow-y: auto; overscroll-behavior: none; }
+.merchant-ui .modal-backdrop { overflow: hidden; overscroll-behavior: none; }
+.merchant-ui .modal { max-height: calc(100dvh - 32px); }
+.merchant-ui .modal-body { overscroll-behavior: none; }
+
+@media(max-width: 760px) {
+  .merchant-content.live-content { padding: 24px 20px; }
+  .merchant-footer { padding-block: 12px; gap: 6px; }
+  .merchant-footer>span:last-child { font-size: 9px; }
+  .merchant-ui .workspace-main { margin-left: 0; width: 100%; }
+  .merchant-ui .dashboard-content { padding-bottom: 0; }
+  .merchant-ui .modal { max-height: calc(100dvh - 24px); }
+  .checkout-footer { padding-block: 12px; gap: 10px; }
+  .checkout-footer>span { display: none; }
+}
+@media(max-height: 600px) {
+  .merchant-footer, .checkout-footer { display: none; }
+  .merchant-content.live-content { padding-block: 20px; }
+}
+.merchant-ui .kyb-page-heading h1 { margin: 0 0 13px; font-size: 26px; line-height: 1.25; font-weight: 450; letter-spacing: -.75px; }
+.kyb-demo-notice { display: flex; align-items: flex-start; gap: 15px; }
+.kyb-demo-notice>.kyb-mode { flex-shrink: 0; padding: 4px 7px; }
+.kyb-demo-notice>div { min-width: 0; }
+@media(max-width: 760px) {
+  .merchant-ui .kyb-page-heading h1 { font-size: 24px; }
+  .kyb-demo-notice { display: block; }
+  .kyb-demo-notice>.kyb-mode { margin-bottom: 9px; }
+}
+@media(max-width: 380px) {
+  .checkout-topbar { height: auto; min-height: 67px; padding-block: 12px; flex-wrap: wrap; }
+  .checkout-topbar .checkout-continue { order: 1; flex-basis: 100%; max-width: none; justify-content: flex-end; }
+}

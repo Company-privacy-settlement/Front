@@ -312,6 +312,13 @@ test("recipient signs an invoice, payer rejects another invoice proof, and two c
   await expect(
     page.getByRole("heading", { name: "Design milestone", exact: true }),
   ).toBeVisible();
+  if (info.project.name === "mobile") {
+    const viewport = page.viewportSize()!;
+    await page.setViewportSize({ width: 320, height: 568 });
+    for (const selector of [".checkout-topbar .brand", ".checkout-continue", ".checkout-back"])
+      await expect(page.locator(selector)).toBeInViewport({ ratio: 1 });
+    await page.setViewportSize(viewport);
+  }
   await page.screenshot({ path: info.outputPath("checkout.png"), fullPage: true });
   await page.getByLabel("Core API origin").fill("https://core-api.example");
   await page

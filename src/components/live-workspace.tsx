@@ -160,7 +160,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
   return (
     <SettlementFrame checkout={!!invoice} summary={invoice && <InvoiceSummary key={invoice.invoice.id + api} signed={invoice} api={api} enabled={verified} onChecked={setInvoiceStatus}/> }>
         <div className="merchant-page-heading">
-          <div><div className="merchant-page-kicker">{invoice ? "PRIVATE PAYMENT" : "MONEY MOVEMENT"}</div><h1>{invoice ? "Pay with your wallet" : "Settlements"}</h1><p>{invoice ? "Review the request, connect your wallet, and approve each payment step." : "Prepare transfers, review wallet approvals, and follow finalized settlement."}</p></div>
+          <div><h1>{invoice ? "Pay with your wallet" : "Settlements"}</h1><p>{invoice ? "Review the request, connect your wallet, and approve each payment step." : "Prepare transfers, review wallet approvals, and follow finalized settlement."}</p></div>
           {!invoice && <a href="#prepared-payment" className="button button-dark"><ArrowUpRight size={15}/> Review a payment</a>}
         </div>
         {invoice ? <div className="checkout-method"><span className="checkout-method-icon"><Wallet size={22}/></span><div><strong>Private token payment</strong><span>NEAR testnet · Your connected wallet</span></div><ShieldCheck size={19}/></div> : <>
@@ -185,7 +185,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
         )}
         <div className="live-setup">
           <section className="panel live-card" id="settlement-group">
-            <div className="eyebrow">01 · TRUSTED GROUP</div>
+
             <h2>Choose your deployment</h2>
             <p>
               Use the policy file supplied independently by your group operator.
@@ -276,7 +276,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
             </button>
           </section>
           <section className="panel live-card" id="settlement-wallet">
-            <div className="eyebrow">02 · YOUR SIGNER</div>
+
             <h2>A wallet you control</h2>
             <p>
               The wallet approves each function call. Signing keys stay with
@@ -319,8 +319,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
               </button>
             )}
             <div className="live-divider" />
-            <div className="eyebrow" id="settlement-journal">03 · ENCRYPTED JOURNAL</div>
-            <h2>
+            <h2 id="settlement-journal">
               {unlocked
                 ? "Your journal is unlocked"
                 : "Keep a recoverable record"}
@@ -402,7 +401,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
         <section className="panel live-card settlement-operations" id="prepared-payment">
           <div className="panel-heading">
             <div>
-              <div className="eyebrow">04 · PREPARED PAYMENT</div>
+
               <h2>Review. Sign. Confirm.</h2>
             </div>
             <span className="mini-tag">0.15% ADDED TO PRINCIPAL</span>

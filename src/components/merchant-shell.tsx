@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ArrowDown, ArrowUpRight, ArrowLeftRight, ChevronRight, FileCheck2, Home, Layers3, LockKeyhole, Menu, Wallet, ShieldCheck } from "lucide-react";
 import { Brand, NearMark } from "./brand";
@@ -19,11 +20,13 @@ function WorkspaceLinks({ section }: { section: string }) {
 }
 
 export function MerchantShell({ section, children }: { section: string; children: ReactNode }) {
+  const contentRef = useRef<HTMLElement>(null), path = usePathname();
+  useEffect(() => { contentRef.current?.scrollTo({ top: 0, left: 0 }); }, [path]);
   return <div className="merchant-ui merchant-shell">
     <aside className="merchant-sidebar">
       <Brand/>
       <div className="merchant-account"><div className="merchant-monogram"><Wallet size={18}/></div><div><strong>Core workspace</strong><span>Private payments on NEAR</span></div></div>
-      <span className="merchant-nav-label">WORKSPACE</span>
+
       <nav aria-label="Merchant navigation"><WorkspaceLinks section={section}/></nav>
       <div className="merchant-sidebar-bottom"><div className="merchant-network"><NearMark/><div><strong>NEAR testnet</strong><span>Your wallet. Your funds.</span></div></div><Link href="/" className="merchant-back"><ArrowLeft size={15}/> Back to Core</Link><a href="https://github.com/Company-privacy-settlement/Core" target="_blank" rel="noreferrer" className="merchant-back">Developer resources <ArrowUpRight size={14}/></a></div>
     </aside>
@@ -32,7 +35,7 @@ export function MerchantShell({ section, children }: { section: string; children
         <div className="merchant-breadcrumb"><details className="merchant-mobile-menu"><summary aria-label="Open merchant navigation"><Menu size={20}/></summary><nav aria-label="Mobile merchant navigation"><WorkspaceLinks section={section}/></nav></details><span>Workspace</span><ChevronRight size={14}/><strong>{section}</strong></div>
         <span className="merchant-mode"><span className="dot"/> Testnet</span>
       </header>
-      <main className="merchant-content live-content">{children}</main>
+      <main className="merchant-content live-content" ref={contentRef}>{children}</main>
       <footer className="merchant-footer"><span><NearMark/> Built on NEAR</span><span>Development protocol · Wallet approvals required</span></footer>
     </div>
   </div>;
