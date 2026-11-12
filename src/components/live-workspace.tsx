@@ -11,7 +11,8 @@ import {
   Wallet,
 } from "lucide-react";
 import { Brand } from "./brand";
-import { IndexedActivityPanel } from './indexed-activity';
+import { IndexedActivityPanel } from "./indexed-activity";
+import { InvoiceSummary } from "./invoice-summary";
 import {
   OperationJournal,
   SettlementSession,
@@ -23,6 +24,11 @@ import {
   type Policy,
   type Operation,
   type Review,
+  type SignedInvoice,
+  type InvoiceStatus,
+  invoiceRoot,
+  matchInvoicePlan,
+  requireOpenInvoice,
 } from "@/vendor/core-client/index.js";
 import { liveWallet, nearConnector } from "@/lib/wallet";
 
@@ -51,7 +57,7 @@ const display = (value: string) => {
     unit = 10n ** 24n;
   return `${n / unit}.${(n % unit).toString().padStart(24, "0").replace(/0+$/, "") || "0"}`;
 };
-export function LiveWorkspace() {
+export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
   const [api, setApi] = useState("http://localhost:3001"),
     [policy, setPolicy] = useState<Policy | null>(null),
     [verified, setVerified] = useState(false),
@@ -64,7 +70,8 @@ export function LiveWorkspace() {
     [txHash, setTxHash] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [invoiceStatus, setInvoiceStatus] = useState<InvoiceStatus | null>(null);
   const journal = useRef<OperationJournal | null>(null),
     session = useRef<SettlementSession | null>(null);
   function lock() {
@@ -89,7 +96,18 @@ export function LiveWorkspace() {
     } finally {
       if (journal.current) {
         try {
-          setOperations(await journal.current.list());
+          const all = await journal.current.list(),
+            root = invoice ? await invoiceRoot(invoice.invoice) : null;
+          setOperations(
+            invoice
+              ? all.filter(
+                  (o) =>
+                    o.reference.kind === "withdrawal" &&
+                    o.reference.expectedDisclosureRoot === root &&
+                    o.reference.expectedRecipient === invoice.invoice.recipient,
+                )
+              : all,
+          );
         } catch {
           /* Keep the original operation error. */
         }
@@ -127,6 +145,16 @@ export function LiveWorkspace() {
     if (!session.current) throw new Error("Unlock the journal");
     setReview(await session.current.review(id));
     setSelected(id);
+  }
+  async function invoiceGate() {
+    if (!invoice) return;
+    requireOpenInvoice(invoice.invoice);
+    const status = await new HttpGateway(api).invoiceStatus(invoice);
+    setInvoiceStatus(status);
+    if (!["awaiting_payment", "partial"].includes(status.state))
+      throw new Error(
+        "This invoice is already covered or needs merchant review",
+      );
   }
   const op = operations.find((o) => o.id === selected),
     quote = policy?.tokenId ? feeQuote(policy) : null;
@@ -168,6 +196,15 @@ export function LiveWorkspace() {
             preconfigured. Each approval can spend testnet assets and NEAR gas.
           </span>
         </div>
+        {invoice && (
+          <InvoiceSummary
+            key={invoice.invoice.id + api}
+            signed={invoice}
+            api={api}
+            enabled={verified}
+            onChecked={setInvoiceStatus}
+          />
+        )}
         {error && (
           <p className="live-feedback error-text" role="alert">
             {error}
@@ -196,6 +233,7 @@ export function LiveWorkspace() {
                 onChange={(e) => {
                   setApi(e.target.value);
                   setVerified(false);
+                  setInvoiceStatus(null);
                 }}
                 placeholder="https://api.example.com"
               />
@@ -210,11 +248,18 @@ export function LiveWorkspace() {
                 onChange={(e) => {
                   void run(async () => {
                     const p = parsePolicy(JSON.parse(await fileText(e, 8192)));
+                    if (
+                      invoice &&
+                      canonical(p) !== canonical(invoice.invoice.policy)
+                    )
+                      throw new Error(
+                        "Trusted group does not match this signed invoice",
+                      );
                     if (p.network !== "testnet" || !p.tokenId)
                       throw new Error(
                         "This workspace supports testnet FT shared groups",
                       );
-                      feeQuote(p);
+                    feeQuote(p);
                     setPolicy(p);
                     setVerified(false);
                   });
@@ -406,13 +451,25 @@ export function LiveWorkspace() {
               type="file"
               accept="application/json,.json"
               aria-label="Public FT payment plan"
-              disabled={busy || !unlocked || !payer}
+              disabled={
+                busy ||
+                !unlocked ||
+                !payer ||
+                (!!invoice &&
+                  (!invoiceStatus ||
+                    !["awaiting_payment", "partial"].includes(
+                      invoiceStatus.state,
+                    )))
+              }
               onChange={(e) =>
                 void run(async () => {
                   if (!session.current) throw new Error("Unlock the journal");
-                  const o = await session.current.importPlan(
-                    JSON.parse(await fileText(e, 8192)),
-                  );
+                  const plan = JSON.parse(await fileText(e, 8192));
+                  if (invoice) {
+                    await invoiceGate();
+                    await matchInvoicePlan(plan, invoice.invoice, payer);
+                  }
+                  const o = await session.current.importPlan(plan);
                   setOperations(await journal.current!.list());
                   await refresh(o.id);
                 })
@@ -520,6 +577,23 @@ export function LiveWorkspace() {
                         disabled={busy || !payer}
                         onClick={() =>
                           void run(async () => {
+                            if (invoice) {
+                              if (
+                                op.reference.kind !== "withdrawal" ||
+                                op.reference.expectedRecipient !==
+                                  invoice.invoice.recipient ||
+                                op.reference.expectedDisclosureRoot !==
+                                  (await invoiceRoot(invoice.invoice))
+                              )
+                                throw new Error(
+                                  "Operation is not bound to this invoice",
+                                );
+                              if (
+                                review.kind !== "retry" &&
+                                review.kind !== "refund"
+                              )
+                                await invoiceGate();
+                            }
                             try {
                               await session.current!.submitReviewed(
                                 op.id,
@@ -599,7 +673,13 @@ export function LiveWorkspace() {
             </div>
           </div>
         </section>
-        {verified&&policy&&<IndexedActivityPanel key={`${api}:${canonical(policy)}`} api={api} policy={policy}/>}
+        {verified && policy && (
+          <IndexedActivityPanel
+            key={`${api}:${canonical(policy)}`}
+            api={api}
+            policy={policy}
+          />
+        )}
         <p className="small-note live-footnote">
           This journal contains public settlement metadata, not spendable
           private notes. The read-only Core API can observe requests; its
@@ -609,6 +689,7 @@ export function LiveWorkspace() {
       </main>
       <footer className="site-footer container">
         <Brand />
+        <Link href="/invoices/">Create a payment invoice</Link>
         <Link href="/app/">Explore the simulated demo</Link>
         <a
           href="https://github.com/Company-privacy-settlement/Core/blob/main/docs/WALLET.md"

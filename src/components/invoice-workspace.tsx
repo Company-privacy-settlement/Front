@@ -1,0 +1,370 @@
+"use client";
+import Link from "next/link";
+import { useState, type ChangeEvent } from "react";
+import { ArrowUpRight, Copy, Download, FilePlus2, Wallet } from "lucide-react";
+import { Brand } from "./brand";
+import { InvoiceSummary, saveJson } from "./invoice-summary";
+import {
+  HttpGateway,
+  parsePolicy,
+  parseInvoice,
+  invoiceLink,
+  verifySignedInvoice,
+  invoiceRoot,
+  invoiceQuote,
+  feeQuote,
+  canonical,
+  type Policy,
+  type SignedInvoice,
+} from "@/vendor/core-client/index.js";
+import { nearConnector, liveWallet, signInvoice } from "@/lib/wallet";
+async function jsonFile(e: ChangeEvent<HTMLInputElement>) {
+  const f = e.target.files?.[0];
+  e.target.value = "";
+  if (!f || f.size > 16000)
+    throw new Error("Choose an invoice/policy JSON file under 16 KB");
+  return JSON.parse(await f.text());
+}
+export function InvoiceWorkspace() {
+  const [api, setApi] = useState("http://localhost:3001"),
+    [policy, setPolicy] = useState<Policy | null>(null),
+    [merchant, setMerchant] = useState(""),
+    [recipient, setRecipient] = useState(""),
+    [title, setTitle] = useState(""),
+    [reference, setReference] = useState(""),
+    [units, setUnits] = useState(1),
+    [hours, setHours] = useState(24),
+    [signed, setSigned] = useState<SignedInvoice | null>(null),
+    [link, setLink] = useState(""),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    [notice, setNotice] = useState("");
+  async function run(action: () => Promise<void>) {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      await action();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Invoice action failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function issue() {
+    if (!policy) throw new Error("Import a trusted FT group policy");
+    const gateway = new HttpGateway(api);
+    if (canonical(await gateway.policy()) !== canonical(policy))
+      throw new Error("API policy does not match");
+    const invoice = parseInvoice({
+      version: 1,
+      id: crypto.randomUUID(),
+      merchantAccount: merchant,
+      recipient,
+      title: title.trim(),
+      reference: reference.trim(),
+      policy,
+      units,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + hours * 3600000).toISOString(),
+      nonce: Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) =>
+        b.toString(16).padStart(2, "0"),
+      ).join(""),
+    });
+    const result = await signInvoice(invoice);
+    await gateway.verifyInvoice(result);
+    setSigned(result);
+    setLink(invoiceLink(location.origin, result));
+    setNotice(
+      "Signed payment request created. Download it before leaving this page; invoice terms are not saved by the API.",
+    );
+  }
+  return (
+    <div className="live-page">
+      <header className="site-header">
+        <div className="site-nav container">
+          <Brand />
+          <span className="environment">NEAR testnet · Invoices</span>
+          <Link href="/live/" className="text-link">
+            Settlement workspace <ArrowUpRight size={15} />
+          </Link>
+        </div>
+      </header>
+      <main className="container live-content">
+        <div className="dashboard-heading">
+          <div>
+            <div className="eyebrow">RECEIVE WITH CORE</div>
+            <h1>
+              Your invoice.
+              <br />
+              Their private payment.
+            </h1>
+            <p>
+              Create a signed payment request, share a checkout link, and
+              reconcile confirmed settlement.
+            </p>
+          </div>
+          <FilePlus2 size={32} />
+        </div>
+        <div className="demo-notice">
+          Development FT checkout. Prices are fixed token units with no fiat
+          conversion. You retain control of the payout wallet; the API stores no
+          invoice business terms.
+        </div>
+        {error && (
+          <p className="live-feedback error-text" role="alert">
+            {error}
+          </p>
+        )}
+        {notice && (
+          <p className="live-feedback" role="status">
+            {notice}
+          </p>
+        )}
+        <div className="live-setup">
+          <section className="panel live-card">
+            <div className="eyebrow">01 · GROUP & MERCHANT</div>
+            <h2>Where you receive</h2>
+            <label className="form-label">
+              Core API origin
+              <input
+                value={api}
+                disabled={busy}
+                onChange={(e) => setApi(e.target.value)}
+              />
+            </label>
+            <label className="form-label">
+              Trusted FT policy JSON
+              <input
+                type="file"
+                accept="application/json,.json"
+                disabled={busy}
+                onChange={(e) =>
+                  void run(async () => {
+                    const p = parsePolicy(await jsonFile(e));
+                    if (p.network !== "testnet" || !p.tokenId)
+                      throw new Error("Use a testnet FT shared group");
+                    feeQuote(p);
+                    setPolicy(p);
+                  })
+                }
+              />
+            </label>
+            {policy && (
+              <div className="live-policy">
+                <span>Registry</span>
+                <code>{policy.registry}</code>
+                <span>Token</span>
+                <code>{policy.tokenId}</code>
+                <span>Principal per note · atomic units</span>
+                <strong>{policy.denomination}</strong>
+              </div>
+            )}
+            <button
+              className="button button-outline"
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  await (await nearConnector()).connect();
+                  const identity = await liveWallet.identity();
+                  setMerchant(identity.accountId);
+                  if (!recipient) setRecipient(identity.accountId);
+                })
+              }
+            >
+              <Wallet size={16} />
+              {merchant || "Connect merchant wallet"}
+            </button>
+            <p>
+              Issuing an invoice uses an off-chain NEP-413 message signature.
+              Choose a wallet with message-signing support. No application
+              signing key is created.
+            </p>
+          </section>
+          <section className="panel live-card">
+            <div className="eyebrow">02 · PAYMENT TERMS</div>
+            <h2>What you request</h2>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void run(issue);
+              }}
+            >
+              <label className="form-label">
+                Invoice title
+                <input
+                  required
+                  maxLength={120}
+                  value={title}
+                  disabled={busy}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Project milestone"
+                />
+              </label>
+              <label className="form-label">
+                Invoice reference
+                <input
+                  required
+                  maxLength={80}
+                  value={reference}
+                  disabled={busy}
+                  onChange={(e) => setReference(e.target.value)}
+                  placeholder="INV-2026-001"
+                />
+              </label>
+              <label className="form-label">
+                Payout NEAR account
+                <input
+                  required
+                  value={recipient}
+                  disabled={busy}
+                  onChange={(e) => setRecipient(e.target.value)}
+                />
+              </label>
+              <div className="invoice-term-grid">
+                <label className="form-label">
+                  Number of notes
+                  <input
+                    type="number"
+                    min={1}
+                    max={32}
+                    value={units}
+                    disabled={busy}
+                    onChange={(e) => setUnits(Number(e.target.value))}
+                  />
+                </label>
+                <label className="form-label">
+                  Expires in hours
+                  <input
+                    type="number"
+                    min={1}
+                    max={2160}
+                    value={hours}
+                    disabled={busy}
+                    onChange={(e) => setHours(Number(e.target.value))}
+                  />
+                </label>
+              </div>
+              <div className="invoice-estimate">
+                Recipient principal{" "}
+                <strong>
+                  {policy
+                    ? (
+                        BigInt(policy.denomination) *
+                        BigInt(Number.isInteger(units) && units > 0 ? units : 0)
+                      ).toString()
+                    : "Choose a group"}{" "}
+                  token atomic units
+                </strong>
+              </div>
+              <button
+                className="button button-dark"
+                disabled={busy || !policy || !merchant}
+              >
+                Sign & create payment link <ArrowUpRight size={15} />
+              </button>
+            </form>
+            <p>
+              Terms are visible to anyone holding the link/file. Only a salted
+              invoice commitment enters payment proofs; keep names, salaries and
+              legal documents out of this shared request.
+            </p>
+          </section>
+        </div>
+        <section className="panel live-card">
+          <h2>Open an existing signed invoice</h2>
+          <label className="form-label">
+            Signed invoice JSON
+            <input
+              type="file"
+              accept="application/json,.json"
+              disabled={busy}
+              onChange={(e) =>
+                void run(async () => {
+                  const s = await verifySignedInvoice(await jsonFile(e));
+                  setSigned(s);
+                  setLink(invoiceLink(location.origin, s));
+                })
+              }
+            />
+          </label>
+        </section>
+        {signed && (
+          <>
+            <section className="panel live-card invoice-share">
+              <div className="eyebrow">03 · SHARE CHECKOUT</div>
+              <h2>Ready for your payer</h2>
+              <label className="form-label">
+                Payment link
+                <textarea readOnly value={link} rows={3} />
+              </label>
+              <div className="live-buttons">
+                <button
+                  className="button button-dark"
+                  onClick={() =>
+                    void run(async () => {
+                      await navigator.clipboard.writeText(link);
+                      setNotice("Payment link copied");
+                    })
+                  }
+                >
+                  <Copy size={15} /> Copy payment link
+                </button>
+                <button
+                  className="button button-outline"
+                  onClick={() =>
+                    saveJson(signed, `core-invoice-${signed.invoice.id}.json`)
+                  }
+                >
+                  <Download size={15} /> Download signed invoice
+                </button>
+                <a className="button button-outline" href={link}>
+                  Open checkout <ArrowUpRight size={15} />
+                </a>
+                <button
+                  className="button button-outline"
+                  onClick={() =>
+                    void run(async () => {
+                      saveJson(
+                        {
+                          kind: "withdraw",
+                          target: signed.invoice.recipient,
+                          disclosureRoot: await invoiceRoot(signed.invoice),
+                        },
+                        `invoice-action-${signed.invoice.id}.json`,
+                      );
+                    })
+                  }
+                >
+                  Download proof action
+                </button>
+              </div>
+              <p>
+                The link carries signed terms in its URL fragment. Share it
+                through your own channel. Refreshing a payment status never
+                sends funds or marks an invoice paid manually.
+              </p>
+            </section>
+            <InvoiceSummary
+              key={signed.invoice.id + api}
+              signed={signed}
+              api={api}
+            />
+          </>
+        )}
+      </main>
+      <footer className="site-footer container">
+        <Brand />
+        <Link href="/app/">Explore demo</Link>
+        <a
+          href="https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICES.md"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Invoice architecture <ArrowUpRight size={13} />
+        </a>
+      </footer>
+    </div>
+  );
+}

@@ -29,6 +29,14 @@ npm run test:e2e
 
 Browser tests serve the built `out/` directory with a temporary server on port 3000 and run on desktop and mobile viewports.
 
+## Recipient-issued invoices
+
+`/invoices/` creates a merchant NEP-413 signed payment request and `/pay/#invoice=...` opens its checkout. Import a trusted testnet FT policy, connect a compatible message-signing merchant wallet, set a payout account/title/reference, 1–32 fixed payment units and expiry, then download the signed JSON and share its link. Open a saved JSON to track it later; the API does not persist business terms.
+
+Checkout verifies the local signature and current merchant full-access key, requires an independently trusted group policy, and imports only withdrawal proofs bound to this invoice root/recipient. Payers prepare private notes/proofs with Core CLI and approve existing wallet operations one at a time. Confirmed index records determine partial, paid, late and overpaid states; a redirect never establishes payment. NEAR storage/gas and any note-funding fee are additional to the 0.15% withdrawal fee.
+
+The interface does not implement fiat conversion, a custodial merchant balance, callbacks, automatic refunds or arbitrary token denominations. Deadlines and invoice caps are application rules; concurrent payers or delayed transactions can overpay/settle late. Signed terms are readable to link holders; downloaded request files are not encrypted backups. Hosting access settings still apply to shared checkout links. See [Core invoice architecture](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICES.md).
+
 ## Testnet wallet workspace
 
 `/live/` executes real, reviewed calls for a **user-configured testnet FT shared group**. No public funded deployment is bundled. It uses NEAR Connect 0.12.0; keys stay in the selected wallet. Each token registration, NEAR storage prepayment, token payment or bound recovery call requires a separate review and wallet approval.

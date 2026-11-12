@@ -2,6 +2,7 @@ import type { Policy } from "./types.js";
 export declare const activityKinds: readonly ["deposit", "transfer", "withdrawal_requested", "withdrawal_failed", "withdrawal_retried", "withdrawal_succeeded"];
 export type ActivityKind = (typeof activityKinds)[number];
 export type ActivityFilters = {
+    disclosure_root?: string;
     kind?: ActivityKind;
     vault?: string;
     recipient?: string;

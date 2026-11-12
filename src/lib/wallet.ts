@@ -1,5 +1,13 @@
 import type { NearConnector } from "@hot-labs/near-connect";
 import type { WalletPort, TxRef } from "@/vendor/core-client/index.js";
+import {
+  invoiceHash,
+  invoiceMessage,
+  nonceBytes,
+  INVOICE_SIGNING_RECIPIENT,
+  verifySignedInvoice,
+  type Invoice,
+} from "@/vendor/core-client/index.js";
 let connector: NearConnector | undefined;
 export async function nearConnector() {
   if (!connector) {
@@ -58,3 +66,30 @@ export const liveWallet: WalletPort = {
     } satisfies TxRef;
   },
 };
+export async function signInvoice(invoice: Invoice) {
+  const c = await nearConnector(),
+    identity = await liveWallet.identity(),
+    wallet = await c.wallet();
+  if (
+    identity.accountId !== invoice.merchantAccount ||
+    identity.network !== invoice.policy.network
+  )
+    throw new Error("Connect the invoice merchant on the correct network");
+  if (!wallet.manifest.features.signMessage)
+    throw new Error("Select a wallet that supports NEP-413 message signing");
+  const signature = await wallet.signMessage({
+    network: "testnet",
+    signerId: identity.accountId,
+    message: invoiceMessage(await invoiceHash(invoice), invoice.policy.network),
+    recipient: INVOICE_SIGNING_RECIPIENT,
+    nonce: nonceBytes(invoice.nonce),
+  });
+  return verifySignedInvoice({
+    invoice,
+    signature: {
+      accountId: signature.accountId,
+      publicKey: signature.publicKey,
+      signature: signature.signature,
+    },
+  });
+}

@@ -1,3 +1,4 @@
+import { type SignedInvoice, type InvoiceStatus } from "./invoices.js";
 import { type ActivityFilters } from "./activity.js";
 import type { Call, Gateway, Policy, Preflight, Reference, Observation, TxRef, Verification } from "./types.js";
 export declare class HttpGateway implements Gateway {
@@ -9,6 +10,8 @@ export declare class HttpGateway implements Gateway {
     observe(reference: Reference): Promise<Observation>;
     verify(transaction: TxRef, call: Call): Promise<Verification>;
     private trusted;
+    verifyInvoice(input: SignedInvoice): Promise<SignedInvoice>;
+    invoiceStatus(input: SignedInvoice): Promise<InvoiceStatus>;
     indexStatus(policy: Policy): Promise<import("./activity.js").IndexStatus>;
     activity(policy: Policy, query?: ActivityFilters & {
         limit?: number;
