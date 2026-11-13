@@ -14,4 +14,4 @@ export declare class OperationJournal {
     update<T>(fn: (operations: Operation[], persist: () => Promise<void>) => Promise<T>): Promise<T>;
 }
 /** Refuse concurrent tabs and unsupported lock APIs; never fall back to an unsafe read/write race. */
-export declare function browserJournalStorage(key?: string): JournalStorage;
+export declare function browserJournalStorage(key?: string, label?: string): JournalStorage;

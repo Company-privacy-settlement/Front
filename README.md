@@ -66,3 +66,5 @@ Core's browser bundle and declarations are vendored in `src/vendor/core-client/`
 - [Contract](https://github.com/Company-privacy-settlement/Contract): contracts, circuits, vectors, and WASM builds.
 - [Core](https://github.com/Company-privacy-settlement/Core): local proving, wallet SDK, API, index, and evidence.
 - [Front](https://github.com/Company-privacy-settlement/Front): documentation and wallet interfaces.
+
+The Invoices page includes an optional encrypted local invoice library. Explicitly save signed requests, search/open them later, and export/restore/merge encrypted backups. Merchant/network namespaces, immutable signed IDs and Web Locks protect local updates. No terms are sent to Core and no paid-status cache is stored. See [the library guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICE_LIBRARY.md).

@@ -5,6 +5,7 @@ import { ArrowUpRight, Copy, Download, FilePlus2, Wallet } from "lucide-react";
 import { MerchantShell } from "./merchant-shell";
 import { InvoicePreview } from "./invoice-preview";
 import { InvoiceSummary, saveJson } from "./invoice-summary";
+import { InvoiceLibraryPanel } from './invoice-library';
 import {
   HttpGateway,
   parsePolicy,
@@ -38,6 +39,10 @@ export function InvoiceWorkspace() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
+  const [libraryInvoiceId, setLibraryInvoiceId] = useState('');
+  function hideLibraryInvoice(id?: string) {
+    if (libraryInvoiceId && (id === undefined || id === libraryInvoiceId)) { setSigned(null); setLink(''); setLibraryInvoiceId(''); }
+  }
   async function run(action: () => Promise<void>) {
     if (busy) return;
     setBusy(true);
@@ -69,18 +74,19 @@ export function InvoiceWorkspace() {
     const result = await signInvoice(invoice);
     await gateway.verifyInvoice(result);
     setSigned(result);
+    setLibraryInvoiceId('');
     setLink(invoiceLink(location.origin, result));
     setNotice(
-      "Signed payment request created. Download it before leaving this page; invoice terms are not saved by the API.",
+      "Signed payment request created. Save it to your encrypted library or download it before leaving; terms are not saved by the API.",
     );
   }
   return (
     <MerchantShell section="Invoices">
         <div className="merchant-page-heading">
           <div><h1>Create an invoice</h1><p>Request a private payment. Share a link. Track confirmed settlement.</p></div>
-          <a href="#existing-invoice" className="button button-outline"><FilePlus2 size={15}/> Open saved invoice</a>
+          <a href="#invoice-library" className="button button-outline"><FilePlus2 size={15}/> Invoice library</a>
         </div>
-        <div className="merchant-tabs" aria-label="Invoice workspace"><span aria-current="page">Create invoice</span><Link href="/live/">Payment activity <ArrowUpRight size={13}/></Link></div>
+        <div className="merchant-tabs invoice-workspace-tabs" aria-label="Invoice workspace"><span aria-current="page">Create invoice</span><a href="#invoice-library">Invoice library</a><Link href="/live/">Payment activity <ArrowUpRight size={13}/></Link></div>
         <div className="demo-notice"><span className="merchant-badge">Testnet</span><span>Fixed token units. Your wallet receives the principal; fees are added on top.</span></div>
         {error && (
           <p className="live-feedback error-text" role="alert">
@@ -139,6 +145,11 @@ export function InvoiceWorkspace() {
                 void run(async () => {
                   await (await nearConnector()).connect();
                   const identity = await liveWallet.identity();
+                  if (identity.accountId !== merchant) { setSigned(null); setLink(''); setLibraryInvoiceId(''); }
+                  if (merchant && identity.accountId !== merchant) {
+                    setTitle(''); setReference(''); setUnits(1); setHours(24); setRecipient(identity.accountId);
+                    setNotice('Merchant changed. The previous draft and opened request were cleared.');
+                  }
                   setMerchant(identity.accountId);
                   if (!recipient) setRecipient(identity.accountId);
                 })
@@ -245,6 +256,7 @@ export function InvoiceWorkspace() {
           </div>
           <InvoicePreview policy={policy} merchant={merchant} recipient={recipient} title={title} reference={reference} units={units} hours={hours}/>
         </div>
+        <InvoiceLibraryPanel key={merchant || 'disconnected'} merchant={merchant} current={signed} disabled={busy} onHideOpened={hideLibraryInvoice} onOpen={s => { setSigned(s); setLink(invoiceLink(location.origin, s)); setLibraryInvoiceId(s.invoice.id); setNotice('Saved invoice opened. Use its matching Core API and refresh payment status.'); }}/>
         <section className="panel live-card saved-invoice" id="existing-invoice">
           <h2>Open an existing signed invoice</h2>
           <label className="form-label">
@@ -257,6 +269,7 @@ export function InvoiceWorkspace() {
                 void run(async () => {
                   const s = await verifySignedInvoice(await jsonFile(e));
                   setSigned(s);
+                  setLibraryInvoiceId('');
                   setLink(invoiceLink(location.origin, s));
                 })
               }

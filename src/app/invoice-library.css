@@ -1,0 +1,22 @@
+.merchant-ui .invoice-library { margin: 24px 0; }
+.invoice-workspace-tabs { flex-wrap: wrap; column-gap: 20px; row-gap: 12px; }
+.invoice-library-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
+.invoice-library-heading>svg { flex-shrink: 0; margin-top: 12px; color: #007e52; }
+.merchant-ui .invoice-library-owner { border: 1px solid #dce6df; background: #f7faf8; border-radius: 5px; padding: 11px 13px; font-size: 11px; overflow-wrap: anywhere; }
+.invoice-library-owner code { font-size: inherit; }
+.invoice-library-unlock { max-width: 600px; }
+.merchant-ui .invoice-library .library-note { font-size: 11px; line-height: 1.8; margin: 18px 0 0; }
+.merchant-ui .library-search { display: grid; grid-template-columns: 18px 1fr; gap: 8px; max-width: 540px; margin-top: 25px; }
+.library-search input { grid-column: 1/-1; }
+.invoice-library-list { display: grid; gap: 12px; margin: 20px 0; }
+.invoice-library-entry { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; border: 1px solid #e0e7e2; border-radius: 6px; padding: 18px; min-width: 0; }
+.invoice-library-entry>div { min-width: 0; }
+.merchant-ui .invoice-library-entry h3 { margin: 0 0 8px; font-size: 14px; overflow-wrap: anywhere; }
+.merchant-ui .invoice-library-entry p { margin: 0 0 8px; font-size: 11px; overflow-wrap: anywhere; }
+.invoice-library-entry code { display: block; font-size: 10px; color: #66736a; overflow-wrap: anywhere; }
+.invoice-library-entry small { display: block; color: #6a776d; font-size: 10px; margin-top: 10px; line-height: 1.7; }
+.library-entry-actions { display: grid; gap: 7px; flex: 0 0 180px; }
+.merchant-ui .library-entry-actions .text-link { margin: 5px 0 0; font-size: 10px; color: #6e5d5d; justify-content: center; }
+.library-merge { border-top: 1px solid #e1e7e3; padding-top: 18px; }
+.library-merge .form-label { max-width: 540px; }
+@media(max-width: 760px) { .invoice-library-entry { flex-direction: column; padding: 14px; gap: 15px; } .library-entry-actions { flex: auto; width: 100%; grid-template-columns: 1fr; } .merchant-ui .invoice-library .live-buttons>.button { flex: 1 1 100%; } }

@@ -2,6 +2,7 @@ export type * from "./types.js";
 export { canonical, sha256 } from "./crypto.js";
 export { parsePolicy, preparedPayment, feeQuote } from "./payment.js";
 export { OperationJournal, browserJournalStorage } from "./journal.js";
+export { InvoiceLibrary, browserInvoiceLibraryStorage, type StoredInvoice } from './library.js';
 export { SettlementSession, type Review } from "./session.js";
 export { HttpGateway, CoreApiError } from "./http.js";
 export { parseApprovedGroups, parseGroupCapacity } from './groups.js';

@@ -47,3 +47,5 @@ npm run test:e2e
 [Contract](https://github.com/Company-privacy-settlement/Contract) · [Core](https://github.com/Company-privacy-settlement/Core) · [Front](https://github.com/Company-privacy-settlement/Front)
 
 导入独立批准的组目录后，可验证各组 API 策略和输出容量，并选择存款或恢复模式。恢复模式禁止导入新存款；日志解锁时会锁定组选择。[组指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/GROUPS.md)说明详细流程。
+
+发票页面提供可选的加密本地库，可明确保存签名请求，搜索、重新打开及导出、恢复、合并加密备份。按账户和网络分隔存储，验证签名 ID 不可变性，不向 Core 发送业务条款，也不缓存已付款状态。详见[本地库指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICE_LIBRARY.md)。

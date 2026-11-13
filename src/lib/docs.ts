@@ -213,6 +213,16 @@ export const docs: Doc[] = [
         ]
       },
       {
+        "id": "library",
+        "title": "Keep an encrypted invoice library",
+        "paragraphs": [
+          "On Invoices, connect the merchant wallet and create or unlock Your invoice library with a passphrase of 12–1,024 characters. Saving is explicit: create or open a signed invoice, then choose Save displayed invoice. Up to 100 requests can be kept per merchant/network.",
+          "Titles, references, policies and signatures are encrypted in this browser. Search the saved list and open a request to reuse its payment link. The library makes no API requests and stores no paid-status cache; refresh the opened invoice against its matching API for current indexed settlement.",
+          "Export an encrypted backup and retain its passphrase separately. Restore requires empty storage; an unlocked library can merge another encrypted backup, including one with a different passphrase. Conflicting signed terms are rejected instead of overwriting an existing ID.",
+          "Locking hides the library and an invoice opened from it. Switching merchant accounts closes the previous account’s library. Separately opened public files, shared links and current editor drafts remain readable in their own contexts. Removing a local copy does not cancel a signed invoice or change payment state."
+        ]
+      },
+      {
         "id": "checkout",
         "title": "Pay the signed terms",
         "steps": [
@@ -417,6 +427,14 @@ export const docs: Doc[] = [
             ]
           ]
         }
+      },
+      {
+        "id": "local-library",
+        "title": "Encrypted terms stay client-held",
+        "paragraphs": [
+          "The invoice library encrypts saved signed requests with AES-256-GCM and a passphrase-derived key. It uses its own authenticated storage format and merchant/network namespace, separate from the operation journal. Saving, opening, searching and backing up library entries sends no terms to Core.",
+          "This archive verifies signed-term integrity locally. It does not certify legal identity, current merchant key permissions, payment completion or statutory retention. Shared payment links and individual signed JSON exports still reveal their terms to holders."
+        ]
       }
     ]
   },
@@ -613,9 +631,10 @@ export const docs: Doc[] = [
       },
       {
         "id": "backups",
-        "title": "Keep three records distinct",
+        "title": "Keep each backup separate",
         "paragraphs": [
-          "The browser journal uses passphrase-derived encryption and cross-tab exclusion. There is no passphrase recovery. Backup restoration requires empty storage and refuses overwrite."
+          "The browser journal uses passphrase-derived encryption and cross-tab exclusion. There is no passphrase recovery. Backup restoration requires empty storage and refuses overwrite.",
+          "The optional invoice library has a separate encrypted backup for signed business requests. It does not replace private-note backups or wallet-operation recovery. The service cannot recover a lost library passphrase. Restore into empty library storage or merge after unlocking the existing library."
         ],
         "table": {
           "headings": [

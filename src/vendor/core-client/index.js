@@ -41,10 +41,13 @@ function bytes(value, max) {
   return b;
 }
 var ITERATIONS = 25e4;
-var AAD = new TextEncoder().encode("core:operation-journal:v1");
+function storageContext(format) {
+  if (format !== "core-operation-journal" && format !== "core-invoice-library") throw new Error("Unsupported encrypted storage format");
+  return new TextEncoder().encode(format === "core-operation-journal" ? "core:operation-journal:v1" : "core:invoice-library:v1");
+}
 async function key(password, salt) {
   if (password.length < 12 || password.length > 1024)
-    throw new Error("Use a journal passphrase of 12\u20131024 characters");
+    throw new Error("Use a passphrase of 12\u20131024 characters");
   const material = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),
@@ -60,17 +63,17 @@ async function key(password, salt) {
     ["encrypt", "decrypt"]
   );
 }
-async function seal(value, password) {
+async function seal(value, password, format = "core-operation-journal") {
   const plaintext = new TextEncoder().encode(canonical(value));
-  if (plaintext.length > 2e6) throw new Error("Journal exceeds 2 MB");
+  if (plaintext.length > 2e6) throw new Error("Encrypted storage exceeds 2 MB");
   const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
   const encrypted = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv, additionalData: AAD },
+    { name: "AES-GCM", iv, additionalData: storageContext(format) },
     await key(password, salt),
     plaintext
   );
   return JSON.stringify({
-    format: "core-operation-journal",
+    format,
     version: 1,
     kdf: "PBKDF2-SHA256",
     iterations: ITERATIONS,
@@ -79,16 +82,16 @@ async function seal(value, password) {
     ciphertext: base64(new Uint8Array(encrypted))
   });
 }
-async function unseal(envelope, password) {
-  if (envelope.length > 3e6) throw new Error("Journal exceeds 3 MB");
+async function unseal(envelope, password, format = "core-operation-journal") {
+  if (envelope.length > 3e6) throw new Error("Encrypted backup exceeds 3 MB");
   const e = JSON.parse(envelope);
-  if (e.format !== "core-operation-journal" || e.version !== 1 || e.kdf !== "PBKDF2-SHA256" || e.iterations !== ITERATIONS)
-    throw new Error("Unsupported journal envelope");
+  if (!e || typeof e !== "object" || Array.isArray(e) || Object.keys(e).sort().join("|") !== "ciphertext|format|iterations|iv|kdf|salt|version" || e.format !== format || e.version !== 1 || e.kdf !== "PBKDF2-SHA256" || e.iterations !== ITERATIONS)
+    throw new Error("Unsupported encrypted storage envelope");
   const salt = bytes(e.salt, 16), iv = bytes(e.iv, 12);
   if (salt.length !== 16 || iv.length !== 12)
     throw new Error("Invalid journal salt or IV");
   const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv, additionalData: AAD },
+    { name: "AES-GCM", iv, additionalData: storageContext(format) },
     await key(password, salt),
     bytes(e.ciphertext, 2000016)
   );
@@ -439,30 +442,474 @@ var OperationJournal = class {
     });
   }
 };
-function browserJournalStorage(key2 = "core-live-journal-v1") {
+function browserJournalStorage(key2 = "core-live-journal-v1", label = "Journal") {
   return {
     read: async () => localStorage.getItem(key2),
     write: async (e) => {
       localStorage.setItem(key2, e);
       if (localStorage.getItem(key2) !== e)
-        throw new Error("Journal persistence failed");
+        throw new Error(`${label} persistence failed`);
     },
     exclusive: async (fn) => {
       if (!navigator.locks)
-        throw new Error("This browser needs Web Locks to sign safely");
+        throw new Error("This browser needs Web Locks for encrypted storage");
       return navigator.locks.request(
         key2,
         { mode: "exclusive", ifAvailable: true },
         async (lock) => {
           if (!lock)
             throw new Error(
-              "Journal is in use by another tab or signing request"
+              `${label} is in use by another tab or request`
             );
           return fn();
         }
       );
     }
   };
+}
+
+// sdk/client/invoices.ts
+var INVOICE_SIGNING_RECIPIENT = "core.invoice.v1";
+function exact2(o, keys) {
+  if (Object.keys(o).sort().join("|") !== keys.sort().join("|"))
+    throw new Error("Unexpected invoice fields");
+}
+function hex2(value) {
+  if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value))
+    throw new Error("Invalid invoice digest or nonce");
+  return value;
+}
+function text(value, max) {
+  if (typeof value !== "string" || value.length < 1 || value.length > max || /[\u0000-\u001f\u007f]/.test(value))
+    throw new Error("Invalid invoice text");
+  return value;
+}
+function date(value) {
+  if (typeof value !== "string" || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value)
+    throw new Error("Use a canonical UTC invoice time");
+  return value;
+}
+function parseInvoice(input) {
+  const o = object(input);
+  exact2(o, [
+    "version",
+    "id",
+    "merchantAccount",
+    "recipient",
+    "title",
+    "reference",
+    "policy",
+    "units",
+    "createdAt",
+    "expiresAt",
+    "nonce",
+    ...o.version === 2 ? ["paymentNonces"] : []
+  ]);
+  if (o.version !== 1 && o.version !== 2 || typeof o.id !== "string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
+    o.id
+  ) || typeof o.units !== "number" || !Number.isInteger(o.units) || o.units < 1 || o.units > 32)
+    throw new Error("Invoice requires 1\u201332 fixed-denomination notes");
+  const policy = parsePolicy(o.policy);
+  feeQuote(policy);
+  const createdAt = date(o.createdAt), expiresAt = date(o.expiresAt);
+  if (Date.parse(expiresAt) <= Date.parse(createdAt) || Date.parse(expiresAt) - Date.parse(createdAt) > 90 * 864e5)
+    throw new Error("Invoice expiry must be within 90 days of issue");
+  const recipient = account(o.recipient);
+  if (recipient === policy.registry || recipient.endsWith("." + policy.registry))
+    throw new Error("Invoice must pay an external recipient");
+  const terms = {
+    id: o.id,
+    merchantAccount: account(o.merchantAccount),
+    recipient,
+    title: text(o.title, 120),
+    reference: text(o.reference, 80),
+    policy,
+    units: o.units,
+    createdAt,
+    expiresAt,
+    nonce: hex2(o.nonce)
+  };
+  if (o.version === 1) return { ...terms, version: 1 };
+  const paymentNonces = parsePaymentNonces(o.paymentNonces, terms.units);
+  if (paymentNonces.includes(terms.nonce)) throw new Error("Invoice signing and payment nonces must differ");
+  return { ...terms, version: 2, paymentNonces };
+}
+function parsePaymentNonces(input, units) {
+  if (!Array.isArray(input) || input.length < 1 || input.length > 32 || units !== void 0 && input.length !== units)
+    throw new Error("Provide one unique nonce per invoice payment unit");
+  const values = input.map(hex2);
+  if (new Set(values).size !== values.length) throw new Error("Invoice payment nonces must be distinct");
+  return values;
+}
+function createInvoice(input) {
+  if (!Number.isInteger(input.units) || input.units < 1 || input.units > 32) throw new Error("Invoice requires 1\u201332 fixed-denomination notes");
+  const random = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join("");
+  return parseInvoice({ ...input, version: 2, id: crypto.randomUUID(), nonce: random(), paymentNonces: Array.from({ length: input.units }, random) });
+}
+function parseSignedInvoice(input) {
+  const o = object(input);
+  exact2(o, ["invoice", "signature"]);
+  const invoice = parseInvoice(o.invoice), s = object(o.signature);
+  exact2(s, ["accountId", "publicKey", "signature"]);
+  if (s.accountId !== invoice.merchantAccount || typeof s.publicKey !== "string" || !/^ed25519:[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s.publicKey) || typeof s.signature !== "string" || !/^[A-Za-z0-9+/]{86}==$/.test(s.signature) || atob(s.signature).length !== 64)
+    throw new Error("Invalid invoice merchant signature");
+  return {
+    invoice,
+    signature: {
+      accountId: account(s.accountId),
+      publicKey: s.publicKey,
+      signature: s.signature
+    }
+  };
+}
+async function invoiceHash(invoice) {
+  const i = parseInvoice(invoice);
+  return sha256(`core:invoice:v${i.version}|` + canonical(i));
+}
+async function invoiceRootsFromHash(hash3, nonces) {
+  hex2(hash3);
+  return Promise.all(parsePaymentNonces(nonces).map((nonce) => sha256(`core:invoice:payment:v2|${hash3}|${nonce}`)));
+}
+async function invoicePaymentRoots(invoice) {
+  const i = parseInvoice(invoice), digest2 = await invoiceHash(i);
+  return i.version === 1 ? [await sha256("core:invoice:settlement:v1|" + digest2)] : invoiceRootsFromHash(digest2, i.paymentNonces);
+}
+async function invoiceRoot(invoice, paymentIndex) {
+  const roots = await invoicePaymentRoots(invoice);
+  if (invoice.version === 2 && roots.length > 1 && paymentIndex === void 0) throw new Error("Choose a payment index for this v2 invoice");
+  const index = paymentIndex ?? 0;
+  if (!Number.isInteger(index) || index < 0 || index >= roots.length) throw new Error("Invalid invoice payment index");
+  return roots[index];
+}
+async function invoiceStatusRequest(invoice) {
+  const i = parseInvoice(invoice);
+  return {
+    invoiceHash: await invoiceHash(i),
+    recipient: i.recipient,
+    units: i.units,
+    expiresAt: i.expiresAt,
+    ...i.version === 2 ? { version: 2, paymentNonces: [...i.paymentNonces] } : {}
+  };
+}
+async function assertInvoiceReferenceAvailable(invoice, root, status) {
+  const roots = await invoicePaymentRoots(invoice);
+  if (status.invoiceHash !== await invoiceHash(invoice) || !roots.includes(root)) throw new Error("Payment reference is not bound to this invoice");
+  if (invoice.version === 2 ? status.settlementRoot !== null || canonical(status.settlementRoots) !== canonical(roots) : status.settlementRoot !== roots[0]) throw new Error("Invoice reference set differs from signed terms");
+  validateInvoiceStatus(status, invoice);
+  if (invoice.version === 2 && status.confirmations.some((c) => c.settlementRoot === root))
+    throw new Error("This payment reference already has an indexed payment; choose an unused reference");
+}
+function invoiceMessage(hash3, network) {
+  return `Core invoice v1
+Network: ${network}
+Digest: ${hex2(hash3)}`;
+}
+function nonceBytes(nonce) {
+  return Uint8Array.from(hex2(nonce).match(/../g), (v) => parseInt(v, 16));
+}
+function base58(input) {
+  const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  let n = 0n;
+  for (const c of input) {
+    const i = alphabet.indexOf(c);
+    if (i < 0) throw new Error("Invalid merchant key");
+    n = n * 58n + BigInt(i);
+  }
+  const out = [];
+  while (n > 0n) {
+    out.unshift(Number(n & 255n));
+    n >>= 8n;
+  }
+  for (const c of input) {
+    if (c !== "1") break;
+    out.unshift(0);
+  }
+  return Uint8Array.from(out);
+}
+async function invoiceSigningDigest(hash3, network, nonce) {
+  const str = (s) => {
+    const b = new TextEncoder().encode(s), length = new Uint8Array(4);
+    new DataView(length.buffer).setUint32(0, b.length, true);
+    return [...length, ...b];
+  }, tag = new Uint8Array(4);
+  new DataView(tag.buffer).setUint32(0, 2147484061, true);
+  const data = Uint8Array.from([
+    ...tag,
+    ...str(invoiceMessage(hash3, network)),
+    ...nonceBytes(nonce),
+    ...str(INVOICE_SIGNING_RECIPIENT),
+    0
+  ]);
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+}
+async function verifyInvoiceProofSignature(proof, network) {
+  const raw = base58(proof.publicKey.replace(/^ed25519:/, ""));
+  if (raw.length !== 32) throw new Error("Invalid Ed25519 invoice key");
+  const key2 = await crypto.subtle.importKey(
+    "raw",
+    raw,
+    { name: "Ed25519" },
+    false,
+    ["verify"]
+  );
+  return crypto.subtle.verify(
+    "Ed25519",
+    key2,
+    Uint8Array.from(atob(proof.signature), (c) => c.charCodeAt(0)),
+    await invoiceSigningDigest(proof.invoiceHash, network, proof.nonce)
+  );
+}
+async function invoiceProof(input) {
+  const s = parseSignedInvoice(input);
+  return {
+    invoiceHash: await invoiceHash(s.invoice),
+    merchantAccount: s.invoice.merchantAccount,
+    nonce: s.invoice.nonce,
+    publicKey: s.signature.publicKey,
+    signature: s.signature.signature
+  };
+}
+async function verifySignedInvoice(input) {
+  const s = parseSignedInvoice(input);
+  if (!await verifyInvoiceProofSignature(
+    await invoiceProof(s),
+    s.invoice.policy.network
+  ))
+    throw new Error("Invoice signature does not match its terms");
+  return s;
+}
+function invoiceQuote(invoice) {
+  const i = parseInvoice(invoice), q = feeQuote(i.policy), units = BigInt(i.units);
+  return {
+    principalTokens: (BigInt(i.policy.denomination) * units).toString(),
+    withdrawalFeeTokens: (BigInt(q.feeTokens) * units).toString(),
+    units: i.units,
+    storageYoctoNearPerAttempt: q.storageYoctoNear
+  };
+}
+function requireOpenInvoice(invoice, now = Date.now()) {
+  const i = parseInvoice(invoice);
+  if (now < Date.parse(i.createdAt) - 3e5 || now >= Date.parse(i.expiresAt))
+    throw new Error("This invoice is expired or not yet valid");
+}
+async function matchInvoicePlan(input, invoice, payer) {
+  requireOpenInvoice(invoice);
+  const p = await preparedPayment(input, invoice.policy, payer);
+  if (p.reference.kind !== "withdrawal" || p.reference.expectedRecipient !== invoice.recipient || !(await invoicePaymentRoots(invoice)).includes(p.reference.expectedDisclosureRoot ?? ""))
+    throw new Error("Payment proof must bind this invoice root and recipient");
+  return p;
+}
+function invoiceLink(origin, signed) {
+  const url = new URL("/pay/", origin);
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname)))
+    throw new Error("Use an HTTPS checkout origin");
+  let bytes2 = "";
+  for (const b of new TextEncoder().encode(
+    canonical(parseSignedInvoice(signed))
+  ))
+    bytes2 += String.fromCharCode(b);
+  url.hash = "invoice=" + btoa(bytes2).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+  return url.toString();
+}
+function invoiceFromFragment(fragment) {
+  const p = new URLSearchParams(fragment.replace(/^#/, "")), v = p.get("invoice");
+  if ([...p.keys()].join("|") !== "invoice" || !v || v.length > 16e3 || !/^[A-Za-z0-9_-]+$/.test(v))
+    throw new Error("Invalid invoice link");
+  const bytes2 = Uint8Array.from(
+    atob(v.replaceAll("-", "+").replaceAll("_", "/")),
+    (c) => c.charCodeAt(0)
+  );
+  return parseSignedInvoice(
+    JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes2))
+  );
+}
+function validateInvoiceStatus(input, invoice) {
+  const s = object(input), p = invoiceQuote(invoice), expected = BigInt(p.principalTokens);
+  const amount = (key2) => {
+    const v = s[key2];
+    if (typeof v !== "string" || !/^(0|[1-9][0-9]*)$/.test(v) || v.length > 42)
+      throw new Error("Invalid invoice totals");
+    return BigInt(v);
+  };
+  const paid = amount("paidTokens"), remaining = amount("remainingTokens"), over = amount("overpaidTokens"), late = amount("lateTokens"), unit = BigInt(invoice.policy.denomination);
+  if (s.expectedTokens !== p.principalTokens || paid % unit !== 0n || remaining !== (paid < expected ? expected - paid : 0n) || over !== (paid > expected ? paid - expected : 0n) || late > paid || s.confirmedPayments !== Number(paid / unit) || typeof s.coverageLimited !== "boolean" || s.chainFreshnessChecked !== false || !Array.isArray(s.confirmations) || s.confirmations.length !== s.confirmedPayments || s.confirmations.length > 1e3)
+    throw new Error("Inconsistent invoice settlement totals");
+  const valid = s.state === "review_required" ? s.coverageLimited === true : s.coverageLimited === false && (s.state === "paid" ? paid === expected && late === 0n : s.state === "paid_late" ? paid === expected && late > 0n : s.state === "overpaid" ? paid > expected : s.state === "partial" || s.state === "partial_expired" ? paid > 0n && paid < expected : s.state === "awaiting_payment" || s.state === "expired" ? paid === 0n : false);
+  if (!valid)
+    throw new Error("Invoice state does not match confirmed principal");
+  const c = object(s.checkedAt);
+  if (typeof c.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(c.hash) || typeof c.height !== "number" || !Number.isSafeInteger(c.height) || c.height < 0 || typeof c.updatedAt !== "string" || !Number.isFinite(Date.parse(c.updatedAt)))
+    throw new Error("Invalid invoice checkpoint");
+  if (invoice.version === 2 && (s.settlementRoot !== null || !Array.isArray(s.settlementRoots) || s.settlementRoots.length !== invoice.units || s.settlementRoots.some((r) => typeof r !== "string" || !/^[a-f0-9]{64}$/.test(r)) || new Set(s.settlementRoots).size !== invoice.units))
+    throw new Error("Invalid per-payment invoice references");
+  const nullifiers = /* @__PURE__ */ new Set(), recordIndices = /* @__PURE__ */ new Set();
+  let latePayments = 0;
+  for (const entry of s.confirmations) {
+    const r = object(entry);
+    if (typeof r.nullifier !== "string" || !/^(0|[1-9][0-9]*)$/.test(r.nullifier) || nullifiers.has(r.nullifier) || typeof r.recordIndex !== "number" || !Number.isSafeInteger(r.recordIndex) || r.recordIndex < 0 || recordIndices.has(r.recordIndex) || invoice.version === 2 && !s.settlementRoots.includes(String(r.settlementRoot)) || typeof r.blockHeight !== "number" || !Number.isSafeInteger(r.blockHeight) || r.blockHeight < 0 || r.blockHeight > c.height || typeof r.late !== "boolean")
+      throw new Error("Invalid invoice confirmation");
+    nullifiers.add(r.nullifier);
+    recordIndices.add(r.recordIndex);
+    if (r.late) latePayments++;
+  }
+  if (late !== BigInt(latePayments) * unit)
+    throw new Error("Invoice late total differs from confirmed payments");
+  if (invoice.version === 2) {
+    const unique = new Set(s.confirmations.map((entry) => object(entry).settlementRoot)).size;
+    if (s.reusedPaymentReferences !== s.confirmations.length - unique) throw new Error("Invalid invoice reference reuse count");
+  }
+  return input;
+}
+
+// sdk/client/library.ts
+var FORMAT = "core-invoice-library";
+function exact3(value, fields) {
+  if (Object.keys(value).sort().join("|") !== [...fields].sort().join("|")) throw new Error("Unexpected invoice library fields");
+}
+function identity(raw) {
+  const value = object(raw);
+  exact3(value, ["network", "accountId"]);
+  if (value.network !== "testnet" && value.network !== "sandbox") throw new Error("Invalid library network");
+  return { network: value.network, accountId: account(value.accountId) };
+}
+function digest(value) {
+  if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value)) throw new Error("Invalid library invoice hash");
+  return value;
+}
+async function validate2(raw, owner) {
+  const value = object(raw);
+  exact3(value, ["version", "owner", "invoices"]);
+  if (value.version !== 1 || canonical(identity(value.owner)) !== canonical(owner) || !Array.isArray(value.invoices))
+    throw new Error("Invalid invoice library or different merchant/network");
+  if (value.invoices.length > 100) throw new Error("Invoice library supports at most 100 saved requests; keep a backup before removing local copies");
+  const invoices = [], ids = /* @__PURE__ */ new Set(), hashes = /* @__PURE__ */ new Set();
+  for (const rawEntry of value.invoices) {
+    const entry = object(rawEntry);
+    exact3(entry, ["hash", "signed", "savedAt"]);
+    const signed = await verifySignedInvoice(entry.signed), hash3 = digest(entry.hash);
+    if (signed.invoice.merchantAccount !== owner.accountId || signed.invoice.policy.network !== owner.network || await invoiceHash(signed.invoice) !== hash3 || ids.has(signed.invoice.id) || hashes.has(hash3))
+      throw new Error("Invoice library identity, integrity or uniqueness mismatch");
+    if (typeof entry.savedAt !== "string" || !Number.isFinite(Date.parse(entry.savedAt)) || new Date(entry.savedAt).toISOString() !== entry.savedAt) throw new Error("Invalid invoice save time");
+    ids.add(signed.invoice.id);
+    hashes.add(hash3);
+    invoices.push({ hash: hash3, signed, savedAt: entry.savedAt });
+  }
+  return { version: 1, owner: identity(owner), invoices };
+}
+var InvoiceLibrary = class {
+  constructor(storage, password, owner) {
+    this.storage = storage;
+    this.password = password;
+    this.owner = Object.freeze(identity(owner));
+  }
+  storage;
+  password;
+  owner;
+  generation = 0;
+  lock() {
+    this.generation++;
+    this.password = "";
+  }
+  async access(action) {
+    const current = this.generation, password = this.password;
+    const check = () => {
+      if (!password || !this.password || current !== this.generation) throw new Error("Invoice library is locked");
+    };
+    check();
+    return this.storage.exclusive(async () => {
+      check();
+      return action(password, check);
+    });
+  }
+  async read(password, check) {
+    const envelope = await this.storage.read();
+    check();
+    if (envelope === null) throw new Error("Create or restore an encrypted invoice library first");
+    const data = await this.decode(envelope, password);
+    check();
+    return { envelope, data };
+  }
+  async decode(envelope, password) {
+    try {
+      return await validate2(await unseal(envelope, password, FORMAT), this.owner);
+    } catch (error) {
+      if (error && typeof error === "object" && "name" in error && error.name === "OperationError") throw new Error("Could not decrypt invoice library. Check the passphrase and backup integrity.");
+      throw error;
+    }
+  }
+  async write(data, password, check) {
+    const validated = await validate2(data, this.owner);
+    check();
+    const envelope = await seal(validated, password, FORMAT);
+    check();
+    await this.storage.write(envelope);
+    check();
+  }
+  create() {
+    return this.access(async (password, check) => {
+      if (await this.storage.read() !== null) throw new Error("A library already exists; unlock or merge a backup instead");
+      check();
+      await this.write({ version: 1, owner: identity(this.owner), invoices: [] }, password, check);
+    });
+  }
+  list() {
+    return this.access(async (password, check) => {
+      const { data } = await this.read(password, check);
+      return data.invoices.sort((a, b) => b.savedAt.localeCompare(a.savedAt) || a.hash.localeCompare(b.hash));
+    });
+  }
+  add(raw) {
+    return this.access(async (password, check) => {
+      const { data } = await this.read(password, check), signed = await verifySignedInvoice(raw), hash3 = await invoiceHash(signed.invoice);
+      check();
+      if (signed.invoice.merchantAccount !== this.owner.accountId || signed.invoice.policy.network !== this.owner.network) throw new Error("Invoice belongs to a different merchant or network");
+      const existing = data.invoices.find((e) => e.signed.invoice.id === signed.invoice.id || e.hash === hash3);
+      if (existing) {
+        if (existing.hash !== hash3 || canonical(existing.signed) !== canonical(signed)) throw new Error("Invoice ID already has different signed terms or signature");
+        return existing;
+      }
+      const entry = { hash: hash3, signed, savedAt: (/* @__PURE__ */ new Date()).toISOString() };
+      data.invoices.push(entry);
+      await this.write(data, password, check);
+      return entry;
+    });
+  }
+  remove(hash3) {
+    return this.access(async (password, check) => {
+      digest(hash3);
+      const { data } = await this.read(password, check), remaining = data.invoices.filter((e) => e.hash !== hash3);
+      if (remaining.length === data.invoices.length) throw new Error("Invoice is not in this library");
+      data.invoices = remaining;
+      await this.write(data, password, check);
+    });
+  }
+  export() {
+    return this.access(async (password, check) => (await this.read(password, check)).envelope);
+  }
+  restore(envelope) {
+    return this.access(async (password, check) => {
+      if (await this.storage.read() !== null) throw new Error("Restore requires empty storage; unlock the existing library and merge instead");
+      const data = await this.decode(envelope, password);
+      check();
+      await this.write(data, password, check);
+    });
+  }
+  merge(envelope, backupPassword) {
+    return this.access(async (password, check) => {
+      const { data } = await this.read(password, check), incoming = await this.decode(envelope, backupPassword ?? password);
+      for (const entry of incoming.invoices) {
+        const existing = data.invoices.find((e) => e.signed.invoice.id === entry.signed.invoice.id || e.hash === entry.hash);
+        if (existing) {
+          if (existing.hash !== entry.hash || canonical(existing.signed) !== canonical(entry.signed)) throw new Error("Backup conflicts with an immutable saved invoice");
+        } else data.invoices.push(entry);
+      }
+      await this.write(data, password, check);
+    });
+  }
+};
+function browserInvoiceLibraryStorage(owner) {
+  const parsed = identity(owner);
+  return browserJournalStorage(`core-invoice-library-v1:${parsed.network}:${parsed.accountId}`, "Invoice library");
 }
 
 // sdk/client/session.ts
@@ -484,19 +931,19 @@ var SettlementSession = class {
       );
   }
   async identity(payer) {
-    const identity = await this.wallet.identity();
-    if (identity.network !== this.policy.network || identity.accountId !== payer)
+    const identity2 = await this.wallet.identity();
+    if (identity2.network !== this.policy.network || identity2.accountId !== payer)
       throw new Error("Connect the reviewed payer on the correct network");
   }
   async importPlan(plan) {
     await this.trusted();
-    const identity = await this.wallet.identity();
-    account(identity.accountId);
-    await this.identity(identity.accountId);
+    const identity2 = await this.wallet.identity();
+    account(identity2.accountId);
+    await this.identity(identity2.accountId);
     const prepared = await preparedPayment(
       plan,
       this.policy,
-      identity.accountId
+      identity2.accountId
     );
     return this.journal.update(async (operations, persist) => {
       if (operations.length >= 100)
@@ -510,7 +957,7 @@ var SettlementSession = class {
       const op = {
         id: crypto.randomUUID(),
         policy: this.policy,
-        payer: identity.accountId,
+        payer: identity2.accountId,
         ...prepared,
         attempts: [],
         outcome: "open",
@@ -731,7 +1178,7 @@ var SettlementSession = class {
 };
 
 // sdk/client/groups.ts
-function exact2(value, keys) {
+function exact4(value, keys) {
   if (Object.keys(value).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected group fields");
 }
 function count(value) {
@@ -744,12 +1191,12 @@ function boolean(value) {
 }
 function parseApprovedGroups(input) {
   const value = object(input);
-  exact2(value, ["version", "groups"]);
+  exact4(value, ["version", "groups"]);
   if (value.version !== 1 || !Array.isArray(value.groups) || value.groups.length < 1 || value.groups.length > 8) throw new Error("Use an approved directory with 1\u20138 groups");
   const ids = /* @__PURE__ */ new Set(), registries = /* @__PURE__ */ new Set();
   const groups = value.groups.map((raw) => {
     const g = object(raw);
-    exact2(g, ["id", "depositsEnabled", "policy"]);
+    exact4(g, ["id", "depositsEnabled", "policy"]);
     if (typeof g.id !== "string" || !/^[a-z0-9][a-z0-9-]{0,31}$/.test(g.id)) throw new Error("Invalid group ID");
     const policy = parsePolicy(g.policy);
     if (ids.has(g.id) || registries.has(policy.registry)) throw new Error("Duplicate group ID or registry");
@@ -764,309 +1211,16 @@ function parseApprovedGroups(input) {
 }
 function parseGroupCapacity(input, trusted) {
   const value = object(input), policy = parsePolicy(value.policy), expected = parsePolicy(trusted);
-  exact2(value, ["policy", "checkedAtBlock", "capacity", "usedOutputs", "remainingOutputs", "outstandingNotes", "depositCapacityAvailable", "depositVaultObserved", "checkedVaults", "vaultScanComplete", "chainFreshnessChecked"]);
+  exact4(value, ["policy", "checkedAtBlock", "capacity", "usedOutputs", "remainingOutputs", "outstandingNotes", "depositCapacityAvailable", "depositVaultObserved", "checkedVaults", "vaultScanComplete", "chainFreshnessChecked"]);
   if (canonical(policy) !== canonical(expected)) throw new Error("Group capacity policy differs from the trusted group");
   const block2 = object(value.checkedAtBlock);
-  exact2(block2, ["hash", "height"]);
+  exact4(block2, ["hash", "height"]);
   if (typeof block2.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block2.hash)) throw new Error("Invalid group block");
   const usedOutputs = count(value.usedOutputs), remainingOutputs = count(value.remainingOutputs), outstandingNotes = count(value.outstandingNotes), checkedVaults = count(value.checkedVaults);
   const depositCapacityAvailable = boolean(value.depositCapacityAvailable), depositVaultObserved = boolean(value.depositVaultObserved), vaultScanComplete = boolean(value.vaultScanComplete);
   if (value.capacity !== 256 || usedOutputs > 256 || remainingOutputs !== 256 - usedOutputs || outstandingNotes > usedOutputs || checkedVaults > 1 || depositCapacityAvailable !== remainingOutputs > 0 || depositVaultObserved && (!depositCapacityAvailable || checkedVaults === 0) || value.chainFreshnessChecked !== false)
     throw new Error("Inconsistent group capacity snapshot");
   return { policy, checkedAtBlock: { hash: block2.hash, height: count(block2.height) }, capacity: 256, usedOutputs, remainingOutputs, outstandingNotes, depositCapacityAvailable, depositVaultObserved, checkedVaults, vaultScanComplete, chainFreshnessChecked: false };
-}
-
-// sdk/client/invoices.ts
-var INVOICE_SIGNING_RECIPIENT = "core.invoice.v1";
-function exact3(o, keys) {
-  if (Object.keys(o).sort().join("|") !== keys.sort().join("|"))
-    throw new Error("Unexpected invoice fields");
-}
-function hex2(value) {
-  if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value))
-    throw new Error("Invalid invoice digest or nonce");
-  return value;
-}
-function text(value, max) {
-  if (typeof value !== "string" || value.length < 1 || value.length > max || /[\u0000-\u001f\u007f]/.test(value))
-    throw new Error("Invalid invoice text");
-  return value;
-}
-function date(value) {
-  if (typeof value !== "string" || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value)
-    throw new Error("Use a canonical UTC invoice time");
-  return value;
-}
-function parseInvoice(input) {
-  const o = object(input);
-  exact3(o, [
-    "version",
-    "id",
-    "merchantAccount",
-    "recipient",
-    "title",
-    "reference",
-    "policy",
-    "units",
-    "createdAt",
-    "expiresAt",
-    "nonce",
-    ...o.version === 2 ? ["paymentNonces"] : []
-  ]);
-  if (o.version !== 1 && o.version !== 2 || typeof o.id !== "string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
-    o.id
-  ) || typeof o.units !== "number" || !Number.isInteger(o.units) || o.units < 1 || o.units > 32)
-    throw new Error("Invoice requires 1\u201332 fixed-denomination notes");
-  const policy = parsePolicy(o.policy);
-  feeQuote(policy);
-  const createdAt = date(o.createdAt), expiresAt = date(o.expiresAt);
-  if (Date.parse(expiresAt) <= Date.parse(createdAt) || Date.parse(expiresAt) - Date.parse(createdAt) > 90 * 864e5)
-    throw new Error("Invoice expiry must be within 90 days of issue");
-  const recipient = account(o.recipient);
-  if (recipient === policy.registry || recipient.endsWith("." + policy.registry))
-    throw new Error("Invoice must pay an external recipient");
-  const terms = {
-    id: o.id,
-    merchantAccount: account(o.merchantAccount),
-    recipient,
-    title: text(o.title, 120),
-    reference: text(o.reference, 80),
-    policy,
-    units: o.units,
-    createdAt,
-    expiresAt,
-    nonce: hex2(o.nonce)
-  };
-  if (o.version === 1) return { ...terms, version: 1 };
-  const paymentNonces = parsePaymentNonces(o.paymentNonces, terms.units);
-  if (paymentNonces.includes(terms.nonce)) throw new Error("Invoice signing and payment nonces must differ");
-  return { ...terms, version: 2, paymentNonces };
-}
-function parsePaymentNonces(input, units) {
-  if (!Array.isArray(input) || input.length < 1 || input.length > 32 || units !== void 0 && input.length !== units)
-    throw new Error("Provide one unique nonce per invoice payment unit");
-  const values = input.map(hex2);
-  if (new Set(values).size !== values.length) throw new Error("Invoice payment nonces must be distinct");
-  return values;
-}
-function createInvoice(input) {
-  if (!Number.isInteger(input.units) || input.units < 1 || input.units > 32) throw new Error("Invoice requires 1\u201332 fixed-denomination notes");
-  const random = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join("");
-  return parseInvoice({ ...input, version: 2, id: crypto.randomUUID(), nonce: random(), paymentNonces: Array.from({ length: input.units }, random) });
-}
-function parseSignedInvoice(input) {
-  const o = object(input);
-  exact3(o, ["invoice", "signature"]);
-  const invoice = parseInvoice(o.invoice), s = object(o.signature);
-  exact3(s, ["accountId", "publicKey", "signature"]);
-  if (s.accountId !== invoice.merchantAccount || typeof s.publicKey !== "string" || !/^ed25519:[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s.publicKey) || typeof s.signature !== "string" || !/^[A-Za-z0-9+/]{86}==$/.test(s.signature) || atob(s.signature).length !== 64)
-    throw new Error("Invalid invoice merchant signature");
-  return {
-    invoice,
-    signature: {
-      accountId: account(s.accountId),
-      publicKey: s.publicKey,
-      signature: s.signature
-    }
-  };
-}
-async function invoiceHash(invoice) {
-  const i = parseInvoice(invoice);
-  return sha256(`core:invoice:v${i.version}|` + canonical(i));
-}
-async function invoiceRootsFromHash(hash3, nonces) {
-  hex2(hash3);
-  return Promise.all(parsePaymentNonces(nonces).map((nonce) => sha256(`core:invoice:payment:v2|${hash3}|${nonce}`)));
-}
-async function invoicePaymentRoots(invoice) {
-  const i = parseInvoice(invoice), digest = await invoiceHash(i);
-  return i.version === 1 ? [await sha256("core:invoice:settlement:v1|" + digest)] : invoiceRootsFromHash(digest, i.paymentNonces);
-}
-async function invoiceRoot(invoice, paymentIndex) {
-  const roots = await invoicePaymentRoots(invoice);
-  if (invoice.version === 2 && roots.length > 1 && paymentIndex === void 0) throw new Error("Choose a payment index for this v2 invoice");
-  const index = paymentIndex ?? 0;
-  if (!Number.isInteger(index) || index < 0 || index >= roots.length) throw new Error("Invalid invoice payment index");
-  return roots[index];
-}
-async function invoiceStatusRequest(invoice) {
-  const i = parseInvoice(invoice);
-  return {
-    invoiceHash: await invoiceHash(i),
-    recipient: i.recipient,
-    units: i.units,
-    expiresAt: i.expiresAt,
-    ...i.version === 2 ? { version: 2, paymentNonces: [...i.paymentNonces] } : {}
-  };
-}
-async function assertInvoiceReferenceAvailable(invoice, root, status) {
-  const roots = await invoicePaymentRoots(invoice);
-  if (status.invoiceHash !== await invoiceHash(invoice) || !roots.includes(root)) throw new Error("Payment reference is not bound to this invoice");
-  if (invoice.version === 2 ? status.settlementRoot !== null || canonical(status.settlementRoots) !== canonical(roots) : status.settlementRoot !== roots[0]) throw new Error("Invoice reference set differs from signed terms");
-  validateInvoiceStatus(status, invoice);
-  if (invoice.version === 2 && status.confirmations.some((c) => c.settlementRoot === root))
-    throw new Error("This payment reference already has an indexed payment; choose an unused reference");
-}
-function invoiceMessage(hash3, network) {
-  return `Core invoice v1
-Network: ${network}
-Digest: ${hex2(hash3)}`;
-}
-function nonceBytes(nonce) {
-  return Uint8Array.from(hex2(nonce).match(/../g), (v) => parseInt(v, 16));
-}
-function base58(input) {
-  const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-  let n = 0n;
-  for (const c of input) {
-    const i = alphabet.indexOf(c);
-    if (i < 0) throw new Error("Invalid merchant key");
-    n = n * 58n + BigInt(i);
-  }
-  const out = [];
-  while (n > 0n) {
-    out.unshift(Number(n & 255n));
-    n >>= 8n;
-  }
-  for (const c of input) {
-    if (c !== "1") break;
-    out.unshift(0);
-  }
-  return Uint8Array.from(out);
-}
-async function invoiceSigningDigest(hash3, network, nonce) {
-  const str = (s) => {
-    const b = new TextEncoder().encode(s), length = new Uint8Array(4);
-    new DataView(length.buffer).setUint32(0, b.length, true);
-    return [...length, ...b];
-  }, tag = new Uint8Array(4);
-  new DataView(tag.buffer).setUint32(0, 2147484061, true);
-  const data = Uint8Array.from([
-    ...tag,
-    ...str(invoiceMessage(hash3, network)),
-    ...nonceBytes(nonce),
-    ...str(INVOICE_SIGNING_RECIPIENT),
-    0
-  ]);
-  return new Uint8Array(await crypto.subtle.digest("SHA-256", data));
-}
-async function verifyInvoiceProofSignature(proof, network) {
-  const raw = base58(proof.publicKey.replace(/^ed25519:/, ""));
-  if (raw.length !== 32) throw new Error("Invalid Ed25519 invoice key");
-  const key2 = await crypto.subtle.importKey(
-    "raw",
-    raw,
-    { name: "Ed25519" },
-    false,
-    ["verify"]
-  );
-  return crypto.subtle.verify(
-    "Ed25519",
-    key2,
-    Uint8Array.from(atob(proof.signature), (c) => c.charCodeAt(0)),
-    await invoiceSigningDigest(proof.invoiceHash, network, proof.nonce)
-  );
-}
-async function invoiceProof(input) {
-  const s = parseSignedInvoice(input);
-  return {
-    invoiceHash: await invoiceHash(s.invoice),
-    merchantAccount: s.invoice.merchantAccount,
-    nonce: s.invoice.nonce,
-    publicKey: s.signature.publicKey,
-    signature: s.signature.signature
-  };
-}
-async function verifySignedInvoice(input) {
-  const s = parseSignedInvoice(input);
-  if (!await verifyInvoiceProofSignature(
-    await invoiceProof(s),
-    s.invoice.policy.network
-  ))
-    throw new Error("Invoice signature does not match its terms");
-  return s;
-}
-function invoiceQuote(invoice) {
-  const i = parseInvoice(invoice), q = feeQuote(i.policy), units = BigInt(i.units);
-  return {
-    principalTokens: (BigInt(i.policy.denomination) * units).toString(),
-    withdrawalFeeTokens: (BigInt(q.feeTokens) * units).toString(),
-    units: i.units,
-    storageYoctoNearPerAttempt: q.storageYoctoNear
-  };
-}
-function requireOpenInvoice(invoice, now = Date.now()) {
-  const i = parseInvoice(invoice);
-  if (now < Date.parse(i.createdAt) - 3e5 || now >= Date.parse(i.expiresAt))
-    throw new Error("This invoice is expired or not yet valid");
-}
-async function matchInvoicePlan(input, invoice, payer) {
-  requireOpenInvoice(invoice);
-  const p = await preparedPayment(input, invoice.policy, payer);
-  if (p.reference.kind !== "withdrawal" || p.reference.expectedRecipient !== invoice.recipient || !(await invoicePaymentRoots(invoice)).includes(p.reference.expectedDisclosureRoot ?? ""))
-    throw new Error("Payment proof must bind this invoice root and recipient");
-  return p;
-}
-function invoiceLink(origin, signed) {
-  const url = new URL("/pay/", origin);
-  if (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname)))
-    throw new Error("Use an HTTPS checkout origin");
-  let bytes2 = "";
-  for (const b of new TextEncoder().encode(
-    canonical(parseSignedInvoice(signed))
-  ))
-    bytes2 += String.fromCharCode(b);
-  url.hash = "invoice=" + btoa(bytes2).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
-  return url.toString();
-}
-function invoiceFromFragment(fragment) {
-  const p = new URLSearchParams(fragment.replace(/^#/, "")), v = p.get("invoice");
-  if ([...p.keys()].join("|") !== "invoice" || !v || v.length > 16e3 || !/^[A-Za-z0-9_-]+$/.test(v))
-    throw new Error("Invalid invoice link");
-  const bytes2 = Uint8Array.from(
-    atob(v.replaceAll("-", "+").replaceAll("_", "/")),
-    (c) => c.charCodeAt(0)
-  );
-  return parseSignedInvoice(
-    JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes2))
-  );
-}
-function validateInvoiceStatus(input, invoice) {
-  const s = object(input), p = invoiceQuote(invoice), expected = BigInt(p.principalTokens);
-  const amount = (key2) => {
-    const v = s[key2];
-    if (typeof v !== "string" || !/^(0|[1-9][0-9]*)$/.test(v) || v.length > 42)
-      throw new Error("Invalid invoice totals");
-    return BigInt(v);
-  };
-  const paid = amount("paidTokens"), remaining = amount("remainingTokens"), over = amount("overpaidTokens"), late = amount("lateTokens"), unit = BigInt(invoice.policy.denomination);
-  if (s.expectedTokens !== p.principalTokens || paid % unit !== 0n || remaining !== (paid < expected ? expected - paid : 0n) || over !== (paid > expected ? paid - expected : 0n) || late > paid || s.confirmedPayments !== Number(paid / unit) || typeof s.coverageLimited !== "boolean" || s.chainFreshnessChecked !== false || !Array.isArray(s.confirmations) || s.confirmations.length !== s.confirmedPayments || s.confirmations.length > 1e3)
-    throw new Error("Inconsistent invoice settlement totals");
-  const valid = s.state === "review_required" ? s.coverageLimited === true : s.coverageLimited === false && (s.state === "paid" ? paid === expected && late === 0n : s.state === "paid_late" ? paid === expected && late > 0n : s.state === "overpaid" ? paid > expected : s.state === "partial" || s.state === "partial_expired" ? paid > 0n && paid < expected : s.state === "awaiting_payment" || s.state === "expired" ? paid === 0n : false);
-  if (!valid)
-    throw new Error("Invoice state does not match confirmed principal");
-  const c = object(s.checkedAt);
-  if (typeof c.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(c.hash) || typeof c.height !== "number" || !Number.isSafeInteger(c.height) || c.height < 0 || typeof c.updatedAt !== "string" || !Number.isFinite(Date.parse(c.updatedAt)))
-    throw new Error("Invalid invoice checkpoint");
-  if (invoice.version === 2 && (s.settlementRoot !== null || !Array.isArray(s.settlementRoots) || s.settlementRoots.length !== invoice.units || s.settlementRoots.some((r) => typeof r !== "string" || !/^[a-f0-9]{64}$/.test(r)) || new Set(s.settlementRoots).size !== invoice.units))
-    throw new Error("Invalid per-payment invoice references");
-  const nullifiers = /* @__PURE__ */ new Set(), recordIndices = /* @__PURE__ */ new Set();
-  let latePayments = 0;
-  for (const entry of s.confirmations) {
-    const r = object(entry);
-    if (typeof r.nullifier !== "string" || !/^(0|[1-9][0-9]*)$/.test(r.nullifier) || nullifiers.has(r.nullifier) || typeof r.recordIndex !== "number" || !Number.isSafeInteger(r.recordIndex) || r.recordIndex < 0 || recordIndices.has(r.recordIndex) || invoice.version === 2 && !s.settlementRoots.includes(String(r.settlementRoot)) || typeof r.blockHeight !== "number" || !Number.isSafeInteger(r.blockHeight) || r.blockHeight < 0 || r.blockHeight > c.height || typeof r.late !== "boolean")
-      throw new Error("Invalid invoice confirmation");
-    nullifiers.add(r.nullifier);
-    recordIndices.add(r.recordIndex);
-    if (r.late) latePayments++;
-  }
-  if (late !== BigInt(latePayments) * unit)
-    throw new Error("Invoice late total differs from confirmed payments");
-  if (invoice.version === 2) {
-    const unique = new Set(s.confirmations.map((entry) => object(entry).settlementRoot)).size;
-    if (s.reusedPaymentReferences !== s.confirmations.length - unique) throw new Error("Invalid invoice reference reuse count");
-  }
-  return input;
 }
 
 // sdk/client/activity.ts
@@ -1364,10 +1518,12 @@ export {
   CoreApiError,
   HttpGateway,
   INVOICE_SIGNING_RECIPIENT,
+  InvoiceLibrary,
   OperationJournal,
   SettlementSession,
   activityKinds,
   assertInvoiceReferenceAvailable,
+  browserInvoiceLibraryStorage,
   browserJournalStorage,
   canonical,
   createInvoice,
