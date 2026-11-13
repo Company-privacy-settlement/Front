@@ -6,13 +6,13 @@ export const docs: Doc[] = [
     "slug": "",
     "title": "Getting started",
     "description": "Understand Core, prepare a trusted settlement group, and follow a private note to a confirmed payout.",
-    "source": "https://github.com/Company-privacy-settlement/Core",
+    "source": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md",
     "sections": [
       {
         "id": "overview",
         "title": "Private settlement on NEAR",
         "paragraphs": [
-          "Core is a development protocol for business payments and employee transfers. Independent vaults hold principal. A shared zero-knowledge note set lets a holder authorize a payout from one verified vault, with selected evidence for reconciliation.",
+          "Core is a development protocol for business-to-business payments and business-to-worker or contractor transfers on NEAR. Independent vaults hold principal. Shared zero-knowledge notes authorize a direct payout from one verified funded vault, with recipient-signed invoices and selected evidence for reconciliation.",
           "The current implementation supports native NEAR shared groups and token-bound USDC/NEP-141 groups. The browser workspace executes prepared testnet FT plans. FT note creation, encrypted backups and public deposit preparation are available on Private notes. Groth16 spend proof generation remains in the local Core CLI."
         ]
       },
@@ -27,26 +27,70 @@ export const docs: Doc[] = [
         ]
       },
       {
+        "id": "workspaces",
+        "title": "Choose a workspace",
+        "table": {
+          "headings": [
+            "Route",
+            "Purpose"
+          ],
+          "rows": [
+            [
+              "/live/",
+              "Settlements: configured testnet FT calls, encrypted recovery journal and indexed activity."
+            ],
+            [
+              "/notes/",
+              "Local FT notes, encrypted backups and public deposit preparation."
+            ],
+            [
+              "/invoices/",
+              "Recipient-signed requests and optional encrypted local invoice library."
+            ],
+            [
+              "/pay/#invoice=…",
+              "Signed checkout, recipient preparation and finalized reconciliation."
+            ],
+            [
+              "/evidence/",
+              "Private receipt backup, selected disclosure and independent-root integrity checks."
+            ],
+            [
+              "/kyb/",
+              "Six-page sample intake; no provider submission or verified credential."
+            ],
+            [
+              "/app/",
+              "Legacy routes redirect to the corresponding Docs guide."
+            ]
+          ]
+        },
+        "paragraphs": [
+          "The website and its nine guides default to English; repository READMEs also support Korean and Simplified Chinese. Current hosted access is owner-private, including checkout links. External customers need suitable site access and an independently configured funded deployment."
+        ]
+      },
+      {
         "id": "local-setup",
         "title": "Run local verification",
         "paragraphs": [
-          "Check out Core and Contract as siblings. Core requires Node.js 22.13.0 or later. Contract builds also require its pinned Rust toolchain and C/C++ build tools."
+          "Check out Core and Contract as siblings. Core requires Node.js 22.13.0 or later. Contract builds also require its pinned Rust toolchain and C/C++ build tools.",
+          "The FT sandbox uses a local TESTUSD fixture, not Circle-issued USDC. The latest recorded implementation validation on November 13, 2026 passed 192 Core tests, 98 Front browser cases and an FT sandbox run with 14 finalized records. These dated results are not a funded public-network real-wallet validation."
         ],
         "code": {
           "label": "Terminal · from your workspace",
-          "text": "git clone https://github.com/Company-privacy-settlement/Contract.git\ngit clone https://github.com/Company-privacy-settlement/Core.git\ncd Core\nnpm ci\nnpm run check\nnpm test\n\n# Build the sibling contracts for the local-chain demo.\n(cd ../Contract && npm ci)\nnpm run contract:build\nnpm run zk:setup\nnpm run demo:ft"
+          "text": "git clone https://github.com/Company-privacy-settlement/Contract.git\ngit clone https://github.com/Company-privacy-settlement/Core.git\ncd Core\nnpm ci\nnpm run check\nnpm test\n\n# Build the sibling contracts for the local-chain demo.\n(cd ../Contract && npm ci)\nnpm run contract:build\nnpm run zk:setup\n(cd ../Contract && npm run build:test-ft)\nnpm run demo:ft"
         }
       },
       {
         "id": "first-payment",
         "title": "Your first settlement",
         "steps": [
-          "Verify a trusted group and create an encrypted private note locally.",
-          "Deposit its fixed principal into a verified vault, adding the deposit fee and applicable NEAR costs.",
-          "Generate a local withdrawal proof bound to a funded payout vault, recipient, and disclosure reference.",
-          "Open Settlements, verify the API against your independent policy, connect your wallet, and unlock the operation journal.",
-          "Import the public plan. Review prerequisite and payment calls one at a time before wallet approval.",
-          "Confirm finalized state and indexed settlement records. Export the evidence you need."
+          "Obtain a group policy independently of the API; verify network, registry, token, denomination, treasury and code/verifier hashes. Inspect approved capacity and recipient readiness.",
+          "Create an FT note locally in Private notes. Download its encrypted backup and reopen it before preparing a public deposit plan.",
+          "Import the deposit plan in Settlements with the same policy and an encrypted journal. Review each prerequisite/payment call, then verify its bound Active record.",
+          "Use the saved note and original group in the Core CLI to generate a new Groth16 withdrawal proof. For checkout, bind the exact signed invoice recipient and selected unit reference.",
+          "Import the public withdrawal plan and review each wallet call. A wallet response or timeout does not establish failure or completion.",
+          "Confirm the bound withdrawal Complete state and indexed invoice totals/coverage. Keep separate backups and disclose only the evidence you intend to share."
         ]
       },
       {
@@ -152,7 +196,7 @@ export const docs: Doc[] = [
         "id": "withdraw",
         "title": "Pay a recipient",
         "paragraphs": [
-          "Generate a proof locally using your note and the verified shared tree. Select a verified vault with available liquidity and bind the recipient and disclosure reference.",
+          "Generate a new Groth16 proof with the local Core CLI using your saved note and original verified group. Select a verified vault with available liquidity and bind the exact recipient and disclosure reference. Browser note generation does not include browser spend proving.",
           "The note provides the principal. The fee payer separately covers the withdrawal protocol fee and applicable NEAR costs. The recipient receives the full fixed-denomination principal."
         ]
       },
@@ -192,7 +236,8 @@ export const docs: Doc[] = [
         "title": "Keep NEAR costs separate",
         "paragraphs": [
           "For a native 1 NEAR note, the current 0.02 NEAR storage charge gives a 1.0215 NEAR deposit attachment. Withdrawal attaches 0.0215 NEAR separately while the recipient receives 1 NEAR. Network gas is additional.",
-          "FT groups keep token principal/fees separate from NEAR storage and gas. A token symbol is not a trust anchor: use the independently pinned token account and reviewed metadata."
+          "FT groups keep token principal/fees separate from NEAR storage and gas. A token symbol is not a trust anchor: use the independently pinned token account and reviewed metadata.",
+          "For FT actions, applicable storage is 0.02 NEAR; first-use sender credit adds a 0.005 NEAR ledger bond per target contract. Token registration, account activation, gas and the FT transfer’s one-yocto attachment remain separate. Retrying an existing payout does not charge the protocol fee again."
         ]
       },
       {
@@ -220,7 +265,8 @@ export const docs: Doc[] = [
         "title": "Attach a receipt commitment",
         "paragraphs": [
           "Create and back up a private receipt in Evidence. On Private notes, import a selected disclosure with Import receipt root from disclosure JSON. The browser verifies the file locally and puts only its root in the public deposit request. It does not upload business values or opening salts.",
-          "Root import does not establish a completed payment or truthful declarations. Failed imports clear the previous root and prepared plan. Keep the full encrypted receipt so you can disclose additional fields later."
+          "Root import does not establish a completed payment or truthful declarations. Failed imports clear the previous root and prepared plan. Keep the full encrypted receipt so you can disclose additional fields later.",
+          "Invoice checkout requires its signed-derived per-unit withdrawal reference. An arbitrary receipt root cannot replace that reference. Generic receipt-root actions and invoice-bound withdrawals are distinct; a combined invoice/business-evidence commitment needs a separately designed format."
         ]
       }
     ]
@@ -269,7 +315,8 @@ export const docs: Doc[] = [
         "title": "A distinct reference per payment unit",
         "paragraphs": [
           "Terms v2 contain one signed random nonce per unit, deriving a separate disclosure reference for each payment. Legacy v1 requests retain their original common reference.",
-          "Checkout rejects references already observed as paid. This is an indexed application guard, not an on-chain reservation. Concurrent payers or index lag can still cause reuse or overpayment; actual payouts remain counted."
+          "Checkout rejects references already observed as paid. This is an indexed application guard, not an on-chain reservation. Concurrent payers or index lag can still cause reuse or overpayment; actual payouts remain counted.",
+          "An arbitrary Evidence receipt root cannot replace a signed invoice unit reference. Checkout and reconciliation require the signed-derived root as the withdrawal disclosureRoot. Attaching arbitrary receipt evidence to the same action needs a separately designed/versioned combined commitment."
         ],
         "code": {
           "label": "Terminal · select payment unit 1",
@@ -397,7 +444,7 @@ export const docs: Doc[] = [
         "title": "The proof hides the input note",
         "paragraphs": [
           "Groth16 proves a valid spend from the shared tree without naming the input commitment. A global nullifier prevents reuse, and the action context binds the destination.",
-          "Principal remains in independent vaults. More public hops or more vaults alone do not establish a larger effective anonymity set."
+          "Principal remains in independent vaults and one funded vault pays the bound recipient directly. Funds do not hop through an A → B → C sequence. Adding vaults alone does not measure or guarantee a larger effective anonymity set."
         ]
       },
       {
@@ -489,7 +536,8 @@ export const docs: Doc[] = [
         ],
         "paragraphs": [
           "Receipt integrity verified means the selected values and proof match the root you supplied. The browser makes no chain request. Truthful declarations, root anchoring, payment completion, identity and tax acceptance require separate checks. Use the existing CLI verify-bundle with your independently configured evidence source for selected finalized transaction anchoring.",
-          "Full backups use a separate encrypted receipt format. Locking, page-hide and cached return clear private workspace state; pending cryptographic or file work cannot reopen it. Keep the downloaded file and passphrase separately."
+          "Full backups use a separate encrypted receipt format. Locking, page-hide and cached return clear private workspace state; pending cryptographic or file work cannot reopen it. Keep the downloaded file and passphrase separately.",
+          "Invoice unit references and arbitrary receipt roots are distinct bindings. A generic action may commit to a receipt root; invoice checkout requires the signed-derived unit reference. Receipt integrity does not establish invoice payment, and substituting its root breaks checkout binding."
         ]
       }
     ]
@@ -534,7 +582,16 @@ export const docs: Doc[] = [
           "Entity, beneficial-owner and identity review, screening, and follow-up evidence.",
           "Authenticated case references and explicit review decisions.",
           "A trusted issuer, signed subject binding, validity, and revocation/freshness checks.",
-          "Access-controlled encrypted document storage and a retention policy."
+          "Access-controlled encrypted document storage and a retention policy.",
+          "SDK trusted-issuer signature, subject, expiry and supplied-revocation checks are available separately; they do not perform live entity review or enforce admission in the current circuit."
+        ]
+      },
+      {
+        "id": "tax-preparation",
+        "title": "US and Abu Dhabi preparation",
+        "paragraphs": [
+          "Future preparation must distinguish B2B, employee and contractor payments; establish the relevant US state/federal obligations or ADGM/mainland status; and select dated, versioned official rules.",
+          "The planned service calculates with reviewed deterministic rules and uses AI for cited, reviewable explanations and document drafts. Tax calculation, payroll withholding, treaty analysis, AI legal preparation, statutory filing and fiat conversion are not implemented. No tax rates or legal outcomes are inferred from the sample intake."
         ]
       }
     ]
@@ -549,7 +606,8 @@ export const docs: Doc[] = [
         "id": "service",
         "title": "Run the read-only service",
         "paragraphs": [
-          "Use an actual reviewed policy and matching RPC. The API defaults to loopback. Set an exact Front CORS origin; a hosted HTTPS Front needs a reachable HTTPS API. Send public operation data, never wallet secrets or private notes."
+          "Use an actual reviewed policy and matching RPC. The API defaults to loopback. Set an exact Front CORS origin; a hosted HTTPS Front needs a reachable HTTPS API. Send public operation data, never wallet secrets or private notes.",
+          "Core does not automatically load .env files. Start the index worker separately before attaching its SQLite database. The default API address is 127.0.0.1:3001; it has no signing key, private-note upload, proving or broadcast endpoint."
         ],
         "code": {
           "label": "Terminal · from Core",
@@ -569,7 +627,7 @@ export const docs: Doc[] = [
             [
               "GET",
               "/healthz",
-              "Configuration status; not chain readiness."
+              "Process liveness; not chain readiness."
             ],
             [
               "GET",
@@ -590,6 +648,16 @@ export const docs: Doc[] = [
               "GET",
               "/v1/vaults",
               "Verified finalized vault discovery."
+            ],
+            [
+              "POST",
+              "/v1/recipients/readiness",
+              "Finalized account existence, token registration and exact registration call."
+            ],
+            [
+              "POST",
+              "/v1/deposits/prepare",
+              "Public commitment/root planning with bounded verified capacity."
             ],
             [
               "POST",
@@ -674,7 +742,8 @@ export const docs: Doc[] = [
         "title": "Browser notes and public deposits",
         "paragraphs": [
           "createPrivateNote, encryptNoteBackup and openNoteBackup run locally. The note domain and Poseidon commitment match the existing circuits. The encrypted core-private-note format binds the complete policy and is separate from journal and invoice-library storage.",
-          "POST /v1/deposits/prepare accepts only a public commitment, disclosure root and optional vault. The server verifies the original group at one final block and returns a public FT plan and bounded capacity observation. The client checks policy, commitment, reference, vault, token, add-on fee and attachments before returning the plan."
+          "POST /v1/deposits/prepare accepts only a public commitment, disclosure root and optional vault. The server verifies the original group at one final block and returns a public FT plan and bounded capacity observation. The client checks policy, commitment, reference, vault, token, add-on fee and attachments before returning the plan.",
+          "The default deposit scan checks up to 20 vault records. An explicit member can be verified beyond that window, but remains a partial scan unless checkedRecords equals vaultCount. A prepared plan is a snapshot, not a reservation; full groups reject new deposits."
         ],
         "code": {
           "label": "Local backup and public planning",
@@ -739,15 +808,23 @@ export const docs: Doc[] = [
           "rows": [
             [
               "Encrypted private note",
-              "Local spend secrets; keep separate from public plans."
+              "Downloaded file with spend secrets and original group policy; not persisted in browser storage."
+            ],
+            [
+              "Encrypted full receipt",
+              "Downloaded file with all eight openings; selected disclosure files cannot restore it."
             ],
             [
               "Encrypted browser journal",
-              "Operation metadata and recovery history; not spendable notes."
+              "Stored locally with operation metadata and unresolved signing intents; not spendable notes."
             ],
             [
-              "Signed invoice / evidence export",
-              "Authorized terms and selected observations; not an encrypted secret backup or tax certificate."
+              "Encrypted invoice library",
+              "Optional local signed-request archive and separate backup; no trusted paid-status cache."
+            ],
+            [
+              "Signed invoice / selected disclosure",
+              "Readable terms or selected openings; not an encrypted backup or tax certificate."
             ]
           ]
         }
@@ -756,7 +833,7 @@ export const docs: Doc[] = [
         "id": "limits",
         "title": "Current protocol limits",
         "paragraphs": [
-          "Groups use fixed denominations and 256 total outputs. Arbitrary-amount private payments, private cross-group migration, browser proving, and a bundled funded public deployment are outside the current execution interface.",
+          "Groups use fixed denominations and 256 total outputs, including private transfers. Withdrawal does not recycle capacity. Groups remain separate proof/privacy domains. Arbitrary-amount private payments, automatic private cross-group migration, browser proving and a bundled funded public deployment remain outside the implementation.",
           "Production use needs independent contract/circuit/SDK review and a reviewed trusted setup. Real KYB decisions, jurisdiction-specific AI preparation, and statutory filing remain separate integrations."
         ]
       }
