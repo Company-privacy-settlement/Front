@@ -41,7 +41,7 @@ export function MerchantShell({ section, children }: { section: string; children
 export function SettlementFrame({ checkout, summary, children }: { checkout: boolean; summary?: ReactNode; children: ReactNode }) {
   if (!checkout) return <MerchantShell section="Settlements">{children}</MerchantShell>;
   return <div className="merchant-ui checkout-page">
-    <header className="checkout-topbar"><Brand/><span className="merchant-mode"><span className="dot"/> Testnet checkout</span><a href="#checkout-payment" className="checkout-continue">Continue to payment <ArrowDown size={13}/></a><Link href="/invoices/" className="checkout-back"><ArrowLeft size={14}/> Invoices</Link></header>
+    <header className="checkout-topbar"><Brand/><span className="merchant-mode"><span className="dot"/> Testnet checkout</span><a href="#checkout-payment" className="checkout-continue" onClick={(event) => { event.preventDefault(); document.getElementById("checkout-payment")?.scrollIntoView({ block: "start" }); }}>Continue to payment <ArrowDown size={13}/></a><Link href="/invoices/" className="checkout-back"><ArrowLeft size={14}/> Invoices</Link></header>
     <main className="checkout-layout">
       <aside className="checkout-bill"><div className="checkout-bill-inner">{summary}<div className="checkout-trust"><LockKeyhole size={14}/><span>Private settlement on NEAR. Your wallet approves every transaction.</span></div></div></aside>
       <div className="checkout-payment live-content" id="checkout-payment">{children}</div>

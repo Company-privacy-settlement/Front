@@ -4,6 +4,13 @@ import { readFile } from "node:fs/promises";
 import {
   invoiceFromFragment,
   invoiceRoot,
+  createInvoice,
+  invoiceHash,
+  invoiceMessage,
+  nonceBytes,
+  INVOICE_SIGNING_RECIPIENT,
+  verifySignedInvoice,
+  invoiceLink,
   type SignedInvoice,
 } from "../../src/vendor/core-client/index.js";
 const policy = {
@@ -248,6 +255,82 @@ async function issue(page: Page) {
   const link = await page.getByLabel("Payment link").inputValue();
   return { link, signed: invoiceFromFragment(new URL(link).hash) };
 }
+async function secondInvoice(page: Page, first: SignedInvoice) {
+  const invoice = createInvoice({ ...first.invoice, title: "Second invoice", recipient: "second-recipient.testnet" });
+  const payload = { message: invoiceMessage(await invoiceHash(invoice), invoice.policy.network), nonce: Array.from(nonceBytes(invoice.nonce)), recipient: INVOICE_SIGNING_RECIPIENT };
+  const signature = await page.evaluate(p => (window as any).fixtureInvoiceSign(p), payload);
+  return verifySignedInvoice({ invoice, signature });
+}
+
+test("invoice fragment changes clear the previous payment session and browser history re-verifies each invoice", async ({ page }) => {
+  await fixture(page);
+  const first = await issue(page), second = await secondInvoice(page, first.signed);
+  const secondLink = invoiceLink(new URL(first.link).origin, second);
+  await page.evaluate(() => localStorage.setItem("fixtureInvoiceAccount", "payer.testnet"));
+  await page.goto(first.link);
+  await expect(page.getByRole("heading", { name: "Design milestone", exact: true })).toBeVisible();
+  await page.locator(".checkout-continue").click();
+  expect(new URL(page.url()).hash).toBe(new URL(first.link).hash);
+  await page.getByLabel("Core API origin").fill("https://core-api.example");
+  await page.getByLabel("Trusted policy JSON").setInputFiles({ name: "policy.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(policy)) });
+  await page.getByRole("button", { name: "Verify API policy" }).click();
+  await page.getByRole("button", { name: "Verify merchant & refresh payment" }).click();
+  await page.getByRole("button", { name: "Connect testnet wallet" }).click();
+  await page.getByText("Invoice Fixture Wallet", { exact: true }).click();
+  await page.getByLabel("Journal passphrase").fill("invoice navigation test password");
+  await page.getByRole("button", { name: "Create journal" }).click();
+  await expect(page.getByLabel("Public FT payment plan")).toBeEnabled();
+  await page.getByLabel("Public FT payment plan").setInputFiles({ name: "first-plan.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(await plan(first.signed, "42"))) });
+  await expect(page.getByRole("button", { name: "Approve payment in wallet" })).toBeEnabled();
+  // A marker proves this is a same-document navigation, not a fresh page load.
+  await page.evaluate(() => { (window as any).invoiceNavigationMarker = true; });
+  await page.goto(secondLink);
+  expect(await page.evaluate(() => (window as any).invoiceNavigationMarker)).toBe(true);
+  await expect(page.getByRole("heading", { name: "Second invoice", exact: true })).toBeVisible();
+  await expect(page.getByText("second-recipient.testnet", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Core API origin")).toHaveValue("http://localhost:3001");
+  await expect(page.getByRole("button", { name: "Connect testnet wallet" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your journal is unlocked" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Approve payment in wallet" })).toHaveCount(0);
+  await expect(page.getByLabel("Public FT payment plan")).toBeDisabled();
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Design milestone", exact: true })).toBeVisible();
+  await expect(page.getByLabel("Public FT payment plan")).toBeDisabled();
+  await page.goForward();
+  await expect(page.getByRole("heading", { name: "Second invoice", exact: true })).toBeVisible();
+  await page.evaluate(() => { location.hash = "invoice=invalid"; });
+  await expect(page.getByRole("heading", { name: "Invoice could not be verified" })).toBeVisible();
+  await expect(page.getByLabel("Public FT payment plan")).toHaveCount(0);
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Second invoice", exact: true })).toBeVisible();
+});
+
+test("a late signature verification cannot replace a newer invoice", async ({ page }) => {
+  await fixture(page);
+  const first = await issue(page), second = await secondInvoice(page, first.signed);
+  await page.goto("/pay/");
+  await expect(page.getByRole("heading", { name: "Invoice could not be verified" })).toBeVisible();
+  await page.evaluate(() => {
+    const verify = crypto.subtle.verify.bind(crypto.subtle);
+    let hold = true;
+    crypto.subtle.verify = async (...args: Parameters<typeof verify>) => {
+      const result = await verify(...args);
+      if (hold) {
+        hold = false;
+        await new Promise<void>(resolve => { (window as any).releaseInvoiceVerification = resolve; });
+      }
+      return result;
+    };
+  });
+  await page.evaluate(hash => { location.hash = hash; }, new URL(first.link).hash);
+  await page.waitForFunction(() => typeof (window as any).releaseInvoiceVerification === "function");
+  await page.evaluate(hash => { location.hash = hash; }, new URL(invoiceLink(new URL(first.link).origin, second)).hash);
+  await expect(page.getByRole("heading", { name: "Second invoice", exact: true })).toBeVisible();
+  await page.evaluate(() => (window as any).releaseInvoiceVerification());
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  await expect(page.getByRole("heading", { name: "Design milestone", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Second invoice", exact: true })).toBeVisible();
+});
 const field = (s: string) => {
   const b = createHash("sha256").update(s).digest();
   b[0] &= 31;

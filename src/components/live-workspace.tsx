@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import {
   ArrowUpRight,
   Check,
@@ -74,6 +74,11 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
     [invoiceStatus, setInvoiceStatus] = useState<InvoiceStatus | null>(null);
   const journal = useRef<OperationJournal | null>(null),
     session = useRef<SettlementSession | null>(null);
+  useEffect(() => () => {
+    journal.current?.lock();
+    journal.current = null;
+    session.current = null;
+  }, []);
   function lock() {
     journal.current?.lock();
     journal.current = null;
