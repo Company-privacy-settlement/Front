@@ -42,13 +42,15 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-静态输出位于 `out/`。构建会校验内置 Core 浏览器包与类型声明的 SHA-256 清单，无需相邻仓库或 API 密钥。更新 Core 后，先在 Core 执行 `npm run build:client`，再在此执行 `npm run sync:core`。测试覆盖 Docs、移动端布局、发票、收款人准备、证据、票据、钱包恢复、日志及示例 KYB。2026-11-13 验证了 148 个浏览器用例：完整运行通过 146 项，更新所选单位预期后的两项定向重跑通过，详见 [验证范围](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)。
+静态输出位于 `out/`。构建会校验内置 Core 浏览器包与类型声明的 SHA-256 清单，无需相邻仓库或 API 密钥。更新 Core 后，先在 Core 执行 `npm run build:client`，再在此执行 `npm run sync:core`。测试覆盖 Docs、移动端布局、发票、收款人准备、证据、票据、钱包恢复、日志及示例 KYB。2026-11-13 完整浏览器运行通过 164 个桌面/移动用例，并使用实际证明材料，详见 [验证范围](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)。
 
 ## 组织与访问权限
 
 在 Organization 输入独立部署的 Organization API 来源，使用支持 NEP-413 的测试网钱包登录。可创建/选择组织、定向邀请及接受、管理允许的成员角色和查看审计记录。令牌仅在内存中，页面隐藏或 API 来源变化即清除。Owner/Admin/Operator/Viewer/Auditor 权限由服务端检查，与钱包签名、KYB 和托管网站访问范围分开。后端需要独立部署，不内置公开企业服务器。[配置及边界](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md)。
 
 [组织数据备份与恢复](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_BACKUPS.md)提供一致在线快照、会话/挑战废弃及隔离恢复。必须使用单独审核的当前权限文件才能激活到新的运行数据库；历史所有者、角色和待处理邀请不会自动恢复为权限。
+
+[企业付款审批](https://github.com/Company-privacy-settlement/Core/blob/main/docs/CORPORATE_PAYMENTS.md)分离创建者与另一位 Owner/Admin 审批者，固定付款、额外 0.15% 费用及前置调用。支持的钱包流程在执行前复查当前成员权限与审批，并将每个准确调用仅保留一次。这属于组织 API/SDK/应用策略；现有合约继续支持无许可的固定收款人证明执行。
 
 ## 集成 CI
 

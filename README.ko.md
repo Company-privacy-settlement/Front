@@ -42,13 +42,15 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-정적 결과물은 `out/`입니다. 빌드는 내장 Core 브라우저 번들·타입 선언의 SHA-256 매니페스트를 검증하며 형제 저장소나 API 키 없이 실행됩니다. Core 변경 후 Core에서 `npm run build:client`, 여기서 `npm run sync:core`를 실행합니다. 테스트는 Docs, 모바일 레이아웃, 인보이스, 수취인 준비, 증빙, 노트, 지갑 복구, 저널과 샘플 KYB를 다룹니다. 2026-11-13 브라우저 검증은 148개입니다. 전체 실행에서 146개가 통과했고 선택 단위 기대값을 갱신한 2개는 별도 재실행해 통과했습니다. [검증 범위](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md).
+정적 결과물은 `out/`입니다. 빌드는 내장 Core 브라우저 번들·타입 선언의 SHA-256 매니페스트를 검증하며 형제 저장소나 API 키 없이 실행됩니다. Core 변경 후 Core에서 `npm run build:client`, 여기서 `npm run sync:core`를 실행합니다. 테스트는 Docs, 모바일 레이아웃, 인보이스, 수취인 준비, 증빙, 노트, 지갑 복구, 저널과 샘플 KYB를 다룹니다. 2026-11-13 전체 브라우저 실행에서 실제 증명 아티팩트를 사용한 데스크톱/모바일 164개 케이스가 통과했습니다. [검증 범위](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md).
 
 ## 조직과 접근 권한
 
 Organization에서 독립 운영하는 Organization API 주소를 입력하고 NEP-413 지원 테스트넷 지갑으로 로그인합니다. 조직 생성·선택, 계정 지정 초대·수락, 허용된 멤버 역할 변경과 감사 기록을 관리합니다. 토큰은 메모리에만 두며 페이지 숨김·API 주소 변경 시 삭제합니다. Owner/Admin/Operator/Viewer/Auditor 권한은 서버에서 검사하고 지갑 서명·KYB·호스팅 접근 범위와 구분합니다. 별도 백엔드 배포가 필요하며 공개 기업 서버를 기본 제공하지 않습니다. [설정과 한계](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md).
 
 [조직 데이터 백업·복구](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_BACKUPS.md)는 일관된 온라인 스냅샷, 세션·챌린지 폐기와 격리 복구를 제공합니다. 현재 권한을 별도 승인한 파일을 적용해야 새 운영 DB로 활성화되며, 과거 소유자·역할·대기 초대는 자동으로 권한에 복원하지 않습니다.
+
+[기업 결제 승인](https://github.com/Company-privacy-settlement/Core/blob/main/docs/CORPORATE_PAYMENTS.md)은 작성자와 다른 Owner/Admin 승인자를 분리하고 결제·별도 0.15% 수수료·선행 호출을 고정합니다. 지원 지갑 흐름은 실행 직전 현재 멤버 권한과 승인을 검사하고 같은 호출을 한 번만 예약합니다. 조직 API·SDK·앱의 정책이며 기존 컨트랙트의 고정 수취인 증명 실행 권한은 변경하지 않습니다.
 
 ## 통합 CI
 

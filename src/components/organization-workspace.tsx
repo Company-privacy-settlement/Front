@@ -2,17 +2,18 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Building2, Check, LogOut, Plus, RefreshCw, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import { MerchantShell } from './merchant-shell';
+import { OrganizationPayments } from './organization-payments';
 import { usePageHideLock } from '@/lib/page-hide-lock';
 import { liveWallet, nearConnector } from '@/lib/wallet';
 import { ORGANIZATION_ROLES, ORGANIZATION_PERMISSIONS, ORGANIZATION_ROLE_PERMISSIONS, OrganizationApiError, OrganizationClient, nonceBytes, organizationOrigin, parseOrganizationChallenge,
   type Organization, type OrganizationAudit, type OrganizationInvitation, type OrganizationMember, type OrganizationPermission, type OrganizationRole, type OrganizationSession } from '@/vendor/core-client/index.js';
 
-type View = 'Overview' | 'Members' | 'Invitations' | 'Roles & permissions' | 'Audit log';
+type View = 'Overview' | 'Payments' | 'Members' | 'Invitations' | 'Roles & permissions' | 'Audit log';
 type GrantRole = Exclude<OrganizationRole, 'owner'>;
 type Lists = { members: OrganizationMember[]; invites: OrganizationInvitation[]; audit: OrganizationAudit[]; cursor: number | null };
 const empty = (): Lists => ({ members: [], invites: [], audit: [], cursor: null });
 const title = (value: string) => value[0].toUpperCase() + value.slice(1);
-const permissionLabels: Record<OrganizationPermission, string> = { 'organization.read': 'View organization', 'organization.update': 'Edit organization name', 'members.read': 'View members', 'members.manage': 'Manage permitted member roles', 'invitations.manage': 'Manage permitted invitations', 'audit.read': 'Read audit log', 'ownership.transfer': 'Transfer ownership' };
+const permissionLabels: Record<OrganizationPermission, string> = { 'organization.read': 'View organization', 'organization.update': 'Edit organization name', 'members.read': 'View members', 'members.manage': 'Manage permitted member roles', 'invitations.manage': 'Manage permitted invitations', 'audit.read': 'Read audit log', 'ownership.transfer': 'Transfer ownership', 'payments.read':'View corporate payments', 'payments.create':'Prepare corporate payments', 'payments.approve':'Independently approve payments', 'payments.execute':'Execute your approved payments' };
 const messages: Record<string, string> = {
   VERSION_CONFLICT: 'This record changed. Refresh and review the latest version before trying again.',
   PERMISSION_DENIED: 'Your role no longer allows this action. Refresh your organizations.',
@@ -122,8 +123,9 @@ export function OrganizationWorkspace() {
       {inbox.length > 0 && <section className="panel live-card"><h2>Your invitations</h2><p>These invitations are addressed to your signed-in wallet.</p><div className="organization-list">{inbox.map(invite => <div className="organization-row" key={invite.id}><div><strong>{invite.organizationName}</strong><span>{title(invite.role)} · Expires {new Date(invite.expiresAt).toLocaleDateString()}</span></div><div className="live-buttons"><button className="button button-dark" disabled={busy} onClick={() => void run(async (c, s, check) => { const result = await c.request<{ organization: Organization }>(`/v1/me/invitations/${invite.id}/accept`, 'POST', { version: invite.version }, s); check(); setView('Overview'); await reload(c, s, check, result.organization.id, 'Overview'); setNotice('Invitation accepted.'); })}>Accept invitation</button><button className="button button-outline" disabled={busy} onClick={() => mutate(`/v1/me/invitations/${invite.id}/decline`, 'POST', { version: invite.version }, 'Invitation declined.')}>Decline</button></div></div>)}</div></section>}
       {selected && <>
         <div className="organization-current"><div><h2>{selected.name}</h2><p>{session.accountId} · {title(selected.role)}</p></div><span>Business verification is separate</span></div>
-        <nav className="organization-tabs" aria-label="Organization settings">{(['Overview', 'Members', 'Invitations', 'Roles & permissions', 'Audit log'] as View[]).map(tab => <button key={tab} aria-current={view === tab ? 'page' : undefined} disabled={busy} onClick={() => changeView(tab)}>{tab}</button>)}</nav>
+        <nav className="organization-tabs" aria-label="Organization settings">{(['Overview', 'Payments', 'Members', 'Invitations', 'Roles & permissions', 'Audit log'] as View[]).map(tab => <button key={tab} aria-current={view === tab ? 'page' : undefined} disabled={busy} onClick={() => changeView(tab)}>{tab}</button>)}</nav>
         <section className="panel live-card organization-detail">
+          {view === 'Payments' && credential.current && <OrganizationPayments key={`${api}:${selected.id}:${session.accountId}`} organization={selected} client={credential.current.client} accountId={session.accountId} disabled={busy} run={run}/>}
           {view === 'Overview' && <><h2>Organization details</h2><p>Manage your workspace name and ownership.</p><dl className="organization-facts"><div><dt>Owner</dt><dd>{selected.ownerAccount}</dd></div><div><dt>Your role</dt><dd>{title(selected.role)}</dd></div><div><dt>Created</dt><dd>{new Date(selected.createdAt).toLocaleDateString()}</dd></div></dl>
             {allowed('organization.update') && <form onSubmit={e => { e.preventDefault(); mutate(`/v1/organizations/${selected.id}`, 'PATCH', { name: name.trim(), version: selected.version }, 'Organization name updated.'); }}><label className="form-label">Organization name<input value={name} required minLength={2} maxLength={120} disabled={busy} onChange={e => setName(e.target.value)}/></label><button className="button button-dark" disabled={busy || name.trim().length < 2 || name.trim() === selected.name}>Save name</button></form>}
             {allowed('ownership.transfer') && <form className="organization-separator" onSubmit={e => { e.preventDefault(); if (window.confirm(`Transfer ownership to ${successor.trim()}? You will become an admin.`)) mutate(`/v1/organizations/${selected.id}/ownership`, 'POST', { accountId: successor.trim(), version: selected.version }, 'Ownership transferred.'); }}><h3>Transfer ownership</h3><p>The successor must already be an active member. Your role will become Admin.</p><label className="form-label">Successor account<input value={successor} required maxLength={64} disabled={busy} placeholder="member.testnet" onChange={e => setSuccessor(e.target.value)}/></label><button className="button button-outline" disabled={busy || !successor.trim()}>Review ownership transfer</button></form>}
@@ -139,7 +141,7 @@ export function OrganizationWorkspace() {
         </section>
       </>}
     </>}
-    <p className="organization-footnote">Workspace access and business verification are separate. Organization roles do not authorize on-chain payments. Learn more in <a href="/docs/organizations/">Organization Docs</a>.</p>
+    <p className="organization-footnote">Your wallet signs every transaction. Organization approval applies to this workspace and its SDK flow; the protocol retains its existing proof permissions. Business verification is separate. Learn more in <a href="/docs/organizations/">Organization Docs</a>.</p>
   </div></MerchantShell>;
 }
 function MemberActions({ member, grants, busy, onRole, onRemove }: { member: OrganizationMember; grants: GrantRole[]; busy: boolean; onRole(role: GrantRole): void; onRemove(): void }) {

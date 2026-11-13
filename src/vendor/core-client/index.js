@@ -320,13 +320,13 @@ function validateRecovery(input, policy, ref) {
 
 // sdk/client/organizations.ts
 var ORGANIZATION_ROLES = Object.freeze(["owner", "admin", "operator", "viewer", "auditor"]);
-var ORGANIZATION_PERMISSIONS = Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "ownership.transfer"]);
+var ORGANIZATION_PERMISSIONS = Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "ownership.transfer", "payments.read", "payments.create", "payments.approve", "payments.execute"]);
 var ORGANIZATION_ROLE_PERMISSIONS = Object.freeze({
   owner: ORGANIZATION_PERMISSIONS,
-  admin: Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read"]),
-  operator: Object.freeze(["organization.read", "members.read"]),
+  admin: Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "payments.read", "payments.create", "payments.approve", "payments.execute"]),
+  operator: Object.freeze(["organization.read", "members.read", "payments.read", "payments.create", "payments.execute"]),
   viewer: Object.freeze(["organization.read"]),
-  auditor: Object.freeze(["organization.read", "members.read", "audit.read"])
+  auditor: Object.freeze(["organization.read", "members.read", "audit.read", "payments.read"])
 });
 function organizationOrigin(value2) {
   const u = new URL(value2);
@@ -386,6 +386,86 @@ var OrganizationClient = class {
     return value2;
   }
 };
+
+// sdk/client/corporate-payments.ts
+function exact2(value2, keys) {
+  if (Object.keys(value2).sort().join("|") !== keys.sort().join("|")) throw new Error("Unsupported corporate payment fields");
+}
+function corporateId(value2) {
+  if (typeof value2 !== "string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value2)) throw new Error("Invalid corporate payment ID");
+  return value2;
+}
+async function corporateContent(input) {
+  const raw = JSON.parse(canonical(input)), c = object(raw);
+  exact2(c, ["format", "title", "policy", "payer", "payment", "prerequisites"]);
+  if (c.format !== "core-corporate-payment-v1" || typeof c.title !== "string" || c.title.trim() !== c.title || c.title.length < 2 || c.title.length > 120 || /[\u0000-\u001f\u007f]/.test(c.title)) throw new Error("Use a payment title of 2\u2013120 characters");
+  const policy = parsePolicy(c.policy), payer = account(c.payer);
+  if (policy.network !== "testnet" || !policy.tokenId) throw new Error("Corporate payments support testnet FT withdrawals");
+  const prepared = await preparedPayment({ tokenCall: c.payment }, policy, payer);
+  if (prepared.reference.kind !== "withdrawal") throw new Error("Corporate payment must be a withdrawal");
+  if (!Array.isArray(c.prerequisites) || c.prerequisites.length > 8) throw new Error("At most eight reviewed prerequisites are supported");
+  const prerequisites = c.prerequisites.map((call) => validatePrerequisite(call, policy, payer, prepared.reference));
+  if (new Set(prerequisites.map(canonical)).size !== prerequisites.length) throw new Error("Duplicate reviewed prerequisite");
+  return { format: "core-corporate-payment-v1", title: c.title, policy, payer, payment: prepared.payment, prerequisites };
+}
+async function verifyCorporatePayment(input, organizationId) {
+  const value2 = JSON.parse(canonical(input)), p = value2?.payload;
+  if (!p) throw new Error("Invalid corporate payment");
+  exact2(object(p), ["format", "organizationId", "paymentId", "creatorAccount", "creatorMembershipVersion", "expiresAt", "content"]);
+  corporateId(p.organizationId);
+  corporateId(p.paymentId);
+  account(p.creatorAccount);
+  if (p.format !== "core-corporate-approval-v1" || organizationId !== void 0 && p.organizationId !== organizationId || !Number.isSafeInteger(p.creatorMembershipVersion) || p.creatorMembershipVersion < 1 || !Number.isFinite(Date.parse(p.expiresAt)) || p.expiresAt !== new Date(p.expiresAt).toISOString() || p.creatorAccount !== p.content.payer) throw new Error("Corporate approval binding mismatch");
+  const content = await corporateContent(p.content);
+  if (canonical(content) !== canonical(p.content) || value2.contentHash !== await sha256(canonical(p)) || !["pending", "approved", "rejected", "cancelled", "dispatched", "invalidated"].includes(value2.state) || !Number.isSafeInteger(value2.version) || value2.version < 1 || typeof value2.approvalValid !== "boolean" || !Array.isArray(value2.dispatches) || value2.dispatches.length > 9) throw new Error("Corporate payment content or checksum mismatch");
+  if (value2.approvedBy !== null) account(value2.approvedBy);
+  if (value2.approvalValid && (!value2.approvedBy || value2.approvedBy === p.creatorAccount || !Number.isSafeInteger(value2.approverMembershipVersion) || value2.approverMembershipVersion < 1 || value2.state !== "approved")) throw new Error("Invalid independent approval");
+  return value2;
+}
+function corporateQuote(content) {
+  const q = feeQuote(content.policy);
+  return {
+    principalTokens: q.principalTokens,
+    feeTokens: q.feeTokens,
+    maximumAttachedYoctoNear: [...content.prerequisites, content.payment].reduce((sum, c) => sum + BigInt(c.attachedYoctoNear), 0n).toString()
+  };
+}
+function corporateSettlementGuards(client, approved) {
+  const selected = JSON.parse(canonical(approved)), base = `/v1/organizations/${corporateId(selected.payload.organizationId)}/payments/${corporateId(selected.payload.paymentId)}`;
+  const bind = async (operation) => {
+    const fixed = await verifyCorporatePayment(selected), c = fixed.payload.content;
+    if (canonical(operation.policy) !== canonical(c.policy) || operation.payer !== c.payer || canonical(operation.payment) !== canonical(c.payment)) throw new Error("Payment differs from the independently approved corporate content");
+    return fixed;
+  };
+  const current = async () => {
+    const value2 = await verifyCorporatePayment(await client.request(base), selected.payload.organizationId);
+    if (value2.contentHash !== selected.contentHash || canonical(value2.payload) !== canonical(selected.payload) || !value2.approvalValid || value2.state !== "approved" || Date.now() >= Date.parse(value2.payload.expiresAt)) throw new Error("Independent corporate approval is unavailable or no longer current");
+    return value2;
+  };
+  return {
+    async beforeImport(payment, payer) {
+      await bind({ payment: payment.payment, payer, policy: selected.payload.content.policy });
+      await current();
+    },
+    async beforeSubmit(operation, review) {
+      await bind(operation);
+      if (review.kind === "retry" || review.kind === "refund") return () => {
+      };
+      await current();
+      const checked = Date.now();
+      return () => {
+        if (Date.now() < checked || Date.now() - checked > 15e3 || Date.now() >= Date.parse(selected.payload.expiresAt)) throw new Error("Corporate approval check expired; review again");
+      };
+    },
+    async beforeDispatch(operation, review) {
+      await bind(operation);
+      if (review.kind === "retry" || review.kind === "refund") return;
+      if (!review.call || !review.callHash || !["payment", "prerequisite"].includes(review.kind ?? "")) throw new Error("Unsupported corporate dispatch");
+      const permit = await client.request(base + "/authorize", "POST", { contentHash: selected.contentHash, kind: review.kind, call: review.call });
+      if (permit.contentHash !== selected.contentHash || permit.callHash !== review.callHash || Date.now() >= Date.parse(permit.expiresAt) || Date.parse(permit.expiresAt) > Date.now() + 16e3 || !Number.isFinite(Date.parse(permit.expiresAt))) throw new Error("Invalid corporate dispatch authorization");
+    }
+  };
+}
 
 // sdk/client/journal.ts
 function transactionRef(input) {
@@ -578,7 +658,7 @@ function browserJournalStorage(key2 = "core-live-journal-v1", label = "Journal")
 
 // sdk/client/invoices.ts
 var INVOICE_SIGNING_RECIPIENT = "core.invoice.v1";
-function exact2(o, keys) {
+function exact3(o, keys) {
   if (Object.keys(o).sort().join("|") !== keys.sort().join("|"))
     throw new Error("Unexpected invoice fields");
 }
@@ -599,7 +679,7 @@ function date(value2) {
 }
 function parseInvoice(input) {
   const o = object(input);
-  exact2(o, [
+  exact3(o, [
     "version",
     "id",
     "merchantAccount",
@@ -656,9 +736,9 @@ function createInvoice(input) {
 }
 function parseSignedInvoice(input) {
   const o = object(input);
-  exact2(o, ["invoice", "signature"]);
+  exact3(o, ["invoice", "signature"]);
   const invoice = parseInvoice(o.invoice), s = object(o.signature);
-  exact2(s, ["accountId", "publicKey", "signature"]);
+  exact3(s, ["accountId", "publicKey", "signature"]);
   if (s.accountId !== invoice.merchantAccount || typeof s.publicKey !== "string" || !/^ed25519:[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s.publicKey) || typeof s.signature !== "string" || !/^[A-Za-z0-9+/]{86}==$/.test(s.signature) || atob(s.signature).length !== 64)
     throw new Error("Invalid invoice merchant signature");
   return {
@@ -871,12 +951,12 @@ function validateInvoiceStatus(input, invoice) {
 
 // sdk/client/library.ts
 var FORMAT = "core-invoice-library";
-function exact3(value2, fields) {
+function exact4(value2, fields) {
   if (Object.keys(value2).sort().join("|") !== [...fields].sort().join("|")) throw new Error("Unexpected invoice library fields");
 }
 function identity(raw) {
   const value2 = object(raw);
-  exact3(value2, ["network", "accountId"]);
+  exact4(value2, ["network", "accountId"]);
   if (value2.network !== "testnet" && value2.network !== "sandbox") throw new Error("Invalid library network");
   return { network: value2.network, accountId: account(value2.accountId) };
 }
@@ -886,14 +966,14 @@ function digest(value2) {
 }
 async function validate2(raw, owner) {
   const value2 = object(raw);
-  exact3(value2, ["version", "owner", "invoices"]);
+  exact4(value2, ["version", "owner", "invoices"]);
   if (value2.version !== 1 || canonical(identity(value2.owner)) !== canonical(owner) || !Array.isArray(value2.invoices))
     throw new Error("Invalid invoice library or different merchant/network");
   if (value2.invoices.length > 100) throw new Error("Invoice library supports at most 100 saved requests; keep a backup before removing local copies");
   const invoices = [], ids = /* @__PURE__ */ new Set(), hashes = /* @__PURE__ */ new Set();
   for (const rawEntry of value2.invoices) {
     const entry = object(rawEntry);
-    exact3(entry, ["hash", "signed", "savedAt"]);
+    exact4(entry, ["hash", "signed", "savedAt"]);
     const signed = await verifySignedInvoice(entry.signed), hash4 = digest(entry.hash);
     if (signed.invoice.merchantAccount !== owner.accountId || signed.invoice.policy.network !== owner.network || await invoiceHash(signed.invoice) !== hash4 || ids.has(signed.invoice.id) || hashes.has(hash4))
       throw new Error("Invoice library identity, integrity or uniqueness mismatch");
@@ -1237,6 +1317,7 @@ var SettlementSession = class {
         throw new Error(
           "Attempt limit reached; reconcile existing transactions"
         );
+      if (this.guards.beforeDispatch && !this.wallet.supportsBeforeDispatch) throw new Error("This wallet adapter cannot enforce corporate dispatch authorization");
       const authorize = await this.guards.beforeSubmit?.(o, review, operations);
       check();
       const a = {
@@ -1257,6 +1338,7 @@ var SettlementSession = class {
         throw error;
       }
       try {
+        let dispatched = false;
         const tx = await this.wallet.sign(a.call, {
           operationId: id,
           attempt: o.attempts.length - 1,
@@ -1264,8 +1346,18 @@ var SettlementSession = class {
           authorize: () => {
             check();
             authorize?.();
-          }
+          },
+          ...this.guards.beforeDispatch ? { beforeDispatch: async () => {
+            check();
+            authorize?.();
+            if (dispatched) throw new Error("Dispatch authorization was already used");
+            dispatched = true;
+            await this.guards.beforeDispatch(o, review);
+            check();
+            authorize?.();
+          } } : {}
         });
+        if (this.guards.beforeDispatch && !dispatched) throw new Error("Wallet adapter omitted dispatch authorization");
         if (tx) {
           a.transaction = transactionRef(tx);
           if (a.transaction.signer !== o.payer)
@@ -1811,7 +1903,7 @@ var parameters = {
 // sdk/client/notes.ts
 var FIELD2 = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 var FORMAT2 = "core-private-note";
-function exact4(value2, fields) {
+function exact5(value2, fields) {
   if (Object.keys(value2).sort().join("|") !== [...fields].sort().join("|")) throw new Error("Unexpected private note fields");
 }
 var constants = Object.fromEntries([2, 3].map((n) => [n, { C: parameters[n].C.map(BigInt), M: parameters[n].M.map((row) => row.map(BigInt)) }]));
@@ -1846,7 +1938,7 @@ async function createPrivateNote(policy) {
 }
 async function validatePrivateNote(policy, raw) {
   const note = object(raw);
-  exact4(note, ["version", "domain", "secret", "nullifier", "commitment"]);
+  exact5(note, ["version", "domain", "secret", "nullifier", "commitment"]);
   const domain = scalar(note.domain), secret = scalar(note.secret), nullifier = scalar(note.nullifier), commitment = scalar(note.commitment);
   if (note.version !== 1 || commitment === "0" || domain !== await noteDomain(policy) || commitment !== noteHash([secret, nullifier, domain])) throw new Error("Invalid note or different settlement group");
   return { version: 1, domain, secret, nullifier, commitment };
@@ -1866,7 +1958,7 @@ async function openNoteBackup(envelope, password, expectedPolicy) {
     throw error;
   }
   const payload = object(decoded);
-  exact4(payload, ["version", "policy", "note"]);
+  exact5(payload, ["version", "policy", "note"]);
   const policy = parsePolicy(payload.policy);
   if (payload.version !== 1 || expected && canonical(policy) !== canonical(expected)) throw new Error("Backup differs from the trusted policy");
   return { policy, note: await validatePrivateNote(policy, payload.note) };
@@ -1875,7 +1967,7 @@ async function openNoteBackup(envelope, password, expectedPolicy) {
 // sdk/client/prover.ts
 var HASH = /^[a-f0-9]{64}$/;
 var Q = 21888242871839275222246405745257275088696311157297823662689037894645226208583n;
-function exact5(o, keys) {
+function exact6(o, keys) {
   if (Object.keys(o).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected proving fields");
 }
 function hash2(value2) {
@@ -1884,7 +1976,7 @@ function hash2(value2) {
 }
 function block(input) {
   const b = object(input);
-  exact5(b, ["hash", "height"]);
+  exact6(b, ["hash", "height"]);
   if (typeof b.hash !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(b.hash) || !Number.isSafeInteger(b.height) || Number(b.height) < 0) throw new Error("Invalid finalized snapshot");
   return { hash: b.hash, height: b.height };
 }
@@ -1901,14 +1993,14 @@ function vaultFor(policy, value2) {
 }
 function parseProvingAction(input, policy) {
   const a = object(input);
-  exact5(a, ["recipient", "disclosureRoot"]);
+  exact6(a, ["recipient", "disclosureRoot"]);
   const recipient = account(a.recipient);
   if (recipient === policy.registry || recipient.endsWith("." + policy.registry)) throw new Error("Choose an external recipient");
   return { recipient, disclosureRoot: hash2(a.disclosureRoot) };
 }
 function parseProvingContext(input, expected) {
   const c = object(input);
-  exact5(c, ["version", "policy", "checkedAtBlock", "root", "commitments", "vault"]);
+  exact6(c, ["version", "policy", "checkedAtBlock", "root", "commitments", "vault"]);
   const policy = ft(c.policy);
   if (c.version !== 1 || canonical(policy) !== canonical(ft(expected))) throw new Error("Proving context differs from the trusted policy");
   if (!Array.isArray(c.commitments) || c.commitments.length < 1 || c.commitments.length > 256) throw new Error("Expected 1\u2013256 ordered commitments");
@@ -1930,10 +2022,10 @@ async function verifyProvingAssets(assets, expected) {
   const manifestBytes = await read(assets.manifest, 8192);
   if (await digest2(manifestBytes) !== hash2(assets.manifestSha256)) throw new Error("Artifact manifest hash mismatch");
   const manifest = object(JSON.parse(new TextDecoder().decode(manifestBytes)));
-  exact5(manifest, ["protocol", "depth", "setup", "hashes"]);
+  exact6(manifest, ["protocol", "depth", "setup", "hashes"]);
   if (manifest.protocol !== "core-v1" || manifest.depth !== 8 || typeof manifest.setup !== "string" || !/^[A-Za-z0-9_.:-]{1,128}$/.test(manifest.setup)) throw new Error("Unsupported proving manifest");
   const hashes = object(manifest.hashes);
-  exact5(hashes, ["spend.r1cs", "spend_js/spend.wasm", "spend.zkey", "verification_key.json"]);
+  exact6(hashes, ["spend.r1cs", "spend_js/spend.wasm", "spend.zkey", "verification_key.json"]);
   Object.values(hashes).forEach(hash2);
   const wasm = await read(assets.wasm, 8 * 1024 * 1024), zkey = await read(assets.zkey, 16 * 1024 * 1024), key2 = await read(assets.verificationKey, 16384);
   if (await digest2(wasm) !== hashes["spend_js/spend.wasm"] || await digest2(zkey) !== hashes["spend.zkey"] || await digest2(key2) !== hashes["verification_key.json"]) throw new Error("Proving asset hash mismatch");
@@ -1973,7 +2065,7 @@ function encodeVerificationKeyBytes(key2) {
 }
 function parseSpend(input) {
   const p = object(input);
-  exact5(p, ["proof", "public_inputs"]);
+  exact6(p, ["proof", "public_inputs"]);
   if (typeof p.proof !== "string" || !/^[A-Za-z0-9+/]{342}==$/.test(p.proof) || atob(p.proof).length !== 256 || btoa(atob(p.proof)) !== p.proof || !Array.isArray(p.public_inputs) || p.public_inputs.length !== 5) throw new Error("Invalid spend proof");
   return { proof: p.proof, public_inputs: p.public_inputs.map(scalar) };
 }
@@ -1989,11 +2081,11 @@ async function publicPlan(policy, action, spend, checkedAtBlock) {
 }
 async function parseProofBundle(raw, expected) {
   const b = object(raw);
-  exact5(b, ["format", "version", "policy", "action", "checkedAtBlock", "artifactManifestSha256", "setup", "spend", "plan", "digest"]);
+  exact6(b, ["format", "version", "policy", "action", "checkedAtBlock", "artifactManifestSha256", "setup", "spend", "plan", "digest"]);
   const { digest: checksum, ...payload } = b;
   if (b.format !== "core-browser-proof" || b.version !== 1 || await sha256(canonical(payload)) !== hash2(checksum) || canonical(ft(b.policy)) !== canonical(ft(expected))) throw new Error("Proof file integrity or policy mismatch");
   const policy = ft(expected), a = object(b.action);
-  exact5(a, ["vault", "recipient", "disclosureRoot"]);
+  exact6(a, ["vault", "recipient", "disclosureRoot"]);
   const action = { ...parseProvingAction({ recipient: a.recipient, disclosureRoot: a.disclosureRoot }, policy), vault: vaultFor(policy, a.vault) }, spend = parseSpend(b.spend), checkedAtBlock = block(b.checkedAtBlock);
   if (spend.public_inputs[4] !== await noteDomain(policy) || spend.public_inputs[3] !== await withdrawalContext(policy, action.vault, action)) throw new Error("Proof file does not bind this withdrawal");
   if (canonical(b.plan) !== canonical(await publicPlan(policy, action, spend, checkedAtBlock.hash)) || typeof b.setup !== "string" || !/^[A-Za-z0-9_.:-]{1,128}$/.test(b.setup)) throw new Error("Proof plan or setup metadata mismatch");
@@ -2104,8 +2196,8 @@ function localAvailability(signed, root, nullifier, operations, except, reuseExa
   for (const operation of operations) {
     if (operation.id === except || canonical(operation.policy) !== canonical(signed.invoice.policy) || operation.reference.kind !== "withdrawal") continue;
     const old = operation.reference;
-    const exact9 = old.nullifier === nullifier && old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root;
-    if (exact9 && reuseExact) continue;
+    const exact10 = old.nullifier === nullifier && old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root;
+    if (exact10 && reuseExact) continue;
     if (old.nullifier === nullifier) throw new Error("This note already has a local withdrawal. Reconcile the existing operation; do not spend it again.");
     if (old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root && (signed.invoice.version === 2 || operation.outcome === "open")) throw new Error("This invoice unit already has a local payment. Reconcile that operation before selecting another note.");
   }
@@ -2187,7 +2279,7 @@ function invoiceSettlementGuards(gateway, input) {
 }
 
 // sdk/client/groups.ts
-function exact6(value2, keys) {
+function exact7(value2, keys) {
   if (Object.keys(value2).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected group fields");
 }
 function count(value2) {
@@ -2200,12 +2292,12 @@ function boolean(value2) {
 }
 function parseApprovedGroups(input) {
   const value2 = object(input);
-  exact6(value2, ["version", "groups"]);
+  exact7(value2, ["version", "groups"]);
   if (value2.version !== 1 || !Array.isArray(value2.groups) || value2.groups.length < 1 || value2.groups.length > 8) throw new Error("Use an approved directory with 1\u20138 groups");
   const ids = /* @__PURE__ */ new Set(), registries = /* @__PURE__ */ new Set();
   const groups = value2.groups.map((raw) => {
     const g = object(raw);
-    exact6(g, ["id", "depositsEnabled", "policy"]);
+    exact7(g, ["id", "depositsEnabled", "policy"]);
     if (typeof g.id !== "string" || !/^[a-z0-9][a-z0-9-]{0,31}$/.test(g.id)) throw new Error("Invalid group ID");
     const policy = parsePolicy(g.policy);
     if (ids.has(g.id) || registries.has(policy.registry)) throw new Error("Duplicate group ID or registry");
@@ -2220,10 +2312,10 @@ function parseApprovedGroups(input) {
 }
 function parseGroupCapacity(input, trusted) {
   const value2 = object(input), policy = parsePolicy(value2.policy), expected = parsePolicy(trusted);
-  exact6(value2, ["policy", "checkedAtBlock", "capacity", "usedOutputs", "remainingOutputs", "outstandingNotes", "depositCapacityAvailable", "depositVaultObserved", "checkedVaults", "vaultScanComplete", "chainFreshnessChecked"]);
+  exact7(value2, ["policy", "checkedAtBlock", "capacity", "usedOutputs", "remainingOutputs", "outstandingNotes", "depositCapacityAvailable", "depositVaultObserved", "checkedVaults", "vaultScanComplete", "chainFreshnessChecked"]);
   if (canonical(policy) !== canonical(expected)) throw new Error("Group capacity policy differs from the trusted group");
   const block3 = object(value2.checkedAtBlock);
-  exact6(block3, ["hash", "height"]);
+  exact7(block3, ["hash", "height"]);
   if (typeof block3.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block3.hash)) throw new Error("Invalid group block");
   const usedOutputs = count(value2.usedOutputs), remainingOutputs = count(value2.remainingOutputs), outstandingNotes = count(value2.outstandingNotes), checkedVaults = count(value2.checkedVaults);
   const depositCapacityAvailable = boolean(value2.depositCapacityAvailable), depositVaultObserved = boolean(value2.depositVaultObserved), vaultScanComplete = boolean(value2.vaultScanComplete);
@@ -2265,23 +2357,23 @@ function parseRecipientReadiness(raw, trusted, expectedRecipient) {
 }
 
 // sdk/client/deposits.ts
-function exact7(value2, keys) {
+function exact8(value2, keys) {
   if (Object.keys(value2).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected public deposit fields");
 }
 function parseDepositRequest(raw) {
   const value2 = object(raw);
-  exact7(value2, ["commitment", "disclosureRoot", ...value2.vault === void 0 ? [] : ["vault"]]);
+  exact8(value2, ["commitment", "disclosureRoot", ...value2.vault === void 0 ? [] : ["vault"]]);
   const commitment = scalar(value2.commitment);
   if (commitment === "0" || typeof value2.disclosureRoot !== "string" || !/^[a-f0-9]{64}$/.test(value2.disclosureRoot)) throw new Error("Invalid public deposit commitment or disclosure root");
   return { commitment, disclosureRoot: value2.disclosureRoot, ...value2.vault === void 0 ? {} : { vault: account(value2.vault) } };
 }
 async function parseDepositPlan(raw, trusted, expected) {
   const value2 = object(raw), policy = parsePolicy(value2.policy), request = parseDepositRequest(expected);
-  exact7(value2, ["policy", "checkedAtBlock", "plan", "remainingOutputs", "checkedVaults", "vaultScanComplete"]);
+  exact8(value2, ["policy", "checkedAtBlock", "plan", "remainingOutputs", "checkedVaults", "vaultScanComplete"]);
   if (!policy.tokenId || canonical(policy) !== canonical(parsePolicy(trusted))) throw new Error("Deposit policy differs from the trusted group");
   const block3 = object(value2.checkedAtBlock), plan = object(value2.plan);
-  exact7(block3, ["hash", "height"]);
-  exact7(plan, ["tokenCall", "checkedAtBlock"]);
+  exact8(block3, ["hash", "height"]);
+  exact8(plan, ["tokenCall", "checkedAtBlock"]);
   if (typeof block3.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block3.hash) || typeof block3.height !== "number" || !Number.isSafeInteger(block3.height) || block3.height < 0 || plan.checkedAtBlock !== block3.hash) throw new Error("Invalid deposit block");
   const { payment, reference: reference2 } = await preparedPayment(plan, policy, "inspection.testnet");
   if (reference2.kind !== "deposit" || reference2.commitment !== request.commitment || reference2.expectedDisclosureRoot !== request.disclosureRoot || request.vault && reference2.vault !== request.vault || payment.gas !== GAS) throw new Error("Deposit call differs from the requested note and receipt");
@@ -2607,7 +2699,7 @@ var CoreApiError = class extends Error {
 var RECEIPT_FIELDS = Object.freeze(["sender", "recipient", "asset", "amount", "purpose", "reference", "occurredAt", "credentialHash"]);
 var FORMAT3 = "core-private-receipt";
 var MAX_BACKUP = 2e5;
-function exact8(value2, keys) {
+function exact9(value2, keys) {
   if (Object.keys(value2).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected receipt fields");
 }
 function digest3(raw) {
@@ -2620,13 +2712,13 @@ function value(raw) {
 }
 function parse(raw) {
   const receipt = object(raw);
-  exact8(receipt, ["version", "root", "openings"]);
+  exact9(receipt, ["version", "root", "openings"]);
   const root = digest3(receipt.root);
   if (receipt.version !== 1 || !Array.isArray(receipt.openings) || receipt.openings.length < 1 || receipt.openings.length > 8) throw new Error("Choose a version-1 receipt with 1\u20138 field openings");
   const seen = /* @__PURE__ */ new Set();
   const openings = receipt.openings.map((rawOpening) => {
     const opening = object(rawOpening);
-    exact8(opening, ["field", "value", "salt", "siblings"]);
+    exact9(opening, ["field", "value", "salt", "siblings"]);
     if (!RECEIPT_FIELDS.includes(opening.field) || seen.has(opening.field) || !Array.isArray(opening.siblings) || opening.siblings.length !== 3) throw new Error("Invalid or duplicate receipt opening");
     const field = opening.field;
     seen.add(field);
@@ -2651,7 +2743,7 @@ async function verifyReceiptDisclosure(raw, expectedRoot) {
 }
 async function createReceipt(input) {
   const raw = object(input);
-  exact8(raw, [...RECEIPT_FIELDS]);
+  exact9(raw, [...RECEIPT_FIELDS]);
   const values = RECEIPT_FIELDS.map((field) => value(raw[field]));
   const salts = RECEIPT_FIELDS.map(() => [...crypto.getRandomValues(new Uint8Array(32))].map((byte) => byte.toString(16).padStart(2, "0")).join(""));
   const levels = [await Promise.all(RECEIPT_FIELDS.map((field, i) => leaf(field, values[i], salts[i])))];
@@ -2694,7 +2786,7 @@ async function openReceiptBackup(envelope, password) {
     throw error;
   }
   const payload = object(decoded);
-  exact8(payload, ["version", "receipt"]);
+  exact9(payload, ["version", "receipt"]);
   if (payload.version !== 1) throw new Error("Unsupported private receipt version");
   return full(payload.receipt);
 }
@@ -2717,6 +2809,10 @@ export {
   browserInvoiceLibraryStorage,
   browserJournalStorage,
   canonical,
+  corporateContent,
+  corporateId,
+  corporateQuote,
+  corporateSettlementGuards,
   createInvoice,
   createPrivateNote,
   createReceipt,
@@ -2765,6 +2861,7 @@ export {
   requireOpenInvoice,
   sha256,
   validatePrivateNote,
+  verifyCorporatePayment,
   verifyProvingAssets,
   verifyReceiptDisclosure,
   verifySignedInvoice

@@ -42,13 +42,15 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The static export is `out/`. Build verifies the vendored Core browser bundle/declarations against their SHA-256 manifest and requires no sibling checkout or API keys. After changing Core: run `npm run build:client` in Core, then `npm run sync:core` here. Tests cover Docs, mobile containment, invoices, recipient readiness, evidence, notes, wallet recovery, journals and sample KYB. Browser validation on 2026-11-13 covered 148 cases (146 in the full run, plus two updated selection regressions passing a focused rerun); see Core’s [roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md) for validation scope.
+The static export is `out/`. Build verifies the vendored Core browser bundle/declarations against their SHA-256 manifest and requires no sibling checkout or API keys. After changing Core: run `npm run build:client` in Core, then `npm run sync:core` here. Tests cover Docs, mobile containment, invoices, recipient readiness, evidence, notes, wallet recovery, journals and sample KYB. The full browser run on 2026-11-13 passed 164 desktop/mobile cases with actual proving artifacts; see Core’s [roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md) for validation scope.
 
 ## Organizations and access
 
 Open Organization, supply the independently hosted Organization API origin, and sign in with a NEP-413-capable testnet wallet. Choose/create an organization, invite a wallet account, accept invitations, manage permitted member roles and read the audit log. Tokens stay in memory and clear on page-hide/origin change. Owner/Admin/Operator/Viewer/Auditor permissions are enforced by the server, separate from wallet signing, KYB and the hosted Site audience. The backend needs its own deployment; no public organization service is bundled. [Setup and boundaries](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md).
 
 [Organization backup and recovery](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_BACKUPS.md) captures consistent online snapshots, discards sessions/challenges and restores into quarantine. A separately approved current-access file is required before activation into a new database; historical owners, roles and pending invitations are never automatically restored as authority.
+
+[Corporate payment approval](https://github.com/Company-privacy-settlement/Core/blob/main/docs/CORPORATE_PAYMENTS.md) separates the creator from another Owner/Admin approver and freezes the payment, additive 0.15% fee and reviewed prerequisite calls. The supported wallet flow rechecks current membership and approval before reserving each exact call once. This is an organization API/SDK/app policy; the existing contracts retain permissionless fixed-destination proof execution.
 
 ## Integrated CI
 

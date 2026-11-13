@@ -1019,6 +1019,22 @@ export const docs: Doc[] = [
         ]
       },
       {
+        "id": "corporate-payments",
+        "title": "Corporate payment approval",
+        "steps": [
+          "Select Payments. Import the independently trusted testnet FT policy and matching Core settlement API origin.",
+          "As an Owner, Admin or Operator, open Prepare a new payment. Import the public withdrawal plan generated locally from the original note, set its title and request independent approval. The creator must be its fee payer.",
+          "A different Owner/Admin opens the request, independently trusts the same policy and reviews recipient, full principal, additive 0.15% fee, reference, expiry and exact prerequisite calls. Choose Approve exact payment; self-approval is refused.",
+          "The creator refreshes Payments and unlocks the encrypted corporate operation journal. Review and sign each exact prerequisite/payment. Current memberships, independent approval and complete call content are checked immediately before provider dispatch.",
+          "Confirm the bound finalized withdrawal through the journal. A dispatch reservation is not payment confirmation; preserve encrypted backups and reconcile uncertain results instead of resending."
+        ],
+        "paragraphs": [
+          "Approved terms are read-only. Changing the recipient, token, amount, policy, proof/reference or storage/registration call requires cancellation before any reservation and a new independent approval. Viewer cannot read corporate requests; Auditor can read but cannot approve or execute.",
+          "The API binds approvals to both membership revisions and a fixed 24-hour expiry. Role changes, removal/rejoin and ownership transfer invalidate old approval. Each reviewed call is durably reserved once; lost HTTP/wallet responses stay blocked for reconciliation. No automatic retry or reservation-reset action exists.",
+          "This policy is enforced by the Organization API, SDK and supported wallet flow. The underlying contracts retain permissionless fixed-destination proof execution; anyone holding a valid public withdrawal plan can relay it outside this workspace. Wallet-account separation is not verified separation of real people or corporate identity. Contract-enforced dual approval remains separate work."
+        ]
+      },
+      {
         "id": "roles",
         "title": "Roles and permissions",
         "table": {
@@ -1033,11 +1049,11 @@ export const docs: Doc[] = [
             ],
             [
               "Admin",
-              "Edit the workspace name, read audit events and manage Operators, Viewers and Auditors. Cannot manage Owners or Admins."
+              "Manage permitted members/invitations and independently approve another account’s payment. Cannot approve own requests."
             ],
             [
               "Operator",
-              "View organization details and the member directory."
+              "View organization/members and corporate requests; prepare and execute own independently approved payments."
             ],
             [
               "Viewer",
@@ -1045,12 +1061,12 @@ export const docs: Doc[] = [
             ],
             [
               "Auditor",
-              "View organization details, members and the audit log. No writes."
+              "Read organization, members, audit and corporate requests. No payment approval or execution."
             ]
           ]
         },
         "paragraphs": [
-          "Roles are fixed. The server checks organization membership on every request. UI controls are not an authorization boundary. These roles do not grant wallet signing, invoice ownership, fund access or payment approvals."
+          "Roles are fixed. The server checks organization membership on every request. UI controls are not an authorization boundary. Corporate payment permissions now separate preparation, independent approval and execution of the creator’s exact payment in this workspace. They do not grant wallet keys, invoice ownership or contract-enforced treasury authority."
         ]
       },
       {
@@ -1158,7 +1174,7 @@ export const docs: Doc[] = [
         "paragraphs": [
           "Organization data is kept off-chain in a separate authenticated SQLite service. Names, wallet membership and audit metadata are not application-encrypted; the host must protect its volume and backups. No private note, payment key, identity document or salary is submitted to this API.",
           "The website remains owner-private. Organization membership does not grant access to this hosted site; the two access boundaries are separate. Public HTTPS hosting and a funded testnet wallet journey remain deployment tasks.",
-          "Business verification, corporate identity, maker-checker approvals, custom roles, SSO and automatic signing are separate work. The public read-only settlement API continues to require independently trusted deployment policies."
+          "Account-based maker-checker approval is now available in Payments. Business verification, verified corporate signer mapping, contract-enforced approval, custom roles, SSO and automatic signing remain separate work. The public read-only settlement API continues to require independently trusted deployment policies."
         ]
       },
       {
@@ -1168,6 +1184,7 @@ export const docs: Doc[] = [
           "Operators use the dedicated organization CLI, independently of the public settlement index. Online SQLite backup includes committed WAL data while leaving the live service unchanged. Exported and restored files are quarantined, contain no sessions/challenges and cannot start a service.",
           "Generate an access-review template for the exact restored file. It intentionally includes no historical owner or member grants. Approve current account roles and revisions using independent current authority; obtain the approved file hash separately. Missing authority leaves the service quarantined.",
           "Activation writes a new database, revokes all historical members and pending invitations, grants only explicitly reviewed access, advances versions and appends recovery audit. A durable one-use intent blocks competing/replayed activation of that recovery file. A crash with an uncertain activation needs inspection and, if necessary, a new restore/review.",
+          "Corporate payment requests and call reservations are included in server snapshots. Pending, approved and dispatched requests become invalidated during backup/restore; membership reapproval does not reapprove payments. Existing reservations remain consumed for conservative reconciliation.",
           "These are protected operator commands, not browser membership actions or a self-service lost-wallet reset. Stop old instances before cutover, use the same API audience and sign in again. Keep database, review and activation-intent files private; encryption, off-host retention and current-authority approval remain operational responsibilities."
         ],
         "code": {

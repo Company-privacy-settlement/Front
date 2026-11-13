@@ -21,6 +21,7 @@ export async function nearConnector() {
   return connector;
 }
 export const liveWallet: WalletPort = {
+  supportsBeforeDispatch: true,
   async identity() {
     const c = await nearConnector();
     if (c.network !== "testnet") throw new Error("Select NEAR testnet");
@@ -40,6 +41,7 @@ export const liveWallet: WalletPort = {
       throw new Error(
         "Wallet changed after review; reconnect the reviewed payer",
       );
+    await context.beforeDispatch?.();
     context.authorize?.();
     const outcome = await wallet.signAndSendTransaction({
       network: "testnet",

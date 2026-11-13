@@ -16,6 +16,7 @@ export type SettlementGuards = {
         reference: Reference;
     }, payer: string, operations: readonly Operation[]) => Promise<void>;
     beforeSubmit?: (operation: Operation, review: Review, operations: readonly Operation[]) => Promise<() => void>;
+    beforeDispatch?: (operation: Operation, review: Review) => Promise<void>;
 };
 export declare class SettlementSession {
     readonly journal: OperationJournal;
