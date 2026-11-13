@@ -20,6 +20,9 @@ export declare class HttpGateway implements Gateway {
     prepareDeposit(policy: Policy, request: DepositRequest, options?: {
         signal?: AbortSignal;
     }): Promise<import("./deposits.js").DepositPlan>;
+    provingContext(policy: Policy, vault: string, options?: {
+        signal?: AbortSignal;
+    }): Promise<import("./prover.js").ProvingContext>;
     verifyInvoice(input: SignedInvoice): Promise<SignedInvoice>;
     invoiceStatus(input: SignedInvoice): Promise<InvoiceStatus>;
     indexStatus(policy: Policy): Promise<import("./activity.js").IndexStatus>;

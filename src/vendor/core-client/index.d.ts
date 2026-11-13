@@ -10,6 +10,8 @@ export { parseApprovedGroups, parseGroupCapacity } from './groups.js';
 export type { ApprovedGroups, ApprovedGroup, GroupCapacity } from './groups.js';
 export { parseRecipientReadiness, type RecipientReadiness } from './recipients.js';
 export { createPrivateNote, validatePrivateNote, noteDomain, noteHash, encryptNoteBackup, openNoteBackup, type PrivateNote } from './notes.js';
+export { BrowserProver, parseProvingAction, parseProvingContext, parseProofBundle, verifyProvingAssets } from './prover.js';
+export type { ProvingContext, ProvingAction, ProvingAssets, ProvingRequest, ProofBundle, ProverStage, ProverResult, SpendProof } from './prover.js';
 export { parseDepositRequest, parseDepositPlan, type DepositRequest, type DepositPlan } from './deposits.js';
 export { RECEIPT_FIELDS, createReceipt, discloseReceipt, verifyReceiptDisclosure, encryptReceiptBackup, openReceiptBackup, type Receipt, type ReceiptField, type ReceiptValues } from './receipts.js';
 export { INVOICE_SIGNING_RECIPIENT, parseInvoice, createInvoice, invoicePaymentRoots, invoiceRootsFromHash, invoiceStatusRequest, assertInvoiceReferenceAvailable, parseSignedInvoice, invoiceHash, invoiceRoot, invoiceMessage, nonceBytes, invoiceSigningDigest, invoiceProof, verifySignedInvoice, invoiceQuote, requireOpenInvoice, matchInvoicePlan, invoiceLink, invoiceFromFragment, } from "./invoices.js";

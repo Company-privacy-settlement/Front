@@ -13,7 +13,7 @@ export const docs: Doc[] = [
         "title": "Private settlement on NEAR",
         "paragraphs": [
           "Core is a development protocol for business-to-business payments and business-to-worker or contractor transfers on NEAR. Independent vaults hold principal. Shared zero-knowledge notes authorize a direct payout from one verified funded vault, with recipient-signed invoices and selected evidence for reconciliation.",
-          "The current implementation supports native NEAR shared groups and token-bound USDC/NEP-141 groups. The browser workspace executes prepared testnet FT plans. FT note creation, encrypted backups and public deposit preparation are available on Private notes. Groth16 spend proof generation remains in the local Core CLI."
+          "The current implementation supports native NEAR shared groups and token-bound USDC/NEP-141 groups. The browser workspace executes prepared testnet FT plans. FT note creation, encrypted backups and public deposit preparation are available on Private notes. Standalone FT withdrawal proving and proof-file verification are available in Local proofs. Native/private-transfer proving remains available through the Core CLI."
         ]
       },
       {
@@ -92,7 +92,7 @@ export const docs: Doc[] = [
           "Obtain a group policy independently of the API; verify network, registry, token, denomination, treasury and code/verifier hashes. Inspect approved capacity and recipient readiness.",
           "Create an FT note locally in Private notes. Download its encrypted backup and reopen it before preparing a public deposit plan.",
           "Import the deposit plan in Settlements with the same policy and an encrypted journal. Review each prerequisite/payment call, then verify its bound Active record.",
-          "Use the saved note and original group in the Core CLI to generate a new Groth16 withdrawal proof. For checkout, bind the exact signed invoice recipient and selected unit reference.",
+          "Open the encrypted note and original group in Local proofs or use the Core CLI to generate a new Groth16 withdrawal proof. For checkout, bind the exact signed invoice recipient and selected unit reference.",
           "Import the public withdrawal plan and review each wallet call. A wallet response or timeout does not establish failure or completion.",
           "Confirm the bound withdrawal Complete state and indexed invoice totals/coverage. Keep separate backups and disclose only the evidence you intend to share."
         ]
@@ -198,17 +198,32 @@ export const docs: Doc[] = [
           "Download the encrypted note and reopen that file with its passphrase to verify the full policy and commitment. Keep the file and passphrase separately; locking or leaving requires the backup to reopen it.",
           "Enter the matching Core API and your receipt root, or generate a fresh random reference for a deposit without evidence. Optionally choose a vault; the default scan verifies up to 20 registry records.",
           "Prepare and inspect the public deposit plan. Download it and import it in Settlements with the same policy, then approve each registration, storage and payment call. A plan does not reserve capacity or confirm payment.",
-          "Keep the encrypted note for CLI withdrawal proving. Browser note backups work directly with shared-spend-args or group-spend-args; private notes and passwords never reach the API."
+          "Keep the encrypted note for withdrawal proving in Local proofs or the CLI. Browser note backups work directly with shared-spend-args or group-spend-args; private notes and passwords never reach the API."
         ],
         "paragraphs": [
           "Page-hide and persisted browser-cache return lock the active note and invalidate unfinished work before restoring a private view. Reopen the encrypted backup to continue. This does not guarantee physical memory erasure."
         ]
       },
       {
+        "id": "browser-proving",
+        "title": "Generate and verify a local proof",
+        "steps": [
+          "Open Local proofs and import the note’s independently trusted testnet FT policy. Reopen its encrypted backup locally; the passphrase and secrets never reach the API.",
+          "Select the release’s proving manifest, circuit WASM, proving key and verification-key JSON. Enter the artifact manifest SHA-256 from an independent trusted source. Each file hash and the raw policy verifier binding must match before proving.",
+          "Select a verified payout vault in the original group and load its finalized public snapshot, or import the public snapshot JSON. The worker rebuilds the complete ordered tree and checks its root locally.",
+          "Set the exact recipient and disclosure root. For invoices, copy the signed recipient and selected unit reference exactly. Generate the proof locally, or cancel to terminate the worker and discard unfinished results.",
+          "Download the verified proof file or public withdrawal plan. Verify an existing proof file to check its canonical payload checksum and Groth16 proof again. Import the public plan in Settlements for wallet review and final reconciliation."
+        ],
+        "paragraphs": [
+          "An unsafe development setup remains visibly labeled. File integrity does not qualify the setup ceremony, current liquidity, recipient readiness or final payment. The proof file contains public recipient, vault, reference and nullifier-hash data; keep the encrypted note separately.",
+          "Locking, page-hide and persisted cache return cancel pending workers and clear the open note. Cancellation alone keeps the note open for an explicit retry. Physical memory erasure cannot be guaranteed. Connected note-to-invoice proving and physical mobile-device qualification remain separate work."
+        ]
+      },
+      {
         "id": "withdraw",
         "title": "Pay a recipient",
         "paragraphs": [
-          "Generate a new Groth16 proof with the local Core CLI using your saved note and original verified group. Select a verified vault with available liquidity and bind the exact recipient and disclosure reference. Browser note generation does not include browser spend proving.",
+          "Generate a new Groth16 FT withdrawal proof in Local proofs or with the Core CLI using your saved note and original verified group. Select a verified vault with available liquidity and bind the exact recipient and disclosure reference. Connected note-to-invoice selection remains manual.",
           "The note provides the principal. The fee payer separately covers the withdrawal protocol fee and applicable NEAR costs. The recipient receives the full fixed-denomination principal."
         ]
       },

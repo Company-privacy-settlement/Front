@@ -23,6 +23,9 @@ English-first landing, documentation and wallet tools for Core, a development pr
 
 The site and web Docs default to English. READMEs also support Korean and Simplified Chinese. Landing, Docs and app share black, white and green styling, contained mobile layouts and independently scrolling content. `src/lib/docs.ts` is the web-guide source.
 
+
+**Local proofs** (`/prove/`) generates FT withdrawal proofs in a disposable local worker, checks independent artifact hashes and policy verifier bytes, supports cancellation and verifies downloaded proof files. [Setup and trust model](https://github.com/Company-privacy-settlement/Core/blob/main/docs/BROWSER_PROVER.md). The connected note-to-invoice flow remains separate.
+
 ## Run and validate
 
 Requires Node.js 22 or later.
@@ -40,7 +43,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The static export is `out/`. Build verifies the vendored Core browser bundle/declarations against their SHA-256 manifest and requires no sibling checkout or API keys. After changing Core: run `npm run build:client` in Core, then `npm run sync:core` here. Tests cover Docs, mobile containment, invoices, recipient readiness, evidence, notes, wallet recovery, journals and sample KYB. The latest recorded full browser run on 2026-11-13 passed 120 cases; see Core’s [roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md) for validation scope.
+The static export is `out/`. Build verifies the vendored Core browser bundle/declarations against their SHA-256 manifest and requires no sibling checkout or API keys. After changing Core: run `npm run build:client` in Core, then `npm run sync:core` here. Tests cover Docs, mobile containment, invoices, recipient readiness, evidence, notes, wallet recovery, journals and sample KYB. The latest recorded full browser run on 2026-11-13 passed 132 cases; see Core’s [roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md) for validation scope.
 
 ## Organizations and access
 
@@ -56,7 +59,7 @@ Pushes and PRs call Core's commit-pinned pipeline with this Front event SHA. It 
 2. Enter each group’s API origin and inspect verified capacity. A hosted frontend requires a reachable HTTPS API whose CORS allowlist includes the exact frontend origin. No funded public testnet group is bundled.
 3. Connect a compatible NEAR testnet wallet. Create/unlock the local encrypted operation journal; group selection locks while the journal is open.
 4. Create an FT note in Notes, download its encrypted backup and reopen it before preparing a public deposit plan. Import the plan in Settlements and review each registration, storage, transfer and gas approval.
-5. Generate a new Groth16 spend proof with the Core CLI using the note’s original group. Browser proving is not implemented. Import the public withdrawal plan, verify its exact recipient/reference and reconcile finalized state before considering payment complete.
+5. Generate a new Groth16 FT withdrawal proof in **Local proofs** or the Core CLI using the original group. Import trusted proving files and an independently obtained manifest hash; the browser rebuilds the tree, supports cancellation and verifies proof files. Import the public withdrawal plan, verify its exact recipient/reference and reconcile finalized state before considering payment complete.
 
 Groups use fixed denominations and **256 total outputs**. Deposits and private transfers consume outputs; withdrawing does not restore capacity. Full or retired groups allow original-group recovery, not new deposits. Native NEAR v2 is available through Contract/Core CLI; browser execution currently supports testnet FT groups.
 

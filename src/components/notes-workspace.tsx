@@ -122,7 +122,7 @@ export function NotesWorkspace() {
           <p>{plan.remainingOutputs} output slots at this snapshot. Checked {plan.checkedVaults} vaults{plan.vaultScanComplete ? '.' : '; the scan is incomplete.'} Registration, NEAR storage and gas are separate.</p>
           <details><summary>Inspect public deposit call</summary><pre>{JSON.stringify(plan.plan, null, 2)}</pre></details>
           <div className="notes-actions"><button className="button button-dark" onClick={() => download(JSON.stringify(plan.plan, null, 2), 'core-public-deposit-plan.json')}><Download size={14}/> Download deposit plan</button><Link href="/live/" className="button button-outline">Open settlements <ArrowUpRight size={14}/></Link></div>
-          <p className="notes-help">Import the public plan in Settlements. Keep the encrypted note to create a withdrawal proof with the Core CLI. A prepared plan is not a confirmed deposit.</p>
+          <p className="notes-help">Import the public plan in Settlements. After the deposit is active, open your backup in <Link href="/prove/">Local proofs</Link> to prepare a withdrawal. A prepared plan is not a confirmed deposit.</p>
         </div>}
       </section>
     </div>
