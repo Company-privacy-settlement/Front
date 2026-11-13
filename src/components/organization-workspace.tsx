@@ -34,9 +34,12 @@ export function OrganizationWorkspace() {
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
   const [name, setName] = useState(''), [account, setAccount] = useState(''), [role, setRole] = useState<GrantRole>('viewer'), [successor, setSuccessor] = useState('');
   const generation = useRef(0), pending = useRef<AbortController | null>(null), credential = useRef<{ client: OrganizationClient; session: OrganizationSession } | null>(null), mounted = useRef(true);
+  function clearAccess() {
+    setOrganizations([]); setSelected(null); setInbox([]); setLists(empty()); setView('Overview'); setName(''); setAccount(''); setRole('viewer'); setSuccessor('');
+  }
   function clear() {
     generation.current++; pending.current?.abort(); pending.current = null; credential.current = null;
-    setSession(null); setOrganizations([]); setSelected(null); setInbox([]); setLists(empty()); setView('Overview'); setName(''); setAccount(''); setRole('viewer'); setSuccessor(''); setError(''); setNotice(''); setBusy(false);
+    setSession(null); clearAccess(); setError(''); setNotice(''); setBusy(false);
   }
   usePageHideLock(clear);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; generation.current++; pending.current?.abort(); credential.current = null; }; }, []);
@@ -53,11 +56,10 @@ export function OrganizationWorkspace() {
       await action(client, controller.signal, check); check();
     } catch (e) {
       if (generation.current !== mine || !mounted.current) return;
-      if (e instanceof OrganizationApiError && [401, 403, 404, 503, 504].includes(e.status)) {
-        if (e.status === 401) { clear(); setError(messages[e.code] ?? 'Sign in again.'); return; }
-        setSelected(null); setLists(empty()); setOrganizations([]); setInbox([]); setName(''); setAccount(''); setSuccessor('');
-      }
-      setError(e instanceof OrganizationApiError ? messages[e.code] ?? e.code.replaceAll('_', ' ') : e instanceof Error ? e.message : 'Organization action failed.');
+      controller.abort();
+      const message = e instanceof OrganizationApiError ? messages[e.code] ?? e.code.replaceAll('_', ' ') : e instanceof Error ? e.message : 'Organization action failed.';
+      if (publicAction || (e instanceof OrganizationApiError && e.status === 401)) { clear(); setError(message); return; }
+      clearAccess(); setError(message);
     } finally { if (generation.current === mine && mounted.current) { pending.current = null; setBusy(false); } }
   }
   async function reload(client: OrganizationClient, signal: AbortSignal, check: () => void, id?: string, tab: View = view) {

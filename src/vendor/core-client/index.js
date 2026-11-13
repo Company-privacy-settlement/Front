@@ -371,11 +371,17 @@ var OrganizationClient = class {
   async request(path, method = "GET", body, signal) {
     const url = new URL(path, this.origin);
     if (!path.startsWith("/") || url.origin !== this.origin || !/^\/(?:v1\/(?:auth|me|organizations)(?:\/[a-zA-Z0-9_.-]+)*|healthz)$/.test(url.pathname) || url.hash || url.search && !(url.pathname.endsWith("/audit") && /^\?before=[1-9][0-9]{0,15}$/.test(url.search))) throw new Error("Invalid organization API path");
-    const response = await fetch(this.origin + path, { method, signal, credentials: "omit", redirect: "error", cache: "no-store", headers: {
+    const response = await fetch(this.origin + path, { method, credentials: "omit", redirect: "error", cache: "no-store", headers: {
       ...body !== void 0 ? { "content-type": "application/json" } : {},
       ...this.token ? { authorization: `Bearer ${this.token}` } : {}
-    }, ...body !== void 0 ? { body: JSON.stringify(body) } : {} });
-    const value2 = await response.json();
+    }, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(25e3)]) : AbortSignal.timeout(25e3), ...body !== void 0 ? { body: JSON.stringify(body) } : {} });
+    let value2;
+    try {
+      value2 = await response.json();
+    } catch (error) {
+      if (error instanceof Error && ["AbortError", "TimeoutError"].includes(error.name)) throw error;
+      throw new OrganizationApiError(response.ok ? 502 : response.status, response.ok ? "INVALID_RESPONSE" : "ORGANIZATION_REQUEST_FAILED");
+    }
     if (!response.ok) throw new OrganizationApiError(response.status, typeof value2?.error === "string" ? value2.error : "ORGANIZATION_REQUEST_FAILED");
     return value2;
   }

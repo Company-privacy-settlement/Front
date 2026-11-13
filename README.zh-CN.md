@@ -40,7 +40,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-静态输出位于 `out/`。构建会校验内置 Core 浏览器包与类型声明的 SHA-256 清单，无需相邻仓库或 API 密钥。更新 Core 后，先在 Core 执行 `npm run build:client`，再在此执行 `npm run sync:core`。测试覆盖 Docs、移动端布局、发票、收款人准备、证据、票据、钱包恢复、日志及示例 KYB。2026-11-13 记录的完整浏览器测试通过 112 项，详见 [验证范围](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)。
+静态输出位于 `out/`。构建会校验内置 Core 浏览器包与类型声明的 SHA-256 清单，无需相邻仓库或 API 密钥。更新 Core 后，先在 Core 执行 `npm run build:client`，再在此执行 `npm run sync:core`。测试覆盖 Docs、移动端布局、发票、收款人准备、证据、票据、钱包恢复、日志及示例 KYB。2026-11-13 记录的完整浏览器测试通过 120 项，详见 [验证范围](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)。
 
 ## 组织与访问权限
 

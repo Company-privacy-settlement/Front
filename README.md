@@ -40,7 +40,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The static export is `out/`. Build verifies the vendored Core browser bundle/declarations against their SHA-256 manifest and requires no sibling checkout or API keys. After changing Core: run `npm run build:client` in Core, then `npm run sync:core` here. Tests cover Docs, mobile containment, invoices, recipient readiness, evidence, notes, wallet recovery, journals and sample KYB. The latest recorded full browser run on 2026-11-13 passed 112 cases; see Core’s [roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md) for validation scope.
+The static export is `out/`. Build verifies the vendored Core browser bundle/declarations against their SHA-256 manifest and requires no sibling checkout or API keys. After changing Core: run `npm run build:client` in Core, then `npm run sync:core` here. Tests cover Docs, mobile containment, invoices, recipient readiness, evidence, notes, wallet recovery, journals and sample KYB. The latest recorded full browser run on 2026-11-13 passed 120 cases; see Core’s [roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md) for validation scope.
 
 ## Organizations and access
 

@@ -40,7 +40,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-정적 결과물은 `out/`입니다. 빌드는 내장 Core 브라우저 번들·타입 선언의 SHA-256 매니페스트를 검증하며 형제 저장소나 API 키 없이 실행됩니다. Core 변경 후 Core에서 `npm run build:client`, 여기서 `npm run sync:core`를 실행합니다. 테스트는 Docs, 모바일 레이아웃, 인보이스, 수취인 준비, 증빙, 노트, 지갑 복구, 저널과 샘플 KYB를 다룹니다. 2026-11-13에 기록한 전체 브라우저 실행은 112개 통과입니다. [검증 범위](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md).
+정적 결과물은 `out/`입니다. 빌드는 내장 Core 브라우저 번들·타입 선언의 SHA-256 매니페스트를 검증하며 형제 저장소나 API 키 없이 실행됩니다. Core 변경 후 Core에서 `npm run build:client`, 여기서 `npm run sync:core`를 실행합니다. 테스트는 Docs, 모바일 레이아웃, 인보이스, 수취인 준비, 증빙, 노트, 지갑 복구, 저널과 샘플 KYB를 다룹니다. 2026-11-13에 기록한 전체 브라우저 실행은 120개 통과입니다. [검증 범위](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md).
 
 ## 조직과 접근 권한
 

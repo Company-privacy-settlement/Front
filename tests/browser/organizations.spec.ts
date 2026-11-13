@@ -19,10 +19,13 @@ async function setup(page: Page, initialRole: OrganizationRole = 'owner', delaye
     };
     window.addEventListener('near-selector-ready', () => window.dispatchEvent(new CustomEvent('near-wallet-injected', { detail: wallet })));
   }, { accountId, delayedSigning });
-  const state = { role: initialRole, revoked: false, invites: [] as Record<string, unknown>[], memberRole: 'operator', memberVersion: 1, loginCalls: 0, memberReads: 0, inbox: false, accepted: false, mutations: [] as { path: string; body: unknown }[] };
+  const state = { role: initialRole, revoked: false, failure: 'none' as 'none' | 'network' | 'html' | 'conflict', invites: [] as Record<string, unknown>[], memberRole: 'operator', memberVersion: 1, loginCalls: 0, memberReads: 0, inbox: false, accepted: false, mutations: [] as { path: string; body: unknown }[] };
   function org(beta = false) { const role = beta ? 'operator' : state.role; return { id: beta ? betaId : id, name: beta ? 'Beta organization' : 'Example organization', ownerAccount: beta ? 'beta-owner.testnet' : accountId, version: 1, membershipVersion: 1, role, permissions: ORGANIZATION_ROLE_PERMISSIONS[role], createdAt: new Date().toISOString(), claims: { kybVerified: false, walletSigningAuthorityGranted: false } }; }
   await page.route(api + '/**', async route => {
     const request = route.request(), path = new URL(request.url()).pathname, method = request.method(), body = request.postData() ? request.postDataJSON() : undefined;
+    if (path === '/v1/organizations' && state.failure === 'network') { await route.abort('failed'); return; }
+    if (path === '/v1/organizations' && state.failure === 'html') { await route.fulfill({ status: 500, contentType: 'text/html', body: '<h1>Upstream failure</h1>' }); return; }
+    if (path.endsWith('/members/colleague.testnet') && method === 'PATCH' && state.failure === 'conflict') { await route.fulfill({ status: 409, json: { error: 'VERSION_CONFLICT' } }); return; }
     let json: unknown = {}, status = 200;
     if (path === '/v1/auth/challenge') {
       const origin = request.headers().origin, fields = { accountId, audience: api, origin, expiresAt: new Date(Date.now() + 299_000).toISOString() };
@@ -107,4 +110,33 @@ test('page-hide clears loaded member and audit views with no automatic sign-in o
   await expect(page.getByText('colleague.testnet', { exact: true })).toHaveCount(0);
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
   await expect(page.getByRole('button', { name: 'Sign in with testnet wallet' })).toBeVisible(); expect(state.loginCalls).toBe(1);
+});
+for (const failure of ['network', 'html'] as const) {
+  test(`failed access refresh clears member data and owner controls: ${failure}`, async ({ page }) => {
+    const state = await setup(page); await enter(page);
+    await page.getByRole('button', { name: 'Members', exact: true }).click();
+    await expect(page.getByText('colleague.testnet', { exact: true })).toBeVisible();
+    state.failure = failure; await page.getByRole('button', { name: 'Refresh access', exact: true }).click();
+    await expect(page.locator('.organization-workspace [role="alert"]')).toBeVisible();
+    await expect(page.getByText('colleague.testnet', { exact: true })).toHaveCount(0);
+    await expect(page.locator('.organization-current')).toHaveCount(0);
+    state.failure = 'none'; await page.getByRole('button', { name: 'Refresh access', exact: true }).click();
+    await page.getByLabel('Active organization').selectOption(id);
+    await expect(page.locator('.organization-current h2')).toHaveText('Example organization');
+  });
+}
+test('stale mutation version clears the old role snapshot without replaying the write', async ({ page }) => {
+  const state = await setup(page); await enter(page);
+  await page.getByRole('button', { name: 'Members', exact: true }).click();
+  await page.getByLabel('Role for colleague.testnet').selectOption('auditor'); state.failure = 'conflict';
+  await page.getByRole('button', { name: 'Save role', exact: true }).click();
+  await expect(page.locator('.organization-workspace [role="alert"]')).toContainText('This record changed');
+  await expect(page.locator('.organization-current')).toHaveCount(0);
+  expect(state.mutations).toEqual([]);
+});
+test('failed initial access loading clears a partially established login session', async ({ page }) => {
+  const state = await setup(page); state.failure = 'network'; await signIn(page);
+  await expect(page.locator('.organization-workspace [role="alert"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sign in with testnet wallet', exact: true })).toBeEnabled();
+  await expect(page.getByLabel('Active organization')).toHaveCount(0); expect(state.loginCalls).toBe(1);
 });
