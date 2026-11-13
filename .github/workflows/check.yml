@@ -22,9 +22,9 @@ jobs:
       - run: npm ci
       - run: npm run check && npm test && npm run build
   integration:
-    uses: Company-privacy-settlement/Core/.github/workflows/integration.yml@739ce337fe6b4e404b58eb477f12e901161a4dd1
+    uses: Company-privacy-settlement/Core/.github/workflows/integration.yml@7bec89ee9e8b99bbaa571f8457885262f28e4ff9
     with:
-      core-ref: 739ce337fe6b4e404b58eb477f12e901161a4dd1
+      core-ref: 7bec89ee9e8b99bbaa571f8457885262f28e4ff9
       front-ref: ${{ github.sha }}
     secrets:
       INTEGRATION_READ_TOKEN: ${{ secrets.INTEGRATION_READ_TOKEN }}
