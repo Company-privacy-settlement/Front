@@ -23,7 +23,6 @@ Core 的落地页、文档与钱包工具，使用 Next.js 构建。Core 是支�
 
 网站与网页 Docs 默认使用英文，README 同时提供韩文与简体中文。落地页、Docs 与应用共享黑白绿色调、移动端横向约束与内部滚动。网页指南源文件为 `src/lib/docs.ts`。
 
-
 **Local proofs** (`/prove/`) 在本地 worker 中生成 FT 提现证明，检查独立材料哈希与策略验证密钥字节，支持取消及下载证明文件验证。[配置与信任模型](https://github.com/Company-privacy-settlement/Core/blob/main/docs/BROWSER_PROVER.md)。[发票结账](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICE_PAYMENTS.md)支持原分组加密票据选择 → 本地证明 → 金额与费用确认 → 逐项钱包授权 → 最终付款确认，并提供所选单位绑定、取消、签名前商户密钥/状态复查与保守恢复。
 
 ## 运行与验证
@@ -48,6 +47,8 @@ npm run test:e2e
 ## 组织与访问权限
 
 在 Organization 输入独立部署的 Organization API 来源，使用支持 NEP-413 的测试网钱包登录。可创建/选择组织、定向邀请及接受、管理允许的成员角色和查看审计记录。令牌仅在内存中，页面隐藏或 API 来源变化即清除。Owner/Admin/Operator/Viewer/Auditor 权限由服务端检查，与钱包签名、KYB 和托管网站访问范围分开。后端需要独立部署，不内置公开企业服务器。[配置及边界](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md)。
+
+[组织数据备份与恢复](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_BACKUPS.md)提供一致在线快照、会话/挑战废弃及隔离恢复。必须使用单独审核的当前权限文件才能激活到新的运行数据库；历史所有者、角色和待处理邀请不会自动恢复为权限。
 
 ## 集成 CI
 

@@ -23,7 +23,6 @@ Core의 랜딩, 문서와 지갑 도구입니다. 기업 간·기업과 근로�
 
 사이트와 웹 Docs의 기본 언어는 영어입니다. README는 한국어·중국어도 지원합니다. 랜딩·앱·Docs는 검정·흰색·초록 톤과 모바일 가로 넘침 방지, 내부 콘텐츠 스크롤을 공유합니다. 웹 가이드 원본은 `src/lib/docs.ts`입니다.
 
-
 **Local proofs** (`/prove/`)는 로컬 워커에서 FT 출금 증명을 생성하고 독립 아티팩트 해시와 정책 검증기 바이트를 확인합니다. 취소와 내려받은 증명 파일 검증도 지원합니다. [설정·신뢰 모델](https://github.com/Company-privacy-settlement/Core/blob/main/docs/BROWSER_PROVER.md). [인보이스 결제](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICE_PAYMENTS.md)에서 원래 그룹의 암호화 노트 선택 → 로컬 증명 → 금액·수수료 확인 → 개별 지갑 승인 → 최종화 결제 확인을 지원합니다. 선택 단위 고정, 취소, 서명 직전 기업 키·상태 재검사와 보수적 복구를 적용합니다.
 
 ## 실행과 검증
@@ -48,6 +47,8 @@ npm run test:e2e
 ## 조직과 접근 권한
 
 Organization에서 독립 운영하는 Organization API 주소를 입력하고 NEP-413 지원 테스트넷 지갑으로 로그인합니다. 조직 생성·선택, 계정 지정 초대·수락, 허용된 멤버 역할 변경과 감사 기록을 관리합니다. 토큰은 메모리에만 두며 페이지 숨김·API 주소 변경 시 삭제합니다. Owner/Admin/Operator/Viewer/Auditor 권한은 서버에서 검사하고 지갑 서명·KYB·호스팅 접근 범위와 구분합니다. 별도 백엔드 배포가 필요하며 공개 기업 서버를 기본 제공하지 않습니다. [설정과 한계](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md).
+
+[조직 데이터 백업·복구](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_BACKUPS.md)는 일관된 온라인 스냅샷, 세션·챌린지 폐기와 격리 복구를 제공합니다. 현재 권한을 별도 승인한 파일을 적용해야 새 운영 DB로 활성화되며, 과거 소유자·역할·대기 초대는 자동으로 권한에 복원하지 않습니다.
 
 ## 통합 CI
 

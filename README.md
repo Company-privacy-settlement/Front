@@ -23,7 +23,6 @@ English-first landing, documentation and wallet tools for Core, a development pr
 
 The site and web Docs default to English. READMEs also support Korean and Simplified Chinese. Landing, Docs and app share black, white and green styling, contained mobile layouts and independently scrolling content. `src/lib/docs.ts` is the web-guide source.
 
-
 **Local proofs** (`/prove/`) generates FT withdrawal proofs in a disposable local worker, checks independent artifact hashes and policy verifier bytes, supports cancellation and verifies downloaded proof files. [Setup and trust model](https://github.com/Company-privacy-settlement/Core/blob/main/docs/BROWSER_PROVER.md). [Connected invoice checkout](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICE_PAYMENTS.md) supports original-group encrypted note selection → local proof → amount/fee review → separate wallet approvals → finalized confirmation, with selected-unit binding, cancellation, fresh merchant/status gates and conservative recovery.
 
 ## Run and validate
@@ -48,6 +47,8 @@ The static export is `out/`. Build verifies the vendored Core browser bundle/dec
 ## Organizations and access
 
 Open Organization, supply the independently hosted Organization API origin, and sign in with a NEP-413-capable testnet wallet. Choose/create an organization, invite a wallet account, accept invitations, manage permitted member roles and read the audit log. Tokens stay in memory and clear on page-hide/origin change. Owner/Admin/Operator/Viewer/Auditor permissions are enforced by the server, separate from wallet signing, KYB and the hosted Site audience. The backend needs its own deployment; no public organization service is bundled. [Setup and boundaries](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md).
+
+[Organization backup and recovery](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_BACKUPS.md) captures consistent online snapshots, discards sessions/challenges and restores into quarantine. A separately approved current-access file is required before activation into a new database; historical owners, roles and pending invitations are never automatically restored as authority.
 
 ## Integrated CI
 

@@ -976,7 +976,10 @@ export const docs: Doc[] = [
         "paragraphs": [
           "If the session expires or the signing key is removed in finalized chain state, sign in with a current FullAccess wallet key. If membership was removed, an authorized organization member must issue a new directed invitation. A wallet login does not restore that membership.",
           "Version conflicts require a fresh read and explicit review. After an uncertain mutation result, inspect Members, Invitations and the Audit log before retrying; there is no automatic mutation replay. An Owner must transfer to an active member before leaving, and there is no lost-wallet Owner reset.",
-          "Organization records live in a separate server database. Browser note, receipt, journal or invoice-library backups cannot restore them. Restoring an old organization database can resurrect old memberships and sessions: the operator must clear sessions/challenges and reconcile current authorized records before reopening access. No automated organization restore or audience migration is implemented."
+          "Organization records use a separate server database. Consistent online backup and digest-pinned restore commands now create quarantined files with sessions and login challenges discarded. The service refuses to start from these files. Browser note, receipt, journal and invoice-library backups cannot recover this database.",
+          "The operator generates a blank access-review template, checks every current owner/member and revision against independent current authority, and obtains approval of the exact review-file hash. Historical roles are not prefilled or inherited. Activation revokes historical memberships and pending invitations, grants only reviewed access, advances revisions and records recovery audit in a new database.",
+          "Each restore has a new recovery ID and a one-use activation intent. A review for another restore or a reused activation is rejected. If current authority is unavailable, leave the data quarantined. A checksum or fresh wallet login cannot establish who retained organization permissions after an old snapshot.",
+          "Stop all old API instances before cutover and require everyone to sign in again. Existing old processes cannot be revoked by creating another database. Current-audience recovery is supported; audience migration, encrypted off-host transport, backup scheduling and retention remain operator configuration."
         ]
       },
       {
@@ -1157,6 +1160,20 @@ export const docs: Doc[] = [
           "The website remains owner-private. Organization membership does not grant access to this hosted site; the two access boundaries are separate. Public HTTPS hosting and a funded testnet wallet journey remain deployment tasks.",
           "Business verification, corporate identity, maker-checker approvals, custom roles, SSO and automatic signing are separate work. The public read-only settlement API continues to require independently trusted deployment policies."
         ]
+      },
+      {
+        "id": "server-recovery",
+        "title": "Server backup and access recovery",
+        "paragraphs": [
+          "Operators use the dedicated organization CLI, independently of the public settlement index. Online SQLite backup includes committed WAL data while leaving the live service unchanged. Exported and restored files are quarantined, contain no sessions/challenges and cannot start a service.",
+          "Generate an access-review template for the exact restored file. It intentionally includes no historical owner or member grants. Approve current account roles and revisions using independent current authority; obtain the approved file hash separately. Missing authority leaves the service quarantined.",
+          "Activation writes a new database, revokes all historical members and pending invitations, grants only explicitly reviewed access, advances versions and appends recovery audit. A durable one-use intent blocks competing/replayed activation of that recovery file. A crash with an uncertain activation needs inspection and, if necessary, a new restore/review.",
+          "These are protected operator commands, not browser membership actions or a self-service lost-wallet reset. Stop old instances before cutover, use the same API audience and sign in again. Keep database, review and activation-intent files private; encryption, off-host retention and current-authority approval remain operational responsibilities."
+        ],
+        "code": {
+          "label": "Terminal · Core operator, build once and set the Organization API audience/database",
+          "text": "npm run build:service\n# CORE_ORGANIZATION_DB points to the live database.\nnpm run organizations:backup -- /private-backups/new.sqlite\n# Select a NEW quarantine path in CORE_ORGANIZATION_DB.\nnpm run organizations:restore -- /private-backups/new.sqlite TRUSTED_BACKUP_SHA256\nnpm run organizations:review-template -- /private-reviews/access.json\n# Independently review current authority, then select a NEW active database path.\nnpm run organizations:activate -- /private-recovery/quarantined.sqlite /private-reviews/access.json APPROVED_REVIEW_SHA256"
+        }
       }
     ]
   }
