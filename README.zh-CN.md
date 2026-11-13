@@ -41,6 +41,10 @@ npm run test:e2e
 
 静态输出位于 `out/`。构建会校验内置 Core 浏览器包与类型声明的 SHA-256 清单，无需相邻仓库或 API 密钥。更新 Core 后，先在 Core 执行 `npm run build:client`，再在此执行 `npm run sync:core`。测试覆盖 Docs、移动端布局、发票、收款人准备、证据、票据、钱包恢复、日志及示例 KYB。2026-11-13 记录的完整浏览器测试通过 98 项，详见 [验证范围](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)。
 
+## 集成 CI
+
+推送和 PR 将当前 Front 提交传入固定 Core 流水线，验证类型/单元/静态构建/全部桌面与移动浏览器、与重建 Core 文件及源清单的 SDK 一致性、固定 Contract 的实际 WASM/Groth16 和开发发布包。CI 启动全新本地服务器；`CORE_E2E_PORT` 可指定测试端口。私有仓库需要只读检出凭据和 Core 复用工作流访问设置。[版本、证据及配置](https://github.com/Company-privacy-settlement/Core/blob/main/docs/CI.md)。不会改变网站访问范围或发布网站。
+
 ## 配置结算
 
 1. 运行匹配的 Core 只读 API 与最终化索引。从 API 之外独立获取可信部署策略，核对网络、注册表、代币、面额、费用接收方和验证密钥/WASM 哈希；在 Settlements 导入策略或已批准分组目录。

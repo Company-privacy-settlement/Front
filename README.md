@@ -41,6 +41,10 @@ npm run test:e2e
 
 The static export is `out/`. Build verifies the vendored Core browser bundle/declarations against their SHA-256 manifest and requires no sibling checkout or API keys. After changing Core: run `npm run build:client` in Core, then `npm run sync:core` here. Tests cover Docs, mobile containment, invoices, recipient readiness, evidence, notes, wallet recovery, journals and sample KYB. The latest recorded full browser run on 2026-11-13 passed 98 cases; see Core’s [roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md) for validation scope.
 
+## Integrated CI
+
+Pushes and PRs call Core's commit-pinned pipeline with this Front event SHA. It checks types/units/static build, all desktop/mobile browsers, vendoring against rebuilt Core files and sources, and the pinned Contract with actual WASM/Groth16 and development-release verification. CI starts a fresh loopback server; `CORE_E2E_PORT` selects another local test port. Private siblings need read-only checkout credentials and Core reusable-workflow access. [Pins, evidence and setup](https://github.com/Company-privacy-settlement/Core/blob/main/docs/CI.md). Site access and publication are unchanged.
+
 ## Configure a settlement
 
 1. Run the matching Core read-only API and finalized index. Obtain the trusted deployment policy independently of the API; check network, registry, token, denomination, treasury and verifier/WASM hashes. Import that policy or an approved group directory in Settlements.

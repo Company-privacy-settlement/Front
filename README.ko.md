@@ -41,6 +41,10 @@ npm run test:e2e
 
 정적 결과물은 `out/`입니다. 빌드는 내장 Core 브라우저 번들·타입 선언의 SHA-256 매니페스트를 검증하며 형제 저장소나 API 키 없이 실행됩니다. Core 변경 후 Core에서 `npm run build:client`, 여기서 `npm run sync:core`를 실행합니다. 테스트는 Docs, 모바일 레이아웃, 인보이스, 수취인 준비, 증빙, 노트, 지갑 복구, 저널과 샘플 KYB를 다룹니다. 2026-11-13에 기록한 전체 브라우저 실행은 98개 통과입니다. [검증 범위](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md).
 
+## 통합 CI
+
+푸시·PR은 고정 Core 파이프라인에 현재 Front 커밋을 전달합니다. 타입·단위·정적 빌드·전체 데스크톱/모바일 브라우저, 재빌드한 Core 파일·소스와 SDK 일치, 고정 Contract의 실제 WASM/Groth16과 개발 릴리스를 검증합니다. CI는 새 로컬 서버를 사용하고 `CORE_E2E_PORT`로 테스트 포트를 지정할 수 있습니다. 비공개 저장소에는 읽기 전용 체크아웃 자격 증명과 Core 재사용 워크플로 접근 설정이 필요합니다. [버전·증거·설정](https://github.com/Company-privacy-settlement/Core/blob/main/docs/CI.md). 사이트 공개 범위·게시는 변경하지 않습니다.
+
 ## 정산 연결
 
 1. 일치하는 Core 읽기 전용 API와 최종화 인덱스를 실행합니다. API와 독립적으로 받은 정책에서 네트워크·레지스트리·토큰·단위 금액·수수료 수취인·검증키/WASM 해시를 확인하고 Settlements에 정책 또는 승인 그룹 디렉터리를 가져옵니다.

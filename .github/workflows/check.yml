@@ -1,0 +1,30 @@
+name: Front checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+concurrency:
+  group: front-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  front:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check && npm test && npm run build
+  integration:
+    uses: Company-privacy-settlement/Core/.github/workflows/integration.yml@7257ecf6775653a81a08c786b1346080a68156c9
+    with:
+      core-ref: 7257ecf6775653a81a08c786b1346080a68156c9
+      front-ref: ${{ github.sha }}
+    secrets:
+      INTEGRATION_READ_TOKEN: ${{ secrets.INTEGRATION_READ_TOKEN }}
