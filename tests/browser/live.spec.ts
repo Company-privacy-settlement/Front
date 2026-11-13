@@ -100,6 +100,76 @@ async function importPlan(page: Page) {
       buffer: Buffer.from(JSON.stringify({ tokenCall: payment })),
     });
 }
+const journalKey = 'core-live-journal-v1:testnet:forest.testnet';
+async function readyWorkspace(page: Page, beforePreflight?: () => Promise<void>) {
+  await injectedWallet(page);
+  await page.route('https://core-api.example/**', async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/v1/ft/preflight') await beforePreflight?.();
+    const json = path === '/v1/config' ? { policy } : path === '/v1/ft/preflight'
+      ? { canPrepare: true, prerequisitesSatisfied: true, prerequisites: [], blockers: [], tokenAmountRequired: '1001500', payerTokenBalance: '2000000', checkedAtBlock: { hash, height: 100 } }
+      : { state: 'NotFound', complete: false, refunded: false, retryAvailable: false, refundAvailable: false, retryCall: null, refundCall: null, record: null, checkedAtBlock: { hash, height: 100 } };
+    await route.fulfill({ json, headers: { 'access-control-allow-origin': '*' } }).catch(() => {});
+  });
+  await page.goto('/live/'); await configure(page); await connect(page);
+}
+async function createJournal(page: Page) {
+  await page.getByLabel('Journal passphrase', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Create journal', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Lock', exact: true })).toBeVisible();
+}
+test('journal cache lock clears operation views and preserves encrypted history for explicit unlock', async ({ page }) => {
+  await readyWorkspace(page); await createJournal(page); await importPlan(page);
+  await expect(page.getByRole('button', { name: 'Approve payment in wallet' })).toBeEnabled();
+  const encrypted = await page.evaluate(key => localStorage.getItem(key), journalKey);
+  const visible = await page.evaluate(() => {
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+    return document.querySelectorAll('.live-history>button').length;
+  });
+  expect(visible).toBe(0); expect(await page.evaluate(key => localStorage.getItem(key), journalKey)).toBe(encrypted);
+  await expect(page.getByRole('button', { name: 'Lock', exact: true })).toHaveCount(0);
+  await page.getByLabel('Journal passphrase', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Unlock existing', exact: true }).click();
+  await expect(page.locator('.live-history>button')).toHaveCount(1);
+  expect(await page.evaluate(() => (window as any).fixtureCalls.length)).toBe(0);
+});
+test('journal cache lock cancels an unfinished create before it can unlock or write storage', async ({ page }) => {
+  await readyWorkspace(page);
+  await page.evaluate(() => {
+    const encrypt = crypto.subtle.encrypt.bind(crypto.subtle);
+    crypto.subtle.encrypt = async (...args: Parameters<SubtleCrypto['encrypt']>) => {
+      (window as any).journalEncryptionStarted = true;
+      await new Promise<void>(resolve => { (window as any).finishJournalEncryption = resolve; });
+      const result = await encrypt(...args); (window as any).journalEncryptionFinished = true; return result;
+    };
+  });
+  await page.getByLabel('Journal passphrase', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Create journal', exact: true }).click();
+  await page.waitForFunction(() => (window as any).journalEncryptionStarted);
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })));
+  await page.evaluate(() => (window as any).finishJournalEncryption());
+  await page.waitForFunction(() => (window as any).journalEncryptionFinished);
+  await expect(page.getByRole('button', { name: 'Lock', exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Journal passphrase', { exact: true })).toHaveValue('');
+  expect(await page.evaluate(key => localStorage.getItem(key), journalKey)).toBeNull();
+});
+test('journal cache lock during approval preflight prevents a late wallet request', async ({ page }) => {
+  let pause = false, entered!: () => void, release!: () => void;
+  const started = new Promise<void>(resolve => { entered = resolve; }), gate = new Promise<void>(resolve => { release = resolve; });
+  await readyWorkspace(page, async () => { if (pause) { entered(); await gate; } });
+  await createJournal(page); await importPlan(page);
+  await expect(page.getByRole('button', { name: 'Approve payment in wallet' })).toBeEnabled(); pause = true;
+  await page.getByRole('button', { name: 'Approve payment in wallet' }).click(); await started;
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))); release();
+  await expect(page.locator('.live-history>button')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Approve payment in wallet' })).toHaveCount(0);
+  expect(await page.evaluate(() => (window as any).fixtureCalls.length)).toBe(0);
+  pause = false;
+  await page.getByLabel('Journal passphrase', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Unlock existing', exact: true }).click();
+  await expect(page.locator('.live-history>button')).toHaveCount(1);
+  expect(await page.evaluate(() => (window as any).fixtureCalls.length)).toBe(0);
+});
 test("testnet workspace reviews storage and token calls, confirms contract state and exports encrypted history", async ({
   page,
 }, info) => {

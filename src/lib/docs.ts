@@ -693,7 +693,8 @@ export const docs: Doc[] = [
           "The browser journal uses passphrase-derived encryption and cross-tab exclusion. There is no passphrase recovery. Backup restoration requires empty storage and refuses overwrite.",
           "The optional invoice library has a separate encrypted backup for signed business requests. It does not replace private-note backups or wallet-operation recovery. The service cannot recover a lost library passphrase. Restore into empty library storage or merge after unlocking the existing library.",
           "Browser notes use a separate encrypted single-note file. Download and reopen it before preparing a deposit; it is not persisted in local storage. The backup carries its original policy and can be used in the local CLI for Groth16 spend proving. Locking or leaving does not retain the active note.",
-          "Private notes and the invoice library also lock on page-hide and persisted history-cache return. Pending work cannot reopen the locked view. Encrypted invoice-library storage remains intact; a note must be reopened from its saved backup."
+          "Private notes and the invoice library also lock on page-hide and persisted history-cache return. Pending work cannot reopen the locked view. Encrypted invoice-library storage remains intact; a note must be reopened from its saved backup.",
+          "The operation journal and settlement workspace also lock on page-hide and persisted cache return. Pending decrypt, restore, review and approval work cannot reopen the journal or dispatch a late wallet request. If a wallet request already started, its durable signing intent remains blocked for explicit reconciliation; locking does not prove failure or permit another signature."
         ],
         "table": {
           "headings": [

@@ -391,54 +391,92 @@ var OperationJournal = class {
   }
   storage;
   password;
+  generation = 0;
   lock() {
+    this.generation++;
     this.password = "";
   }
-  async read() {
-    if (!this.password) throw new Error("Journal is locked");
+  async access(action) {
+    const password = this.password, generation = this.generation;
+    let active = true;
+    const check = () => {
+      if (!active || !password || !this.password || generation !== this.generation) throw new Error("Journal is locked");
+    };
+    try {
+      check();
+      return await this.storage.exclusive(async () => {
+        check();
+        const result = await action(password, check);
+        check();
+        return result;
+      });
+    } finally {
+      active = false;
+    }
+  }
+  async read(password, check) {
     const e = await this.storage.read();
+    check();
     if (e === null)
       throw new Error("Create or restore an encrypted journal first");
-    return validate(await unseal(e, this.password));
+    const decoded = await unseal(e, password);
+    check();
+    const operations = await validate(decoded);
+    check();
+    return operations;
   }
   async create() {
-    return this.storage.exclusive(async () => {
-      if (await this.storage.read() !== null)
+    return this.access(async (password, check) => {
+      const existing = await this.storage.read();
+      check();
+      if (existing !== null)
         throw new Error("A journal already exists; unlock it instead");
-      await this.storage.write(
-        await seal({ version: 1, operations: [] }, this.password)
-      );
+      const envelope = await seal({ version: 1, operations: [] }, password);
+      check();
+      await this.storage.write(envelope);
+      check();
     });
   }
   async list() {
-    return this.storage.exclusive(() => this.read());
+    return this.access((password, check) => this.read(password, check));
   }
   async export() {
-    return this.storage.exclusive(async () => {
-      await this.read();
-      return await this.storage.read();
+    return this.access(async (password, check) => {
+      await this.read(password, check);
+      const envelope = await this.storage.read();
+      check();
+      return envelope;
     });
   }
   async restore(envelope) {
-    return this.storage.exclusive(async () => {
-      if (await this.storage.read() !== null)
+    return this.access(async (password, check) => {
+      const existing = await this.storage.read();
+      check();
+      if (existing !== null)
         throw new Error(
           "Restore into an empty journal storage to preserve existing operations"
         );
-      await validate(await unseal(envelope, this.password));
+      const decoded = await unseal(envelope, password);
+      check();
+      await validate(decoded);
+      check();
       await this.storage.write(envelope);
+      check();
     });
   }
   async update(fn) {
-    return this.storage.exclusive(async () => {
-      const operations = await this.read();
+    return this.access(async (password, check) => {
+      const operations = await this.read(password, check);
       const persist = async () => {
+        check();
         await validate({ version: 1, operations });
-        await this.storage.write(
-          await seal({ version: 1, operations }, this.password)
-        );
+        check();
+        const envelope = await seal({ version: 1, operations }, password);
+        check();
+        await this.storage.write(envelope);
+        check();
       };
-      return fn(operations, persist);
+      return fn(operations, persist, check);
     });
   }
 };
@@ -1114,7 +1152,7 @@ var SettlementSession = class {
     );
   }
   async submitReviewed(id, reviewedCallHash) {
-    return this.journal.update(async (operations, persist) => {
+    return this.journal.update(async (operations, persist, check) => {
       const o = this.operation(operations, id);
       await this.identity(o.payer);
       const review = await this.next(o, persist);
@@ -1135,6 +1173,7 @@ var SettlementSession = class {
       };
       o.attempts.push(a);
       await persist();
+      check();
       try {
         const tx = await this.wallet.sign(a.call, {
           operationId: id,

@@ -4,14 +4,16 @@ export declare function transactionRef(input: unknown): TxRef;
 export declare class OperationJournal {
     readonly storage: JournalStorage;
     private password;
+    private generation;
     constructor(storage: JournalStorage, password: string);
     lock(): void;
+    private access;
     private read;
     create(): Promise<void>;
     list(): Promise<Operation[]>;
     export(): Promise<string>;
     restore(envelope: string): Promise<void>;
-    update<T>(fn: (operations: Operation[], persist: () => Promise<void>) => Promise<T>): Promise<T>;
+    update<T>(fn: (operations: Operation[], persist: () => Promise<void>, check: () => void) => Promise<T>): Promise<T>;
 }
 /** Refuse concurrent tabs and unsupported lock APIs; never fall back to an unsafe read/write race. */
 export declare function browserJournalStorage(key?: string, label?: string): JournalStorage;

@@ -34,6 +34,7 @@ import {
   requireOpenInvoice,
 } from "@/vendor/core-client/index.js";
 import { liveWallet, nearConnector } from "@/lib/wallet";
+import { usePageHideLock } from '@/lib/page-hide-lock';
 
 async function fileText(
   event: ChangeEvent<HTMLInputElement>,
@@ -77,13 +78,16 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
     [invoiceStatus, setInvoiceStatus] = useState<InvoiceStatus | null>(null);
   const [groupSelection, setGroupSelection] = useState<GroupSelection | null>(null);
   const journal = useRef<OperationJournal | null>(null),
-    session = useRef<SettlementSession | null>(null);
+    session = useRef<SettlementSession | null>(null), pendingJournal = useRef<OperationJournal | null>(null),
+    epoch = useRef(0), running = useRef(false);
   useEffect(() => () => {
+    epoch.current++; pendingJournal.current?.lock(); pendingJournal.current = null;
     journal.current?.lock();
     journal.current = null;
     session.current = null;
   }, []);
   function lock() {
+    epoch.current++; running.current = false; pendingJournal.current?.lock(); pendingJournal.current = null;
     journal.current?.lock();
     journal.current = null;
     session.current = null;
@@ -92,7 +96,9 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
     setReview(null);
     setSelected("");
     setPassphrase("");
+    setBusy(false); setTxHash(''); setInvoiceStatus(null); setNotice(''); setError('');
   }
+  usePageHideLock(lock);
   function invalidateGroup() {
     setVerified(false); setInvoiceStatus(null); setPolicy(null); setGroupSelection(null);
     setReview(null); setSelected(''); setNotice('');
@@ -103,20 +109,23 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
     setPolicy(selection.policy); setApi(selection.api); setVerified(true); setInvoiceStatus(null); setGroupSelection(selection);
     setNotice(`Using ${selection.id} ${selection.allowNewDeposits ? 'for new deposits' : 'for withdrawals and recovery'}. The API matches its independently approved policy.`);
   }
-  async function run(fn: () => Promise<void>) {
-    if (busy) return;
+  async function run(fn: (check: () => void) => Promise<void>) {
+    if (running.current) return;
+    running.current = true;
+    const version = epoch.current, active = () => version === epoch.current;
+    const check = () => { if (!active()) throw new Error('Settlement workspace is locked'); };
     setBusy(true);
     setError("");
     setNotice("");
     try {
-      await fn();
+      await fn(check); check();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Operation failed");
+      if (active()) setError(e instanceof Error ? e.message : "Operation failed");
     } finally {
-      if (journal.current) {
+      if (active() && journal.current) {
         try {
-          const all = await journal.current.list(),
-            roots = invoice ? await invoicePaymentRoots(invoice.invoice) : [];
+          const all = await journal.current.list(); check();
+          const roots = invoice ? await invoicePaymentRoots(invoice.invoice) : []; check();
           setOperations(
             invoice
               ? all.filter(
@@ -131,7 +140,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
           /* Keep the original operation error. */
         }
       }
-      setBusy(false);
+      if (active()) { running.current = false; setBusy(false); }
     }
   }
   function storage() {
@@ -140,13 +149,18 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
       `core-live-journal-v1:${policy.network}:${policy.registry}`,
     );
   }
-  async function unlock(create: boolean, backup?: string) {
+  async function unlock(create: boolean, check: () => void, backup?: string) {
+    check();
     if (!verified || !policy)
       throw new Error("Verify the API against your trusted policy first");
     const j = new OperationJournal(storage(), passphrase);
-    if (backup !== undefined) await j.restore(backup);
-    else if (create) await j.create();
-    await j.list();
+    pendingJournal.current = j;
+    try {
+      if (backup !== undefined) await j.restore(backup);
+      else if (create) await j.create();
+      check(); await j.list(); check();
+    } catch (error) { j.lock(); if (pendingJournal.current === j) pendingJournal.current = null; throw error; }
+    pendingJournal.current = null;
     journal.current = j;
     session.current = new SettlementSession(
       j,
@@ -160,18 +174,22 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
       "Journal unlocked in this tab. Export an encrypted backup before moving devices.",
     );
   }
-  async function refresh(id: string) {
-    if (!session.current) throw new Error("Unlock the journal");
-    setReview(await session.current.review(id));
+  async function refresh(id: string, check: () => void) {
+    check(); const current = session.current;
+    if (!current) throw new Error("Unlock the journal");
+    const next = await current.review(id); check(); setReview(next);
     setSelected(id);
   }
-  async function invoiceGate(root?: string) {
+  async function invoiceGate(root: string | undefined, check: () => void) {
+    check();
     if (!invoice) return;
     setInvoiceStatus(null);
     requireOpenInvoice(invoice.invoice);
     const status = await new HttpGateway(api).invoiceStatus(invoice);
+    check();
     setInvoiceStatus(status);
     if (root) await assertInvoiceReferenceAvailable(invoice.invoice, root, status);
+    check();
     if (!["awaiting_payment", "partial"].includes(status.state))
       throw new Error(
         "This invoice is already covered or needs merchant review",
@@ -238,9 +256,10 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                 aria-label="Trusted policy JSON"
                 disabled={busy || unlocked}
                 onChange={(e) => {
-                  void run(async () => {
+                  void run(async (check) => {
                     setVerified(false); setInvoiceStatus(null); setPolicy(null); setGroupSelection(null);
-                    const p = parsePolicy(JSON.parse(await fileText(e, 8192)));
+                    const contents = await fileText(e, 8192); check();
+                    const p = parsePolicy(JSON.parse(contents));
                     if (
                       invoice &&
                       canonical(p) !== canonical(invoice.invoice.policy)
@@ -282,11 +301,9 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
               className="button button-dark"
               disabled={busy || !policy || unlocked}
               onClick={() =>
-                void run(async () => {
-                  if (
-                    canonical(await new HttpGateway(api).policy()) !==
-                    canonical(policy)
-                  )
+                void run(async (check) => {
+                  const remote = await new HttpGateway(api).policy(); check();
+                  if (canonical(remote) !== canonical(policy))
                     throw new Error("API policy differs from the trusted file");
                   setVerified(true);
                   setNotice(
@@ -323,10 +340,10 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
               className="button button-outline"
               disabled={busy}
               onClick={() =>
-                void run(async () => {
-                  const c = await nearConnector();
-                  await c.connect();
-                  setPayer((await liveWallet.identity()).accountId);
+                void run(async (check) => {
+                  const c = await nearConnector(); check();
+                  await c.connect(); check();
+                  const identity = await liveWallet.identity(); check(); setPayer(identity.accountId);
                 })
               }
             >
@@ -338,8 +355,8 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                 className="text-link"
                 disabled={busy}
                 onClick={() =>
-                  void run(async () => {
-                    await (await nearConnector()).disconnect();
+                  void run(async (check) => {
+                    const c = await nearConnector(); check(); await c.disconnect(); check();
                     setPayer("");
                     setReview(null);
                   })
@@ -377,14 +394,14 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                   <button
                     className="button button-dark"
                     disabled={busy || !verified || passphrase.length < 12}
-                    onClick={() => void run(() => unlock(false))}
+                    onClick={() => void run(check => unlock(false, check))}
                   >
                     Unlock existing
                   </button>
                   <button
                     className="button button-outline"
                     disabled={busy || !verified || passphrase.length < 12}
-                    onClick={() => void run(() => unlock(true))}
+                    onClick={() => void run(check => unlock(true, check))}
                   >
                     Create journal
                   </button>
@@ -396,7 +413,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                     accept="application/json,.json"
                     disabled={busy || !verified || passphrase.length < 12}
                     onChange={(e) =>
-                      void run(async () => unlock(false, await fileText(e)))
+                      void run(async check => { const backup = await fileText(e); check(); await unlock(false, check, backup); })
                     }
                   />
                 </label>
@@ -407,12 +424,10 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                   className="button button-outline"
                   disabled={busy}
                   onClick={() =>
-                    void run(async () =>
-                      download(
-                        await journal.current!.export(),
-                        "core-operations.encrypted.json",
-                      ),
-                    )
+                    void run(async check => {
+                      const backup = await journal.current!.export(); check();
+                      download(backup, "core-operations.encrypted.json");
+                    })
                   }
                 >
                   <Download size={15} /> Export backup
@@ -437,9 +452,9 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
             <span className="mini-tag">0.15% ADDED TO PRINCIPAL</span>
           </div>
           <p>
-            Import the public JSON from Core’s <code>shared-deposit-args</code>{" "}
-            or <code>shared-spend-args</code>. Generate and retain private notes
-            and withdrawal proofs with Core’s CLI.
+            Import a public deposit plan from <Link href="/notes/">Private notes</Link> or
+            Core’s CLI. Keep your encrypted note backup; generate withdrawal
+            proofs locally with <code>shared-spend-args</code>.
           </p>
           <label className="live-file form-label">
             Public FT payment plan
@@ -458,18 +473,22 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                     )))
               }
               onChange={(e) =>
-                void run(async () => {
+                void run(async (check) => {
                   if (!session.current) throw new Error("Unlock the journal");
-                  const plan = JSON.parse(await fileText(e, 8192));
+                  const contents = await fileText(e, 8192); check();
+                  const plan = JSON.parse(contents);
                   if (groupSelection && !groupSelection.allowNewDeposits && (await preparedPayment(plan, policy!, payer)).reference.kind === 'deposit')
                     throw new Error('This group is selected for withdrawals and recovery. New deposit imports are disabled.');
+                  check();
                   if (invoice) {
-                    const payment = await matchInvoicePlan(plan, invoice.invoice, payer);
-                    await invoiceGate(payment.reference.expectedDisclosureRoot);
+                    const payment = await matchInvoicePlan(plan, invoice.invoice, payer); check();
+                    await invoiceGate(payment.reference.expectedDisclosureRoot, check);
                   }
-                  const o = await session.current.importPlan(plan);
-                  setOperations(await journal.current!.list());
-                  await refresh(o.id);
+                  check(); const activeSession = session.current;
+                  if (!activeSession) throw new Error("Unlock the journal");
+                  const o = await activeSession.importPlan(plan); check();
+                  const all = await journal.current!.list(); check(); setOperations(all);
+                  await refresh(o.id, check);
                 })
               }
             />
@@ -489,7 +508,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                     key={o.id}
                     className={o.id === selected ? "selected" : ""}
                     disabled={busy}
-                    onClick={() => void run(() => refresh(o.id))}
+                    onClick={() => void run(check => refresh(o.id, check))}
                   >
                     <span>
                       {o.reference.kind === "deposit"
@@ -575,7 +594,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                         className="button button-dark"
                         disabled={busy || !payer}
                         onClick={() =>
-                          void run(async () => {
+                          void run(async (check) => {
                             if (invoice) {
                               if (
                                 op.reference.kind !== "withdrawal" ||
@@ -590,18 +609,20 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                                 review.kind !== "retry" &&
                                 review.kind !== "refund"
                               )
-                                await invoiceGate(op.reference.expectedDisclosureRoot);
+                                await invoiceGate(op.reference.expectedDisclosureRoot, check);
                             }
+                            check(); const activeSession = session.current;
+                            if (!activeSession) throw new Error("Unlock the journal");
                             try {
-                              await session.current!.submitReviewed(
+                              await activeSession.submitReviewed(
                                 op.id,
                                 review.callHash!,
                               );
                             } catch (error) {
-                              await refresh(op.id).catch(() => setReview(null));
+                              check(); await refresh(op.id, check).catch(() => { check(); setReview(null); });
                               throw error;
                             }
-                            await refresh(op.id);
+                            check(); await refresh(op.id, check);
                           })
                         }
                       >
@@ -612,7 +633,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                     <button
                       className="button button-outline"
                       disabled={busy}
-                      onClick={() => void run(() => refresh(op.id))}
+                      onClick={() => void run(check => refresh(op.id, check))}
                     >
                       Refresh finalized state
                     </button>
@@ -632,12 +653,14 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                         className="button button-outline"
                         disabled={busy || !txHash}
                         onClick={() =>
-                          void run(async () => {
-                            await session.current!.reconcile(op.id, {
+                          void run(async (check) => {
+                            check(); const activeSession = session.current;
+                            if (!activeSession) throw new Error("Unlock the journal");
+                            await activeSession.reconcile(op.id, {
                               hash: txHash.trim(),
                               signer: op.payer,
                             });
-                            await refresh(op.id);
+                            check(); await refresh(op.id, check);
                             setTxHash("");
                           })
                         }
