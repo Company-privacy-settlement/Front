@@ -10,6 +10,7 @@ const navigation = [
   { title: "Invoices", href: "/invoices/", icon: FileCheck2 },
   { title: "Settlements", href: "/live/", icon: ArrowLeftRight },
   { title: "Private notes", href: "/notes/", icon: LockKeyhole },
+  { title: "Evidence", href: "/evidence/", icon: FileCheck2 },
   { title: "Business verification", href: "/kyb/", icon: ShieldCheck },
   { title: "Documentation", href: "/docs/", icon: BookOpen },
 ];

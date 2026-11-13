@@ -1,27 +1,27 @@
 // sdk/client/crypto.ts
-function canonical(value) {
-  if (value === null || typeof value === "string" || typeof value === "boolean")
-    return JSON.stringify(value);
-  if (typeof value === "number" && Number.isSafeInteger(value))
-    return String(value);
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  if (typeof value === "object" && value && Object.getPrototypeOf(value) === Object.prototype)
-    return `{${Object.keys(value).sort().map(
-      (k) => `${JSON.stringify(k)}:${canonical(value[k])}`
+function canonical(value2) {
+  if (value2 === null || typeof value2 === "string" || typeof value2 === "boolean")
+    return JSON.stringify(value2);
+  if (typeof value2 === "number" && Number.isSafeInteger(value2))
+    return String(value2);
+  if (Array.isArray(value2)) return `[${value2.map(canonical).join(",")}]`;
+  if (typeof value2 === "object" && value2 && Object.getPrototypeOf(value2) === Object.prototype)
+    return `{${Object.keys(value2).sort().map(
+      (k) => `${JSON.stringify(k)}:${canonical(value2[k])}`
     ).join(",")}}`;
   throw new Error("Unsupported public JSON value");
 }
 var hex = (bytes2) => [...bytes2].map((b) => b.toString(16).padStart(2, "0")).join("");
-async function sha256(value) {
+async function sha256(value2) {
   return hex(
     new Uint8Array(
-      await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))
+      await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value2))
     )
   );
 }
-async function shaField(value) {
+async function shaField(value2) {
   const bytes2 = new Uint8Array(
-    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))
+    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value2))
   );
   bytes2[0] &= 31;
   return BigInt(`0x${hex(bytes2)}`).toString();
@@ -31,19 +31,20 @@ function base64(bytes2) {
   for (const b of bytes2) s += String.fromCharCode(b);
   return btoa(s);
 }
-function bytes(value, max) {
-  if (typeof value !== "string" || value.length > max * 2 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
-    value
+function bytes(value2, max) {
+  if (typeof value2 !== "string" || value2.length > max * 2 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
+    value2
   ))
     throw new Error("Invalid encrypted journal encoding");
-  const b = Uint8Array.from(atob(value), (c) => c.charCodeAt(0));
+  const b = Uint8Array.from(atob(value2), (c) => c.charCodeAt(0));
   if (b.length > max) throw new Error("Journal is too large");
   return b;
 }
 var ITERATIONS = 25e4;
 function storageContext(format) {
-  if (format !== "core-operation-journal" && format !== "core-invoice-library" && format !== "core-private-note") throw new Error("Unsupported encrypted storage format");
-  return new TextEncoder().encode(format === "core-operation-journal" ? "core:operation-journal:v1" : format === "core-invoice-library" ? "core:invoice-library:v1" : "core:private-note:v1");
+  const contexts = { "core-operation-journal": "core:operation-journal:v1", "core-invoice-library": "core:invoice-library:v1", "core-private-note": "core:private-note:v1", "core-private-receipt": "core:private-receipt:v1" };
+  if (!Object.hasOwn(contexts, format)) throw new Error("Unsupported encrypted storage format");
+  return new TextEncoder().encode(contexts[format]);
 }
 async function key(password, salt) {
   if (password.length < 12 || password.length > 1024)
@@ -63,8 +64,8 @@ async function key(password, salt) {
     ["encrypt", "decrypt"]
   );
 }
-async function seal(value, password, format = "core-operation-journal") {
-  const plaintext = new TextEncoder().encode(canonical(value));
+async function seal(value2, password, format = "core-operation-journal") {
+  const plaintext = new TextEncoder().encode(canonical(value2));
   if (plaintext.length > 2e6) throw new Error("Encrypted storage exceeds 2 MB");
   const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
   const encrypted = await crypto.subtle.encrypt(
@@ -103,33 +104,33 @@ var GAS = "300000000000000";
 var STORAGE = 20000000000000000000000n;
 var BOND = 5000000000000000000000n;
 var FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
-function object(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value))
+function object(value2) {
+  if (!value2 || typeof value2 !== "object" || Array.isArray(value2))
     throw new Error("Expected a public JSON object");
-  return value;
+  return value2;
 }
-function account(value) {
-  if (typeof value !== "string" || value.length < 2 || value.length > 64 || !/^[a-z0-9]+(?:[-_.][a-z0-9]+)*$/.test(value))
+function account(value2) {
+  if (typeof value2 !== "string" || value2.length < 2 || value2.length > 64 || !/^[a-z0-9]+(?:[-_.][a-z0-9]+)*$/.test(value2))
     throw new Error("Invalid NEAR account");
-  return value;
+  return value2;
 }
-function scalar(value) {
-  if (typeof value !== "string" || value.length > 77 || !/^(0|[1-9][0-9]*)$/.test(value) || BigInt(value) >= FIELD)
+function scalar(value2) {
+  if (typeof value2 !== "string" || value2.length > 77 || !/^(0|[1-9][0-9]*)$/.test(value2) || BigInt(value2) >= FIELD)
     throw new Error("Invalid scalar");
-  return value;
+  return value2;
 }
-function atomic(value) {
-  if (typeof value !== "string" || value.length > 39 || !/^(0|[1-9][0-9]*)$/.test(value) || BigInt(value) >= 1n << 128n)
+function atomic(value2) {
+  if (typeof value2 !== "string" || value2.length > 39 || !/^(0|[1-9][0-9]*)$/.test(value2) || BigInt(value2) >= 1n << 128n)
     throw new Error("Invalid atomic amount");
-  return value;
+  return value2;
 }
-function hash(value) {
-  if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value))
+function hash(value2) {
+  if (typeof value2 !== "string" || !/^[a-f0-9]{64}$/.test(value2))
     throw new Error("Invalid hash");
-  return value;
+  return value2;
 }
-function exact(value, keys) {
-  if (Object.keys(value).sort().join("|") !== keys.sort().join("|"))
+function exact(value2, keys) {
+  if (Object.keys(value2).sort().join("|") !== keys.sort().join("|"))
     throw new Error("Unexpected fields in public call");
 }
 function parsePolicy(input) {
@@ -176,8 +177,8 @@ function parseCall(input) {
     gas: GAS
   };
 }
-function vault(value, policy) {
-  const v = account(value);
+function vault(value2, policy) {
+  const v = account(value2);
   if (!new RegExp(
     `^v[a-f0-9]{32}\\.${policy.registry.replaceAll(".", "\\.")}$`
   ).test(v))
@@ -512,20 +513,20 @@ function exact2(o, keys) {
   if (Object.keys(o).sort().join("|") !== keys.sort().join("|"))
     throw new Error("Unexpected invoice fields");
 }
-function hex2(value) {
-  if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value))
+function hex2(value2) {
+  if (typeof value2 !== "string" || !/^[a-f0-9]{64}$/.test(value2))
     throw new Error("Invalid invoice digest or nonce");
-  return value;
+  return value2;
 }
-function text(value, max) {
-  if (typeof value !== "string" || value.length < 1 || value.length > max || /[\u0000-\u001f\u007f]/.test(value))
+function text(value2, max) {
+  if (typeof value2 !== "string" || value2.length < 1 || value2.length > max || /[\u0000-\u001f\u007f]/.test(value2))
     throw new Error("Invalid invoice text");
-  return value;
+  return value2;
 }
-function date(value) {
-  if (typeof value !== "string" || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value)
+function date(value2) {
+  if (typeof value2 !== "string" || !Number.isFinite(Date.parse(value2)) || new Date(value2).toISOString() !== value2)
     throw new Error("Use a canonical UTC invoice time");
-  return value;
+  return value2;
 }
 function parseInvoice(input) {
   const o = object(input);
@@ -609,8 +610,8 @@ async function invoiceRootsFromHash(hash3, nonces) {
   return Promise.all(parsePaymentNonces(nonces).map((nonce) => sha256(`core:invoice:payment:v2|${hash3}|${nonce}`)));
 }
 async function invoicePaymentRoots(invoice) {
-  const i = parseInvoice(invoice), digest2 = await invoiceHash(i);
-  return i.version === 1 ? [await sha256("core:invoice:settlement:v1|" + digest2)] : invoiceRootsFromHash(digest2, i.paymentNonces);
+  const i = parseInvoice(invoice), digest3 = await invoiceHash(i);
+  return i.version === 1 ? [await sha256("core:invoice:settlement:v1|" + digest3)] : invoiceRootsFromHash(digest3, i.paymentNonces);
 }
 async function invoiceRoot(invoice, paymentIndex) {
   const roots = await invoicePaymentRoots(invoice);
@@ -801,27 +802,27 @@ function validateInvoiceStatus(input, invoice) {
 
 // sdk/client/library.ts
 var FORMAT = "core-invoice-library";
-function exact3(value, fields) {
-  if (Object.keys(value).sort().join("|") !== [...fields].sort().join("|")) throw new Error("Unexpected invoice library fields");
+function exact3(value2, fields) {
+  if (Object.keys(value2).sort().join("|") !== [...fields].sort().join("|")) throw new Error("Unexpected invoice library fields");
 }
 function identity(raw) {
-  const value = object(raw);
-  exact3(value, ["network", "accountId"]);
-  if (value.network !== "testnet" && value.network !== "sandbox") throw new Error("Invalid library network");
-  return { network: value.network, accountId: account(value.accountId) };
+  const value2 = object(raw);
+  exact3(value2, ["network", "accountId"]);
+  if (value2.network !== "testnet" && value2.network !== "sandbox") throw new Error("Invalid library network");
+  return { network: value2.network, accountId: account(value2.accountId) };
 }
-function digest(value) {
-  if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value)) throw new Error("Invalid library invoice hash");
-  return value;
+function digest(value2) {
+  if (typeof value2 !== "string" || !/^[a-f0-9]{64}$/.test(value2)) throw new Error("Invalid library invoice hash");
+  return value2;
 }
 async function validate2(raw, owner) {
-  const value = object(raw);
-  exact3(value, ["version", "owner", "invoices"]);
-  if (value.version !== 1 || canonical(identity(value.owner)) !== canonical(owner) || !Array.isArray(value.invoices))
+  const value2 = object(raw);
+  exact3(value2, ["version", "owner", "invoices"]);
+  if (value2.version !== 1 || canonical(identity(value2.owner)) !== canonical(owner) || !Array.isArray(value2.invoices))
     throw new Error("Invalid invoice library or different merchant/network");
-  if (value.invoices.length > 100) throw new Error("Invoice library supports at most 100 saved requests; keep a backup before removing local copies");
+  if (value2.invoices.length > 100) throw new Error("Invoice library supports at most 100 saved requests; keep a backup before removing local copies");
   const invoices = [], ids = /* @__PURE__ */ new Set(), hashes = /* @__PURE__ */ new Set();
-  for (const rawEntry of value.invoices) {
+  for (const rawEntry of value2.invoices) {
     const entry = object(rawEntry);
     exact3(entry, ["hash", "signed", "savedAt"]);
     const signed = await verifySignedInvoice(entry.signed), hash3 = digest(entry.hash);
@@ -1217,23 +1218,23 @@ var SettlementSession = class {
 };
 
 // sdk/client/groups.ts
-function exact4(value, keys) {
-  if (Object.keys(value).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected group fields");
+function exact4(value2, keys) {
+  if (Object.keys(value2).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected group fields");
 }
-function count(value) {
-  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) throw new Error("Invalid group count");
-  return value;
+function count(value2) {
+  if (typeof value2 !== "number" || !Number.isSafeInteger(value2) || value2 < 0) throw new Error("Invalid group count");
+  return value2;
 }
-function boolean(value) {
-  if (typeof value !== "boolean") throw new Error("Invalid group flag");
-  return value;
+function boolean(value2) {
+  if (typeof value2 !== "boolean") throw new Error("Invalid group flag");
+  return value2;
 }
 function parseApprovedGroups(input) {
-  const value = object(input);
-  exact4(value, ["version", "groups"]);
-  if (value.version !== 1 || !Array.isArray(value.groups) || value.groups.length < 1 || value.groups.length > 8) throw new Error("Use an approved directory with 1\u20138 groups");
+  const value2 = object(input);
+  exact4(value2, ["version", "groups"]);
+  if (value2.version !== 1 || !Array.isArray(value2.groups) || value2.groups.length < 1 || value2.groups.length > 8) throw new Error("Use an approved directory with 1\u20138 groups");
   const ids = /* @__PURE__ */ new Set(), registries = /* @__PURE__ */ new Set();
-  const groups = value.groups.map((raw) => {
+  const groups = value2.groups.map((raw) => {
     const g = object(raw);
     exact4(g, ["id", "depositsEnabled", "policy"]);
     if (typeof g.id !== "string" || !/^[a-z0-9][a-z0-9-]{0,31}$/.test(g.id)) throw new Error("Invalid group ID");
@@ -1249,15 +1250,15 @@ function parseApprovedGroups(input) {
   return { version: 1, groups };
 }
 function parseGroupCapacity(input, trusted) {
-  const value = object(input), policy = parsePolicy(value.policy), expected = parsePolicy(trusted);
-  exact4(value, ["policy", "checkedAtBlock", "capacity", "usedOutputs", "remainingOutputs", "outstandingNotes", "depositCapacityAvailable", "depositVaultObserved", "checkedVaults", "vaultScanComplete", "chainFreshnessChecked"]);
+  const value2 = object(input), policy = parsePolicy(value2.policy), expected = parsePolicy(trusted);
+  exact4(value2, ["policy", "checkedAtBlock", "capacity", "usedOutputs", "remainingOutputs", "outstandingNotes", "depositCapacityAvailable", "depositVaultObserved", "checkedVaults", "vaultScanComplete", "chainFreshnessChecked"]);
   if (canonical(policy) !== canonical(expected)) throw new Error("Group capacity policy differs from the trusted group");
-  const block2 = object(value.checkedAtBlock);
+  const block2 = object(value2.checkedAtBlock);
   exact4(block2, ["hash", "height"]);
   if (typeof block2.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block2.hash)) throw new Error("Invalid group block");
-  const usedOutputs = count(value.usedOutputs), remainingOutputs = count(value.remainingOutputs), outstandingNotes = count(value.outstandingNotes), checkedVaults = count(value.checkedVaults);
-  const depositCapacityAvailable = boolean(value.depositCapacityAvailable), depositVaultObserved = boolean(value.depositVaultObserved), vaultScanComplete = boolean(value.vaultScanComplete);
-  if (value.capacity !== 256 || usedOutputs > 256 || remainingOutputs !== 256 - usedOutputs || outstandingNotes > usedOutputs || checkedVaults > 1 || depositCapacityAvailable !== remainingOutputs > 0 || depositVaultObserved && (!depositCapacityAvailable || checkedVaults === 0) || value.chainFreshnessChecked !== false)
+  const usedOutputs = count(value2.usedOutputs), remainingOutputs = count(value2.remainingOutputs), outstandingNotes = count(value2.outstandingNotes), checkedVaults = count(value2.checkedVaults);
+  const depositCapacityAvailable = boolean(value2.depositCapacityAvailable), depositVaultObserved = boolean(value2.depositVaultObserved), vaultScanComplete = boolean(value2.vaultScanComplete);
+  if (value2.capacity !== 256 || usedOutputs > 256 || remainingOutputs !== 256 - usedOutputs || outstandingNotes > usedOutputs || checkedVaults > 1 || depositCapacityAvailable !== remainingOutputs > 0 || depositVaultObserved && (!depositCapacityAvailable || checkedVaults === 0) || value2.chainFreshnessChecked !== false)
     throw new Error("Inconsistent group capacity snapshot");
   return { policy, checkedAtBlock: { hash: block2.hash, height: count(block2.height) }, capacity: 256, usedOutputs, remainingOutputs, outstandingNotes, depositCapacityAvailable, depositVaultObserved, checkedVaults, vaultScanComplete, chainFreshnessChecked: false };
 }
@@ -1295,28 +1296,28 @@ function parseRecipientReadiness(raw, trusted, expectedRecipient) {
 }
 
 // sdk/client/deposits.ts
-function exact5(value, keys) {
-  if (Object.keys(value).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected public deposit fields");
+function exact5(value2, keys) {
+  if (Object.keys(value2).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected public deposit fields");
 }
 function parseDepositRequest(raw) {
-  const value = object(raw);
-  exact5(value, ["commitment", "disclosureRoot", ...value.vault === void 0 ? [] : ["vault"]]);
-  const commitment = scalar(value.commitment);
-  if (commitment === "0" || typeof value.disclosureRoot !== "string" || !/^[a-f0-9]{64}$/.test(value.disclosureRoot)) throw new Error("Invalid public deposit commitment or disclosure root");
-  return { commitment, disclosureRoot: value.disclosureRoot, ...value.vault === void 0 ? {} : { vault: account(value.vault) } };
+  const value2 = object(raw);
+  exact5(value2, ["commitment", "disclosureRoot", ...value2.vault === void 0 ? [] : ["vault"]]);
+  const commitment = scalar(value2.commitment);
+  if (commitment === "0" || typeof value2.disclosureRoot !== "string" || !/^[a-f0-9]{64}$/.test(value2.disclosureRoot)) throw new Error("Invalid public deposit commitment or disclosure root");
+  return { commitment, disclosureRoot: value2.disclosureRoot, ...value2.vault === void 0 ? {} : { vault: account(value2.vault) } };
 }
 async function parseDepositPlan(raw, trusted, expected) {
-  const value = object(raw), policy = parsePolicy(value.policy), request = parseDepositRequest(expected);
-  exact5(value, ["policy", "checkedAtBlock", "plan", "remainingOutputs", "checkedVaults", "vaultScanComplete"]);
+  const value2 = object(raw), policy = parsePolicy(value2.policy), request = parseDepositRequest(expected);
+  exact5(value2, ["policy", "checkedAtBlock", "plan", "remainingOutputs", "checkedVaults", "vaultScanComplete"]);
   if (!policy.tokenId || canonical(policy) !== canonical(parsePolicy(trusted))) throw new Error("Deposit policy differs from the trusted group");
-  const block2 = object(value.checkedAtBlock), plan = object(value.plan);
+  const block2 = object(value2.checkedAtBlock), plan = object(value2.plan);
   exact5(block2, ["hash", "height"]);
   exact5(plan, ["tokenCall", "checkedAtBlock"]);
   if (typeof block2.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block2.hash) || typeof block2.height !== "number" || !Number.isSafeInteger(block2.height) || block2.height < 0 || plan.checkedAtBlock !== block2.hash) throw new Error("Invalid deposit block");
   const { payment, reference } = await preparedPayment(plan, policy, "inspection.testnet");
   if (reference.kind !== "deposit" || reference.commitment !== request.commitment || reference.expectedDisclosureRoot !== request.disclosureRoot || request.vault && reference.vault !== request.vault || payment.gas !== GAS) throw new Error("Deposit call differs from the requested note and receipt");
-  if (typeof value.remainingOutputs !== "number" || !Number.isInteger(value.remainingOutputs) || value.remainingOutputs < 1 || value.remainingOutputs > 256 || typeof value.checkedVaults !== "number" || !Number.isInteger(value.checkedVaults) || value.checkedVaults < 1 || value.checkedVaults > 20 || typeof value.vaultScanComplete !== "boolean") throw new Error("Invalid deposit capacity snapshot");
-  return { policy, checkedAtBlock: { hash: block2.hash, height: block2.height }, plan: { tokenCall: payment, checkedAtBlock: block2.hash }, remainingOutputs: value.remainingOutputs, checkedVaults: value.checkedVaults, vaultScanComplete: value.vaultScanComplete };
+  if (typeof value2.remainingOutputs !== "number" || !Number.isInteger(value2.remainingOutputs) || value2.remainingOutputs < 1 || value2.remainingOutputs > 256 || typeof value2.checkedVaults !== "number" || !Number.isInteger(value2.checkedVaults) || value2.checkedVaults < 1 || value2.checkedVaults > 20 || typeof value2.vaultScanComplete !== "boolean") throw new Error("Invalid deposit capacity snapshot");
+  return { policy, checkedAtBlock: { hash: block2.hash, height: block2.height }, plan: { tokenCall: payment, checkedAtBlock: block2.hash }, remainingOutputs: value2.remainingOutputs, checkedVaults: value2.checkedVaults, vaultScanComplete: value2.vaultScanComplete };
 }
 
 // sdk/client/activity.ts
@@ -1419,8 +1420,8 @@ function parseActivityPage(input, policy) {
   const p = object(input), index = parseIndexStatus(p.index, policy), upper = count2(object(p.snapshot).upperExclusive);
   if (p.scope !== "configured_registry_records" || upper > index.indexedRecords || !Array.isArray(p.items) || p.items.length > 50 || p.nextCursor !== null && (typeof p.nextCursor !== "string" || p.nextCursor.length > 1024 || !/^[A-Za-z0-9_-]+$/.test(p.nextCursor)))
     throw new Error("Invalid activity page");
-  const items = p.items.map((value) => {
-    const item = object(value), r = object(item.record), kind = r.kind;
+  const items = p.items.map((value2) => {
+    const item = object(value2), r = object(item.record), kind = r.kind;
     if (!activityKinds.includes(kind))
       throw new Error("Unsupported journal event");
     const root = r.disclosure_root;
@@ -2132,21 +2133,21 @@ var parameters = {
 // sdk/client/notes.ts
 var FIELD2 = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 var FORMAT2 = "core-private-note";
-function exact6(value, fields) {
-  if (Object.keys(value).sort().join("|") !== [...fields].sort().join("|")) throw new Error("Unexpected private note fields");
+function exact6(value2, fields) {
+  if (Object.keys(value2).sort().join("|") !== [...fields].sort().join("|")) throw new Error("Unexpected private note fields");
 }
 var constants = Object.fromEntries([2, 3].map((n) => [n, { C: parameters[n].C.map(BigInt), M: parameters[n].M.map((row) => row.map(BigInt)) }]));
 function noteHash(inputs) {
   if (inputs.length !== 2 && inputs.length !== 3) throw new Error("Poseidon supports two or three inputs");
   const n = inputs.length, { C, M } = constants[n], partial = n === 2 ? 57 : 56;
-  let state = [0n, ...inputs.map((value) => BigInt(scalar(value)))];
+  let state = [0n, ...inputs.map((value2) => BigInt(scalar(value2)))];
   const pow5 = (x) => {
     const square = x * x % FIELD2;
     return square * square % FIELD2 * x % FIELD2;
   };
   for (let round = 0; round < 8 + partial; round++) {
-    state = state.map((value, i) => (value + C[round * (n + 1) + i]) % FIELD2);
-    state = state.map((value, i) => round < 4 || round >= partial + 4 || i === 0 ? pow5(value) : value);
+    state = state.map((value2, i) => (value2 + C[round * (n + 1) + i]) % FIELD2);
+    state = state.map((value2, i) => round < 4 || round >= partial + 4 || i === 0 ? pow5(value2) : value2);
     state = M.map((row) => row.reduce((sum, coefficient, i) => (sum + coefficient * state[i]) % FIELD2, 0n));
   }
   return state[0].toString();
@@ -2192,12 +2193,109 @@ async function openNoteBackup(envelope, password, expectedPolicy) {
   if (payload.version !== 1 || expected && canonical(policy) !== canonical(expected)) throw new Error("Backup differs from the trusted policy");
   return { policy, note: await validatePrivateNote(policy, payload.note) };
 }
+
+// sdk/client/receipts.ts
+var RECEIPT_FIELDS = Object.freeze(["sender", "recipient", "asset", "amount", "purpose", "reference", "occurredAt", "credentialHash"]);
+var FORMAT3 = "core-private-receipt";
+var MAX_BACKUP = 2e5;
+function exact7(value2, keys) {
+  if (Object.keys(value2).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected receipt fields");
+}
+function digest2(raw) {
+  if (typeof raw !== "string" || !/^[a-f0-9]{64}$/.test(raw)) throw new Error("Expected a 64-character lowercase receipt root or hash");
+  return raw;
+}
+function value(raw) {
+  if (typeof raw !== "string" || raw.length > 4096) throw new Error("Receipt values must be strings of at most 4096 characters");
+  return raw;
+}
+function parse(raw) {
+  const receipt = object(raw);
+  exact7(receipt, ["version", "root", "openings"]);
+  const root = digest2(receipt.root);
+  if (receipt.version !== 1 || !Array.isArray(receipt.openings) || receipt.openings.length < 1 || receipt.openings.length > 8) throw new Error("Choose a version-1 receipt with 1\u20138 field openings");
+  const seen = /* @__PURE__ */ new Set();
+  const openings = receipt.openings.map((rawOpening) => {
+    const opening = object(rawOpening);
+    exact7(opening, ["field", "value", "salt", "siblings"]);
+    if (!RECEIPT_FIELDS.includes(opening.field) || seen.has(opening.field) || !Array.isArray(opening.siblings) || opening.siblings.length !== 3) throw new Error("Invalid or duplicate receipt opening");
+    const field = opening.field;
+    seen.add(field);
+    return { field, value: value(opening.value), salt: digest2(opening.salt), siblings: opening.siblings.map(digest2) };
+  });
+  return { version: 1, root, openings: openings.sort((a, b) => RECEIPT_FIELDS.indexOf(a.field) - RECEIPT_FIELDS.indexOf(b.field)) };
+}
+var leaf = (field, declared, salt) => sha256(JSON.stringify(["core:receipt:v1", field, declared, salt]));
+var branch = (left, right) => sha256(`core:receipt:node:v1|${left}|${right}`);
+async function verifyReceiptDisclosure(raw, expectedRoot) {
+  const expected = digest2(expectedRoot), receipt = parse(raw);
+  if (receipt.root !== expected) throw new Error("Receipt differs from the expected root");
+  await Promise.all(receipt.openings.map(async (opening) => {
+    let index = RECEIPT_FIELDS.indexOf(opening.field), hash3 = await leaf(opening.field, opening.value, opening.salt);
+    for (const sibling of opening.siblings) {
+      hash3 = index & 1 ? await branch(sibling, hash3) : await branch(hash3, sibling);
+      index >>= 1;
+    }
+    if (hash3 !== expected) throw new Error("Receipt field integrity check failed");
+  }));
+  return receipt;
+}
+async function createReceipt(input) {
+  const raw = object(input);
+  exact7(raw, [...RECEIPT_FIELDS]);
+  const values = RECEIPT_FIELDS.map((field) => value(raw[field]));
+  const salts = RECEIPT_FIELDS.map(() => [...crypto.getRandomValues(new Uint8Array(32))].map((byte) => byte.toString(16).padStart(2, "0")).join(""));
+  const levels = [await Promise.all(RECEIPT_FIELDS.map((field, i) => leaf(field, values[i], salts[i])))];
+  while (levels.at(-1).length > 1) {
+    const current = levels.at(-1);
+    levels.push(await Promise.all(Array.from({ length: current.length / 2 }, (_, i) => branch(current[2 * i], current[2 * i + 1]))));
+  }
+  return { version: 1, root: levels.at(-1)[0], openings: RECEIPT_FIELDS.map((field, i) => {
+    let index = i;
+    const siblings = levels.slice(0, -1).map((level) => {
+      const sibling = level[index ^ 1];
+      index >>= 1;
+      return sibling;
+    });
+    return { field, value: values[i], salt: salts[i], siblings };
+  }) };
+}
+async function discloseReceipt(raw, fields) {
+  const selected = [...fields];
+  if (!selected.length || selected.length > 8 || new Set(selected).size !== selected.length || selected.some((field) => !RECEIPT_FIELDS.includes(field))) throw new Error("Select 1\u20138 distinct receipt fields");
+  const receipt = await verifyReceiptDisclosure(raw, raw.root);
+  if (selected.some((field) => !receipt.openings.some((opening) => opening.field === field))) throw new Error("Selected field is not available in this receipt");
+  return { version: 1, root: receipt.root, openings: receipt.openings.filter((opening) => selected.includes(opening.field)) };
+}
+async function full(raw) {
+  const parsed = parse(raw);
+  if (parsed.openings.length !== 8) throw new Error("A private receipt backup must contain all eight fields");
+  return verifyReceiptDisclosure(parsed, parsed.root);
+}
+async function encryptReceiptBackup(raw, password) {
+  return seal({ version: 1, receipt: await full(raw) }, password, FORMAT3);
+}
+async function openReceiptBackup(envelope, password) {
+  if (envelope.length > MAX_BACKUP) throw new Error("Receipt backup exceeds 200 KB");
+  let decoded;
+  try {
+    decoded = await unseal(envelope, password, FORMAT3);
+  } catch (error) {
+    if (error && typeof error === "object" && "name" in error && error.name === "OperationError") throw new Error("Could not decrypt receipt. Check the passphrase and backup integrity.");
+    throw error;
+  }
+  const payload = object(decoded);
+  exact7(payload, ["version", "receipt"]);
+  if (payload.version !== 1) throw new Error("Unsupported private receipt version");
+  return full(payload.receipt);
+}
 export {
   CoreApiError,
   HttpGateway,
   INVOICE_SIGNING_RECIPIENT,
   InvoiceLibrary,
   OperationJournal,
+  RECEIPT_FIELDS,
   SettlementSession,
   activityKinds,
   assertInvoiceReferenceAvailable,
@@ -2206,7 +2304,10 @@ export {
   canonical,
   createInvoice,
   createPrivateNote,
+  createReceipt,
+  discloseReceipt,
   encryptNoteBackup,
+  encryptReceiptBackup,
   feeQuote,
   invoiceFromFragment,
   invoiceHash,
@@ -2224,6 +2325,7 @@ export {
   noteDomain,
   noteHash,
   openNoteBackup,
+  openReceiptBackup,
   parseActivityPage,
   parseApprovedGroups,
   parseDepositPlan,
@@ -2238,5 +2340,6 @@ export {
   requireOpenInvoice,
   sha256,
   validatePrivateNote,
+  verifyReceiptDisclosure,
   verifySignedInvoice
 };

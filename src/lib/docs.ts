@@ -214,6 +214,14 @@ export const docs: Doc[] = [
           "For an existing, unregistered account, inspect the public storage_deposit call and exact token storage minimum read at the checked final block. The payment session presents registration separately for wallet approval; gas and protocol fees remain separate.",
           "Ready for payment review is a snapshot of account existence and registration. It does not establish ownership, available gas, payer balance, vault liquidity or payment completion. Changing recipient, policy or API invalidates the result; failed refreshes clear previous readiness."
         ]
+      },
+      {
+        "id": "receipt-root",
+        "title": "Attach a receipt commitment",
+        "paragraphs": [
+          "Create and back up a private receipt in Evidence. On Private notes, import a selected disclosure with Import receipt root from disclosure JSON. The browser verifies the file locally and puts only its root in the public deposit request. It does not upload business values or opening salts.",
+          "Root import does not establish a completed payment or truthful declarations. Failed imports clear the previous root and prepared plan. Keep the full encrypted receipt so you can disclose additional fields later."
+        ]
       }
     ]
   },
@@ -469,6 +477,20 @@ export const docs: Doc[] = [
           "The invoice library encrypts saved signed requests with AES-256-GCM and a passphrase-derived key. It uses its own authenticated storage format and merchant/network namespace, separate from the operation journal. Saving, opening, searching and backing up library entries sends no terms to Core.",
           "This archive verifies signed-term integrity locally. It does not certify legal identity, current merchant key permissions, payment completion or statutory retention. Shared payment links and individual signed JSON exports still reveal their terms to holders."
         ]
+      },
+      {
+        "id": "receipts",
+        "title": "Private receipts and selected disclosure",
+        "steps": [
+          "Create a receipt on Evidence with the declarations you want to commit. Choose and confirm a passphrase, then download the encrypted full receipt. Nothing is uploaded to the API.",
+          "Reopen the saved backup to verify it. Select only the fields you intend to share; no fields are selected by default. Review the readable values before downloading a selected disclosure.",
+          "On Private notes, import the disclosure file to check its local integrity and use only its root for a deposit plan. Keep receipt openings, note backups and operation journals separately. Create a fresh root per operation; reused roots link activity.",
+          "To review someone else’s disclosure, obtain the expected root independently, load the selected file and run Verify receipt integrity. The root is never filled from the file automatically."
+        ],
+        "paragraphs": [
+          "Receipt integrity verified means the selected values and proof match the root you supplied. The browser makes no chain request. Truthful declarations, root anchoring, payment completion, identity and tax acceptance require separate checks. Use the existing CLI verify-bundle with your independently configured evidence source for selected finalized transaction anchoring.",
+          "Full backups use a separate encrypted receipt format. Locking, page-hide and cached return clear private workspace state; pending cryptographic or file work cannot reopen it. Keep the downloaded file and passphrase separately."
+        ]
       }
     ]
   },
@@ -658,6 +680,18 @@ export const docs: Doc[] = [
           "label": "Local backup and public planning",
           "text": "const note = await createPrivateNote(trustedPolicy);\nconst encrypted = await encryptNoteBackup(trustedPolicy, note, passphrase);\nconst restored = await openNoteBackup(downloadedFile, passphrase, trustedPolicy);\nconst result = await gateway.prepareDeposit(trustedPolicy, {\n  commitment: restored.note.commitment, disclosureRoot\n});\n// Import result.plan in the existing wallet session."
         }
+      },
+      {
+        "id": "receipt-sdk",
+        "title": "Local receipt SDK",
+        "paragraphs": [
+          "createReceipt, encryptReceiptBackup, openReceiptBackup, discloseReceipt and verifyReceiptDisclosure run locally. The eight fixed fields and SHA-256 Merkle paths match the existing Node receipt format. No receipt HTTP route is added.",
+          "The CLI disclose command accepts browser-encrypted receipts using CORE_RECEIPT_PASSWORD in the environment. Public selected proofs remain compatible with verify-bundle."
+        ],
+        "code": {
+          "label": "Private backup and selected proof",
+          "text": "const receipt = await createReceipt(values);\nconst encrypted = await encryptReceiptBackup(receipt, passphrase);\nconst full = await openReceiptBackup(downloadedBackup, passphrase);\nconst selected = await discloseReceipt(full, ['asset', 'amount']);\nawait verifyReceiptDisclosure(selected, independentlyObtainedRoot);"
+        }
       }
     ]
   },
@@ -694,7 +728,8 @@ export const docs: Doc[] = [
           "The optional invoice library has a separate encrypted backup for signed business requests. It does not replace private-note backups or wallet-operation recovery. The service cannot recover a lost library passphrase. Restore into empty library storage or merge after unlocking the existing library.",
           "Browser notes use a separate encrypted single-note file. Download and reopen it before preparing a deposit; it is not persisted in local storage. The backup carries its original policy and can be used in the local CLI for Groth16 spend proving. Locking or leaving does not retain the active note.",
           "Private notes and the invoice library also lock on page-hide and persisted history-cache return. Pending work cannot reopen the locked view. Encrypted invoice-library storage remains intact; a note must be reopened from its saved backup.",
-          "The operation journal and settlement workspace also lock on page-hide and persisted cache return. Pending decrypt, restore, review and approval work cannot reopen the journal or dispatch a late wallet request. If a wallet request already started, its durable signing intent remains blocked for explicit reconciliation; locking does not prove failure or permit another signature."
+          "The operation journal and settlement workspace also lock on page-hide and persisted cache return. Pending decrypt, restore, review and approval work cannot reopen the journal or dispatch a late wallet request. If a wallet request already started, its durable signing intent remains blocked for explicit reconciliation; locking does not prove failure or permit another signature.",
+          "Private receipts have their own encrypted full-receipt backup. Selected disclosure files contain only the fields you exported and cannot restore all eight original openings. Keep the full receipt and passphrase separately; the service stores no receipt recovery copy."
         ],
         "table": {
           "headings": [

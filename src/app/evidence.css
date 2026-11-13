@@ -1,0 +1,22 @@
+.evidence-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; align-items: start; margin-top: 24px; }
+.evidence-grid>section { min-width: 0; }
+.evidence-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.evidence-actions .button { white-space: normal; }
+.receipt-root { display: block; overflow-wrap: anywhere; font-size: 11px; line-height: 1.8; border: 1px solid #dde6df; border-radius: 6px; padding: 12px; background: #f8fbf9; margin: 14px 0; }
+.receipt-restore, .receipt-disclosure, .receipt-verification { margin-top: 24px; padding-top: 18px; border-top: 1px solid #e3e9e5; }
+.receipt-fields { border: 0; padding: 0; margin: 22px 0; display: grid; gap: 14px; }
+.receipt-fields legend { font-size: 12px; font-weight: 550; padding: 0; margin-bottom: 18px; }
+.receipt-fields label { display: flex; align-items: center; gap: 12px; font-size: 12px; }
+.receipt-fields input { accent-color: #007e52; }
+.receipt-fields:disabled { opacity: .5; }
+.receipt-disclosure dl, .receipt-verification dl { margin: 18px 0; }
+.receipt-disclosure dl>div, .receipt-verification dl>div { border-bottom: 1px solid #e6ece7; padding: 12px 0; }
+.receipt-disclosure dt, .receipt-verification dt { font-size: 11px; color: #65766a; }
+.receipt-disclosure dd, .receipt-verification dd { font-size: 12px; margin: 7px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.receipt-disclosure summary { cursor: pointer; font-size: 12px; margin: 18px 0; }
+.receipt-disclosure>.button { margin: 18px 0; }
+.receipt-verifier { margin-top: 24px; }
+.receipt-verifier .form-label { max-width: 720px; }
+.merchant-ui .evidence-help, .merchant-ui .receipt-import-name { font-size: 11px; margin-top: 18px; overflow-wrap: anywhere; }
+.evidence-notice { font-size: 12px; color: #007e52; line-height: 1.8; margin-top: 20px; }
+@media (max-width: 1000px) { .evidence-grid { grid-template-columns: minmax(0,1fr); gap: 18px; } }

@@ -4,16 +4,16 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { ArrowUpRight, Download, LockKeyhole, Plus } from 'lucide-react';
 import { MerchantShell } from './merchant-shell';
 import { usePageHideLock } from '@/lib/page-hide-lock';
-import { canonical, parsePolicy, feeQuote, createPrivateNote, encryptNoteBackup, openNoteBackup, HttpGateway, type Policy, type PrivateNote, type DepositPlan } from '@/vendor/core-client/index.js';
+import { canonical, parsePolicy, feeQuote, createPrivateNote, encryptNoteBackup, openNoteBackup, verifyReceiptDisclosure, HttpGateway, type Policy, type PrivateNote, type DepositPlan } from '@/vendor/core-client/index.js';
 
 type OpenNote = { policy: Policy; note: PrivateNote; backup: string };
 function download(text: string, name: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' })), a = document.createElement('a');
   a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-async function file(event: ChangeEvent<HTMLInputElement>) {
+async function file(event: ChangeEvent<HTMLInputElement>, limit = 16000) {
   const selected = event.target.files?.[0]; event.target.value = '';
-  if (!selected || selected.size > 16000) throw new Error('Choose a JSON file under 16 KB');
+  if (!selected || selected.size > limit) throw new Error(`Choose a JSON file under ${limit / 1000} KB`);
   return selected.text();
 }
 export function NotesWorkspace() {
@@ -79,6 +79,15 @@ export function NotesWorkspace() {
       check(); setPlan(result); setNotice('Public deposit plan prepared. Review it in Settlements; preparation does not reserve capacity or move funds.');
     });
   }
+  async function importReceipt(event: ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0]; event.target.value = ''; setPlan(null); setRoot('');
+    await run(async check => {
+      if (!selected || selected.size > 200000) throw new Error('Choose a receipt JSON file under 200 KB');
+      const raw = JSON.parse(await selected.text()); check();
+      const receipt = await verifyReceiptDisclosure(raw, raw?.root); check();
+      setRoot(receipt.root); setNotice('Receipt integrity checked locally. Only its root will be included in the public deposit request.');
+    });
+  }
   const quote = policy ? feeQuote(policy) : null;
   return <MerchantShell section="Private notes">
     <div className="merchant-page-heading"><div><h1>Private notes</h1><p>Create a note locally, keep its encrypted backup, and prepare a deposit.</p></div><Link href="/docs/payments/#browser-notes" className="button button-outline">Read the guide <ArrowUpRight size={14}/></Link></div>
@@ -104,7 +113,8 @@ export function NotesWorkspace() {
         <label className="form-label">Core API origin<input value={api} disabled={busy} onChange={e => { setApi(e.target.value); setPlan(null); setNotice(''); setError(''); }}/></label>
         <label className="form-label">Disclosure root<input value={root} maxLength={64} disabled={busy || !opened} onChange={e => { setRoot(e.target.value); setPlan(null); setNotice(''); setError(''); }} placeholder="64 lowercase hexadecimal characters"/></label>
         <button className="button button-outline" disabled={busy || !opened} onClick={() => { setRoot([...crypto.getRandomValues(new Uint8Array(32))].map(b => b.toString(16).padStart(2,'0')).join('')); setPlan(null); setNotice(''); setError(''); }}>Use random reference</button>
-        <p className="notes-help">Use your receipt root for selective evidence, or a random reference for a deposit without attached evidence. Keep receipt openings separately.</p>
+        <p className="notes-help">Use your receipt root for selective evidence, or a random reference for a deposit without attached evidence. Keep receipt openings separately. <Link href="/evidence/">Create a private receipt</Link></p>
+        <label className="form-label">Import receipt root from disclosure JSON<input type="file" accept="application/json,.json" disabled={busy || !opened} onChange={e => void importReceipt(e)}/></label>
         <label className="form-label">Deposit vault (optional)<input value={vault} disabled={busy || !opened} onChange={e => { setVault(e.target.value); setPlan(null); setNotice(''); setError(''); }} placeholder="Leave empty to check up to 20 vault records"/></label>
         <button className="button button-dark" disabled={busy || !opened || !verified || !/^[a-f0-9]{64}$/.test(root)} onClick={() => void prepare()}>{busy ? 'Working…' : 'Prepare public deposit plan'}</button>
         {!verified && <p className="notes-help">Verify the encrypted backup before preparing a deposit.</p>}
