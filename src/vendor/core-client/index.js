@@ -2139,6 +2139,7 @@ async function encryptNoteBackup(input, raw, password) {
 }
 async function openNoteBackup(envelope, password, expectedPolicy) {
   if (envelope.length > 16e3) throw new Error("Private note backup exceeds 16 KB");
+  const expected = expectedPolicy === void 0 ? void 0 : parsePolicy(expectedPolicy);
   let decoded;
   try {
     decoded = await unseal(envelope, password, FORMAT2);
@@ -2149,7 +2150,7 @@ async function openNoteBackup(envelope, password, expectedPolicy) {
   const payload = object(decoded);
   exact6(payload, ["version", "policy", "note"]);
   const policy = parsePolicy(payload.policy);
-  if (payload.version !== 1 || expectedPolicy && canonical(policy) !== canonical(parsePolicy(expectedPolicy))) throw new Error("Backup differs from the trusted policy");
+  if (payload.version !== 1 || expected && canonical(policy) !== canonical(expected)) throw new Error("Backup differs from the trusted policy");
   return { policy, note: await validatePrivateNote(policy, payload.note) };
 }
 export {

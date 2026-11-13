@@ -33,6 +33,22 @@ async function resign(page: Page, signed: SignedInvoice) {
   });
   return verifySignedInvoice({ invoice, signature });
 }
+test('page cache entry locks the invoice library and preserves its encrypted storage', async ({ page }) => {
+  await fixture(page); await issue(page); await createLibrary(page); await save(page, 1);
+  await library(page).getByRole('button', { name: 'Open INV-2026-007', exact: true }).click();
+  await expect(page.locator('.invoice-summary h2')).toHaveText('Design milestone');
+  const encrypted = await page.evaluate(key => localStorage.getItem(key), storageKey);
+  const visible = await page.evaluate(() => {
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+    return document.querySelectorAll('.invoice-library-entry').length;
+  });
+  expect(visible).toBe(0);
+  await expect(page.locator('.invoice-summary')).toHaveCount(0);
+  expect(await page.evaluate(key => localStorage.getItem(key), storageKey)).toBe(encrypted);
+  await library(page).getByLabel('Library passphrase').fill(password);
+  await library(page).getByRole('button', { name: 'Unlock library', exact: true }).click();
+  await expect(library(page).locator('.invoice-library-entry')).toHaveCount(1);
+});
 
 test('merchant library encrypts saved requests, restores after reload and hides an opened request on lock', async ({ page }, info) => {
   await fixture(page); const created = await issue(page);

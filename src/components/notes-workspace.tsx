@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { ArrowUpRight, Download, LockKeyhole, Plus } from 'lucide-react';
 import { MerchantShell } from './merchant-shell';
+import { usePageHideLock } from '@/lib/page-hide-lock';
 import { canonical, parsePolicy, feeQuote, createPrivateNote, encryptNoteBackup, openNoteBackup, HttpGateway, type Policy, type PrivateNote, type DepositPlan } from '@/vendor/core-client/index.js';
 
 type OpenNote = { policy: Policy; note: PrivateNote; backup: string };
@@ -28,6 +29,7 @@ export function NotesWorkspace() {
     setOpened(null); setVerified(false); setPlan(null); setRoot(''); setVault(''); setBusy(false);
     setPassword(''); setConfirmation(''); setRestorePassword(''); setError(''); setNotice('Note locked. Reopen its encrypted backup to continue.');
   }
+  usePageHideLock(lock);
   async function run(action: (check: () => void, signal: AbortSignal) => Promise<void>) {
     if (pending.current) return;
     pending.current = true; setBusy(true); setError(''); setNotice('');

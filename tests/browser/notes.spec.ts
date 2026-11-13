@@ -104,6 +104,40 @@ test('late file reads cannot unlock a note after locking', async ({ page }, info
   await page.evaluate(() => (window as any).releaseNoteRead());
   await expect(page.getByRole('status')).toContainText('Note locked'); await expect(page.locator('.note-commitment')).toHaveCount(0);
 });
+test('page cache entry clears the open note synchronously and cached return requires its backup', async ({ page }, info) => {
+  await setup(page); await create(page); const contents = await backup(page, info.outputPath('cache-note.json'));
+  await page.getByLabel('Backup passphrase', { exact: true }).fill(password);
+  const cached = await page.evaluate(() => {
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+    return { commitment: document.querySelector('.note-commitment')?.textContent ?? null,
+      passwords: [...document.querySelectorAll<HTMLInputElement>('input[type="password"]')].map(input => input.value) };
+  });
+  expect(cached.commitment).toBeNull(); expect(cached.passwords.every(value => value === '')).toBe(true);
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+  await expect(page.locator('.note-commitment')).toHaveCount(0);
+  await verify(page, contents); await expect(page.getByRole('status')).toContainText('Encrypted backup verified');
+});
+test('page cache entry cancels note generation while encryption is still pending', async ({ page }) => {
+  await setup(page);
+  await page.evaluate(() => {
+    const encrypt = crypto.subtle.encrypt.bind(crypto.subtle);
+    crypto.subtle.encrypt = async (...args: Parameters<SubtleCrypto['encrypt']>) => {
+      (window as any).noteEncryptionStarted = true;
+      await new Promise<void>(resolve => { (window as any).finishNoteEncryption = resolve; });
+      const result = await encrypt(...args); (window as any).noteEncryptionFinished = true; return result;
+    };
+  });
+  await page.getByLabel('Create passphrase', { exact: true }).fill(password);
+  await page.getByLabel('Confirm passphrase', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Create encrypted note', exact: true }).click();
+  await page.waitForFunction(() => (window as any).noteEncryptionStarted);
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })));
+  await expect(page.getByLabel('Create passphrase', { exact: true })).toHaveValue('');
+  await page.evaluate(() => (window as any).finishNoteEncryption());
+  await page.waitForFunction(() => (window as any).noteEncryptionFinished);
+  await expect(page.locator('.note-commitment')).toHaveCount(0);
+  await expect(page.getByRole('status')).toContainText('Note locked');
+});
 test('failed refreshes and substituted deposit plans clear previous wallet-review results', async ({ page }) => {
   await setup(page); const note = await createPrivateNote(policy), contents = await encryptNoteBackup(policy, note, password);
   await verify(page, contents); await expect(page.getByRole('status')).toContainText('Encrypted backup verified');

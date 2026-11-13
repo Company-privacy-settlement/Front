@@ -143,6 +143,9 @@ export const docs: Doc[] = [
           "Enter the matching Core API and your receipt root, or generate a fresh random reference for a deposit without evidence. Optionally choose a vault; the default scan verifies up to 20 registry records.",
           "Prepare and inspect the public deposit plan. Download it and import it in Settlements with the same policy, then approve each registration, storage and payment call. A plan does not reserve capacity or confirm payment.",
           "Keep the encrypted note for CLI withdrawal proving. Browser note backups work directly with shared-spend-args or group-spend-args; private notes and passwords never reach the API."
+        ],
+        "paragraphs": [
+          "Page-hide and persisted browser-cache return lock the active note and invalidate unfinished work before restoring a private view. Reopen the encrypted backup to continue. This does not guarantee physical memory erasure."
         ]
       },
       {
@@ -689,7 +692,8 @@ export const docs: Doc[] = [
         "paragraphs": [
           "The browser journal uses passphrase-derived encryption and cross-tab exclusion. There is no passphrase recovery. Backup restoration requires empty storage and refuses overwrite.",
           "The optional invoice library has a separate encrypted backup for signed business requests. It does not replace private-note backups or wallet-operation recovery. The service cannot recover a lost library passphrase. Restore into empty library storage or merge after unlocking the existing library.",
-          "Browser notes use a separate encrypted single-note file. Download and reopen it before preparing a deposit; it is not persisted in local storage. The backup carries its original policy and can be used in the local CLI for Groth16 spend proving. Locking or leaving does not retain the active note."
+          "Browser notes use a separate encrypted single-note file. Download and reopen it before preparing a deposit; it is not persisted in local storage. The backup carries its original policy and can be used in the local CLI for Groth16 spend proving. Locking or leaving does not retain the active note.",
+          "Private notes and the invoice library also lock on page-hide and persisted history-cache return. Pending work cannot reopen the locked view. Encrypted invoice-library storage remains intact; a note must be reopened from its saved backup."
         ],
         "table": {
           "headings": [

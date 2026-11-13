@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Download, FolderLock, LockKeyhole, Plus, Search, Trash2 } from 'lucide-react';
 import { InvoiceLibrary, browserInvoiceLibraryStorage, invoiceQuote, type SignedInvoice, type StoredInvoice } from '@/vendor/core-client/index.js';
 import { saveJson } from './invoice-summary';
+import { usePageHideLock } from '@/lib/page-hide-lock';
 
 async function backupFile(event: ChangeEvent<HTMLInputElement>) {
   const file = event.target.files?.[0]; event.target.value = '';
@@ -23,6 +24,7 @@ export function InvoiceLibraryPanel({ merchant, current, disabled, onOpen, onHid
     setOpened(false); setEntries([]); setQuery(''); setPassphrase(''); setBackupPassword(''); setBusy(false); setError(''); setNotice('');
     onHideOpened();
   }
+  usePageHideLock(lock);
   async function run(action: (active: () => boolean) => Promise<void>) {
     if (disabled || running.current) return;
     const version = epoch.current, active = () => epoch.current === version;
