@@ -51,3 +51,5 @@ npm run test:e2e
 发票页面提供可选的加密本地库，可明确保存签名请求，搜索、重新打开及导出、恢复、合并加密备份。按账户和网络分隔存储，验证签名 ID 不可变性，不向 Core 发送业务条款，也不缓存已付款状态。详见[本地库指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICE_LIBRARY.md)。
 
 发票创建、已签名付款请求及已准备的提现支持只读收款准备检查，分别展示账户激活、代币注册、查询到的注册费用及公开调用。收款地址、API 或策略变化会清除旧结果；查询不会签名或转账。[收款准备指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/RECIPIENTS.md)。
+
+`/notes/`在本地生成 FT 票据，下载并重新验证加密备份后准备公开存款计划。计划在结算页导入并逐项钱包审批；备份兼容现有 shared/group CLI。票据不写入浏览器存储，锁定或离开页面后须重新打开已保存的备份。

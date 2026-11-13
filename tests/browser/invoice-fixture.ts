@@ -2,7 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import { generateKeyPairSync, createHash, sign } from "node:crypto";
 import { invoiceFromFragment } from "../../src/vendor/core-client/index.js";
 export const policy = {
-  network: "testnet",
+  network: "testnet" as const,
   registry: "forest.testnet",
   denomination: "1000000",
   tokenId: "usdc.testnet",

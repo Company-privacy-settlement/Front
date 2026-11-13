@@ -1,3 +1,4 @@
+import { type DepositRequest } from './deposits.js';
 import { type SignedInvoice, type InvoiceStatus } from "./invoices.js";
 import { type ActivityFilters } from "./activity.js";
 import type { Call, Gateway, Policy, Preflight, Reference, Observation, TxRef, Verification } from "./types.js";
@@ -16,6 +17,9 @@ export declare class HttpGateway implements Gateway {
     recipientReadiness(policy: Policy, recipient: string, options?: {
         signal?: AbortSignal;
     }): Promise<import("./recipients.js").RecipientReadiness>;
+    prepareDeposit(policy: Policy, request: DepositRequest, options?: {
+        signal?: AbortSignal;
+    }): Promise<import("./deposits.js").DepositPlan>;
     verifyInvoice(input: SignedInvoice): Promise<SignedInvoice>;
     invoiceStatus(input: SignedInvoice): Promise<InvoiceStatus>;
     indexStatus(policy: Policy): Promise<import("./activity.js").IndexStatus>;

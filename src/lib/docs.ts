@@ -13,7 +13,7 @@ export const docs: Doc[] = [
         "title": "Private settlement on NEAR",
         "paragraphs": [
           "Core is a development protocol for business payments and employee transfers. Independent vaults hold principal. A shared zero-knowledge note set lets a holder authorize a payout from one verified vault, with selected evidence for reconciliation.",
-          "The current implementation supports native NEAR shared groups and token-bound USDC/NEP-141 groups. The browser workspace executes prepared testnet FT plans. Private note creation and Groth16 proof generation run locally through the Core CLI."
+          "The current implementation supports native NEAR shared groups and token-bound USDC/NEP-141 groups. The browser workspace executes prepared testnet FT plans. FT note creation, encrypted backups and public deposit preparation are available on Private notes. Groth16 spend proof generation remains in the local Core CLI."
         ]
       },
       {
@@ -132,6 +132,17 @@ export const docs: Doc[] = [
           "Prepare the public deposit plan and complete required token registrations or NEAR storage-credit top-ups.",
           "Approve principal plus the 0.15% deposit fee. Account for NEAR storage and gas separately.",
           "Wait for finalized deposit Active state. A submitted wallet transaction does not establish acceptance."
+        ]
+      },
+      {
+        "id": "browser-notes",
+        "title": "Create a note in your browser",
+        "steps": [
+          "Import an independently approved testnet FT policy on Private notes. Create and confirm a passphrase, then generate a note locally. No wallet or API is needed for generation.",
+          "Download the encrypted note and reopen that file with its passphrase to verify the full policy and commitment. Keep the file and passphrase separately; locking or leaving requires the backup to reopen it.",
+          "Enter the matching Core API and your receipt root, or generate a fresh random reference for a deposit without evidence. Optionally choose a vault; the default scan verifies up to 20 registry records.",
+          "Prepare and inspect the public deposit plan. Download it and import it in Settlements with the same policy, then approve each registration, storage and payment call. A plan does not reserve capacity or confirm payment.",
+          "Keep the encrypted note for CLI withdrawal proving. Browser note backups work directly with shared-spend-args or group-spend-args; private notes and passwords never reach the API."
         ]
       },
       {
@@ -351,7 +362,7 @@ export const docs: Doc[] = [
           "text": "npm run cli -- groups-status approved-groups.json https://rpc.testnet.near.org\nnpm run cli -- group-note approved-groups.json https://rpc.testnet.near.org receiver-note.encrypted.json\nnpm run cli -- group-deposit-args approved-groups.json https://rpc.testnet.near.org receiver-note.encrypted.json FRESH_DISCLOSURE_ROOT\nnpm run cli -- group-spend-args approved-groups.json https://rpc.testnet.near.org original-note.encrypted.json withdraw-action.json public-withdrawal.json"
         },
         "paragraphs": [
-          "Set CORE_NOTE_PASSWORD securely as described in the Core guide; never pass it as a command argument or upload an encrypted note to the browser/API. group-note follows the directory order or an explicit group preference. Existing notes remain group-bound.",
+          "Set CORE_NOTE_PASSWORD securely as described in the Core guide; never pass it as a command argument or upload a private note to the API. The Private notes page opens compatible browser backups locally. group-note follows the directory order or an explicit group preference. Existing notes remain group-bound.",
           "Protocol fees remain 0.15% added on top of principal for each deposit and withdrawal. Token registration, NEAR storage and gas remain separate. Contracts and groups must already be deployed and independently approved."
         ]
       },
@@ -632,6 +643,18 @@ export const docs: Doc[] = [
           "label": "Read-only SDK and CLI",
           "text": "const result = await gateway.recipientReadiness(trustedPolicy, recipient, { signal });\n// result.state, result.checkedAtBlock, result.registrationCall\n\nnpm run cli -- recipient-readiness trusted-policy.json https://rpc.testnet.near.org receiver.testnet"
         }
+      },
+      {
+        "id": "browser-notes",
+        "title": "Browser notes and public deposits",
+        "paragraphs": [
+          "createPrivateNote, encryptNoteBackup and openNoteBackup run locally. The note domain and Poseidon commitment match the existing circuits. The encrypted core-private-note format binds the complete policy and is separate from journal and invoice-library storage.",
+          "POST /v1/deposits/prepare accepts only a public commitment, disclosure root and optional vault. The server verifies the original group at one final block and returns a public FT plan and bounded capacity observation. The client checks policy, commitment, reference, vault, token, add-on fee and attachments before returning the plan."
+        ],
+        "code": {
+          "label": "Local backup and public planning",
+          "text": "const note = await createPrivateNote(trustedPolicy);\nconst encrypted = await encryptNoteBackup(trustedPolicy, note, passphrase);\nconst restored = await openNoteBackup(downloadedFile, passphrase, trustedPolicy);\nconst result = await gateway.prepareDeposit(trustedPolicy, {\n  commitment: restored.note.commitment, disclosureRoot\n});\n// Import result.plan in the existing wallet session."
+        }
       }
     ]
   },
@@ -665,7 +688,8 @@ export const docs: Doc[] = [
         "title": "Keep each backup separate",
         "paragraphs": [
           "The browser journal uses passphrase-derived encryption and cross-tab exclusion. There is no passphrase recovery. Backup restoration requires empty storage and refuses overwrite.",
-          "The optional invoice library has a separate encrypted backup for signed business requests. It does not replace private-note backups or wallet-operation recovery. The service cannot recover a lost library passphrase. Restore into empty library storage or merge after unlocking the existing library."
+          "The optional invoice library has a separate encrypted backup for signed business requests. It does not replace private-note backups or wallet-operation recovery. The service cannot recover a lost library passphrase. Restore into empty library storage or merge after unlocking the existing library.",
+          "Browser notes use a separate encrypted single-note file. Download and reopen it before preparing a deposit; it is not persisted in local storage. The backup carries its original policy and can be used in the local CLI for Groth16 spend proving. Locking or leaving does not retain the active note."
         ],
         "table": {
           "headings": [

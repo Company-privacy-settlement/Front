@@ -8,6 +8,8 @@ export { HttpGateway, CoreApiError } from "./http.js";
 export { parseApprovedGroups, parseGroupCapacity } from './groups.js';
 export type { ApprovedGroups, ApprovedGroup, GroupCapacity } from './groups.js';
 export { parseRecipientReadiness, type RecipientReadiness } from './recipients.js';
+export { createPrivateNote, validatePrivateNote, noteDomain, noteHash, encryptNoteBackup, openNoteBackup, type PrivateNote } from './notes.js';
+export { parseDepositRequest, parseDepositPlan, type DepositRequest, type DepositPlan } from './deposits.js';
 export { INVOICE_SIGNING_RECIPIENT, parseInvoice, createInvoice, invoicePaymentRoots, invoiceRootsFromHash, invoiceStatusRequest, assertInvoiceReferenceAvailable, parseSignedInvoice, invoiceHash, invoiceRoot, invoiceMessage, nonceBytes, invoiceSigningDigest, invoiceProof, verifySignedInvoice, invoiceQuote, requireOpenInvoice, matchInvoicePlan, invoiceLink, invoiceFromFragment, } from "./invoices.js";
 export type { Invoice, InvoiceSignature, SignedInvoice, InvoiceProof, InvoiceState, InvoiceStatus, } from "./invoices.js";
 export { activityKinds, parseIndexStatus, parseActivityPage, } from "./activity.js";

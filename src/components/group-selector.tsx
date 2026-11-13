@@ -57,7 +57,7 @@ export function GroupSelector({ disabled, onSelect, onInvalidate }: { disabled: 
   return <details className="group-picker">
     <summary>Choose from approved groups</summary>
     <div className="group-picker-content">
-      <p>Import your independently approved directory, then check each group against its own Core API. Private notes stay in the CLI.</p>
+      <p>Import your independently approved directory, then check each group against its own Core API. Notes keep their original group; withdrawal proofs are prepared in the CLI.</p>
       <label className="live-file form-label">Approved group directory
         <input type="file" accept="application/json,.json" aria-label="Approved group directory" disabled={disabled} onChange={e => void importDirectory(e)}/>
       </label>
