@@ -13,6 +13,7 @@ import { SettlementFrame } from "./merchant-shell";
 import { IndexedActivityPanel } from "./indexed-activity";
 import { InvoiceSummary } from "./invoice-summary";
 import { GroupSelector, type GroupSelection } from './group-selector';
+import { RecipientReadiness } from './recipient-readiness';
 import {
   OperationJournal,
   SettlementSession,
@@ -302,6 +303,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                 "Verify API policy"
               )}
             </button>
+            {invoice && <RecipientReadiness policy={policy} recipient={invoice.invoice.recipient} api={api} disabled={busy || !verified}/>}
           </section>
           <section className="panel live-card" id="settlement-wallet">
 
@@ -539,6 +541,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                     <span>Finalized block checked</span>
                     <strong>{review.observation.checkedAtBlock.height}</strong>
                   </div>
+                  {!invoice && op.reference.kind === 'withdrawal' && <RecipientReadiness policy={policy} recipient={op.reference.expectedRecipient} api={api} disabled={busy}/>}
                   {review.call && (
                     <>
                       <div className="quote-lines">

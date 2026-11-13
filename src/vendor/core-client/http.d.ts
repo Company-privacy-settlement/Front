@@ -13,6 +13,9 @@ export declare class HttpGateway implements Gateway {
     groupCapacity(policy: Policy, options?: {
         signal?: AbortSignal;
     }): Promise<import("./groups.js").GroupCapacity>;
+    recipientReadiness(policy: Policy, recipient: string, options?: {
+        signal?: AbortSignal;
+    }): Promise<import("./recipients.js").RecipientReadiness>;
     verifyInvoice(input: SignedInvoice): Promise<SignedInvoice>;
     invoiceStatus(input: SignedInvoice): Promise<InvoiceStatus>;
     indexStatus(policy: Policy): Promise<import("./activity.js").IndexStatus>;

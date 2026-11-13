@@ -1223,6 +1223,38 @@ function parseGroupCapacity(input, trusted) {
   return { policy, checkedAtBlock: { hash: block2.hash, height: count(block2.height) }, capacity: 256, usedOutputs, remainingOutputs, outstandingNotes, depositCapacityAvailable, depositVaultObserved, checkedVaults, vaultScanComplete, chainFreshnessChecked: false };
 }
 
+// sdk/client/recipients.ts
+function parseRecipientReadiness(raw, trusted, expectedRecipient) {
+  const r = object(raw), policy = parsePolicy(r.policy), expected = parsePolicy(trusted), recipient = account(r.recipient), block2 = object(r.checkedAtBlock);
+  const fields = ["policy", "recipient", "checkedAtBlock", "accountKind", "accountExists", "tokenRegistered", "state", "canReceiveTokens", "storageMinimumYoctoNear", "registrationCall", "activationAmountYoctoNear", "gasBudgetIncluded", "chainFreshnessChecked"];
+  if (Object.keys(r).sort().join("|") !== fields.sort().join("|") || Object.keys(block2).sort().join("|") !== "hash|height") throw new Error("Unexpected recipient readiness fields");
+  if (!policy.tokenId || canonical(policy) !== canonical(expected) || recipient !== account(expectedRecipient) || recipient === policy.registry || recipient.endsWith("." + policy.registry)) throw new Error("Recipient readiness differs from the trusted destination");
+  if (typeof block2.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block2.hash) || typeof block2.height !== "number" || !Number.isSafeInteger(block2.height) || block2.height < 0) throw new Error("Invalid recipient readiness block");
+  if (typeof r.accountExists !== "boolean" || typeof r.tokenRegistered !== "boolean") throw new Error("Invalid recipient readiness flags");
+  const state = !r.accountExists ? "account_missing" : !r.tokenRegistered ? "registration_required" : "ready";
+  const accountKind = /^[0-9a-f]{64}$/.test(recipient) ? "near_implicit" : /^0x[0-9a-f]{40}$/.test(recipient) ? "eth_implicit" : "named_or_other";
+  if (r.state !== state || r.accountKind !== accountKind || r.canReceiveTokens !== (state === "ready") || r.activationAmountYoctoNear !== null || r.gasBudgetIncluded !== false || r.chainFreshnessChecked !== false) throw new Error("Inconsistent recipient readiness");
+  if (typeof r.storageMinimumYoctoNear !== "string" || !/^[1-9][0-9]{0,24}$/.test(r.storageMinimumYoctoNear) || BigInt(r.storageMinimumYoctoNear) > 10n ** 24n) throw new Error("Invalid recipient registration minimum");
+  const registrationCall = r.registrationCall === null ? null : parseCall(r.registrationCall);
+  const expectedCall = state === "registration_required" ? { contract: policy.tokenId, method: "storage_deposit", args: { account_id: recipient, registration_only: true }, attachedYoctoNear: r.storageMinimumYoctoNear, gas: GAS } : null;
+  if (canonical(registrationCall) !== canonical(expectedCall)) throw new Error("Recipient registration call is not bound to this account and token");
+  return {
+    policy,
+    recipient,
+    checkedAtBlock: { hash: block2.hash, height: block2.height },
+    accountKind,
+    accountExists: r.accountExists,
+    tokenRegistered: r.tokenRegistered,
+    state,
+    canReceiveTokens: state === "ready",
+    storageMinimumYoctoNear: r.storageMinimumYoctoNear,
+    registrationCall,
+    activationAmountYoctoNear: null,
+    gasBudgetIncluded: false,
+    chainFreshnessChecked: false
+  };
+}
+
 // sdk/client/activity.ts
 var activityKinds = [
   "deposit",
@@ -1458,6 +1490,12 @@ var HttpGateway = class {
     await this.trusted(policy, options.signal);
     return parseGroupCapacity(await this.request("/v1/group/capacity", void 0, options.signal), policy);
   }
+  async recipientReadiness(policy, recipient, options = {}) {
+    const trusted = parsePolicy(policy), destination = account(recipient);
+    if (!trusted.tokenId || destination === trusted.registry || destination.endsWith("." + trusted.registry)) throw new Error("Choose an external recipient and a trusted FT group");
+    await this.trusted(trusted, options.signal);
+    return parseRecipientReadiness(await this.request("/v1/recipients/readiness", { recipient: destination }, options.signal), trusted, destination);
+  }
   async verifyInvoice(input) {
     const signed = await verifySignedInvoice(input);
     await this.trusted(signed.invoice.policy);
@@ -1547,6 +1585,7 @@ export {
   parseIndexStatus,
   parseInvoice,
   parsePolicy,
+  parseRecipientReadiness,
   parseSignedInvoice,
   preparedPayment,
   requireOpenInvoice,

@@ -49,3 +49,5 @@ Core SDK는 SHA-256 매니페스트와 함께 `src/vendor/core-client/`에 보�
 승인된 그룹 목록을 가져오면 그룹별 API 정책·출력 용량을 검증하고 입금 또는 복구 모드로 선택할 수 있습니다. 복구 모드는 새 입금 가져오기를 막으며, 저널이 열려 있을 때는 그룹 변경을 잠급니다. [그룹 가이드](https://github.com/Company-privacy-settlement/Core/blob/main/docs/GROUPS.md)를 참고하세요.
 
 인보이스 페이지에 선택형 암호화 로컬 보관함을 추가했습니다. 서명 요청을 명시적으로 저장하고 검색·다시 열기·암호화 백업 내보내기·복원·병합할 수 있습니다. 계정·네트워크별 저장소와 서명 ID 불변성을 검증하며 서버로 거래 조건을 보내거나 결제 완료 상태를 저장하지 않습니다. [보관함 가이드](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICE_LIBRARY.md)를 참고하세요.
+
+인보이스 생성·서명된 결제 요청·준비된 출금에 수취 준비 확인을 추가했습니다. 계정 활성화와 토큰 등록, 조회된 등록비·공개 등록 호출을 구분하고 주소·API·정책 변경 시 기존 결과를 초기화합니다. 조회만으로 서명·자금 전송·결제를 실행하지 않습니다. [수취 준비 가이드](https://github.com/Company-privacy-settlement/Core/blob/main/docs/RECIPIENTS.md).

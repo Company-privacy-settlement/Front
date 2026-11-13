@@ -190,6 +190,16 @@ export const docs: Doc[] = [
           "Check index coverage and its checkpoint. Refreshing the index is not a latest-chain assertion.",
           "A redirect, wallet callback, transaction hash, or timeout is not a final payment result."
         ]
+      },
+      {
+        "id": "recipient-preparation",
+        "title": "Prepare the receiving account",
+        "paragraphs": [
+          "Use Check recipient on the invoice form before signing, or in checkout after independently importing the trusted policy and verifying its API. Prepared withdrawals also offer this check for their bound recipient. No wallet connection is needed for this read-only lookup.",
+          "Account activation, token registration and payment review are separate steps. A pre-registered token record does not activate a missing account. Activate the exact account with a compatible NEAR wallet, then refresh. The app does not estimate an account-creation amount or send a funding transfer.",
+          "For an existing, unregistered account, inspect the public storage_deposit call and exact token storage minimum read at the checked final block. The payment session presents registration separately for wallet approval; gas and protocol fees remain separate.",
+          "Ready for payment review is a snapshot of account existence and registration. It does not establish ownership, available gas, payer balance, vault liquidity or payment completion. Changing recipient, policy or API invalidates the result; failed refreshes clear previous readiness."
+        ]
       }
     ]
   },
@@ -282,6 +292,16 @@ export const docs: Doc[] = [
         "paragraphs": [
           "Terms remain client-held. Link/JSON holders can read the business terms and derive its references. A fragment is omitted from the initial page URL request; page code, extensions, and link holders can still read it. Hosting access controls apply to shared checkout links.",
           "Save the signed invoice before leaving. The API does not store an invoice inbox or send webhooks. Expiry is an application rule; contracts may settle late. Recovery keeps the original payout destination after expiry."
+        ]
+      },
+      {
+        "id": "recipient-preparation",
+        "title": "Prepare the receiving account",
+        "paragraphs": [
+          "Use Check recipient on the invoice form before signing, or in checkout after independently importing the trusted policy and verifying its API. Prepared withdrawals also offer this check for their bound recipient. No wallet connection is needed for this read-only lookup.",
+          "Account activation, token registration and payment review are separate steps. A pre-registered token record does not activate a missing account. Activate the exact account with a compatible NEAR wallet, then refresh. The app does not estimate an account-creation amount or send a funding transfer.",
+          "For an existing, unregistered account, inspect the public storage_deposit call and exact token storage minimum read at the checked final block. The payment session presents registration separately for wallet approval; gas and protocol fees remain separate.",
+          "Ready for payment review is a snapshot of account existence and registration. It does not establish ownership, available gas, payer balance, vault liquidity or payment completion. Changing recipient, policy or API invalidates the result; failed refreshes clear previous readiness."
         ]
       }
     ]
@@ -601,6 +621,17 @@ export const docs: Doc[] = [
           "The CLI server cancels its HTTP RPC transport on timeout or disconnect. Non-cancellable adapters keep their work slot until underlying reads settle. Forwarding headers are ignored; clients behind a proxy share its peer budget unless the edge enforces individual limits.",
           "/healthz checks liveness. /readyz verifies the deployment and, when attached, index age, block lag and current journal count. Set CORE_API_REQUIRE_INDEX=true to require an index. Readiness is a snapshot, not complete provenance or a guarantee of payment liquidity."
         ]
+      },
+      {
+        "id": "recipient-readiness",
+        "title": "Recipient readiness",
+        "paragraphs": [
+          "POST /v1/recipients/readiness accepts only a public recipient account. The server verifies the pinned group and reads account existence and token registration at one final block. It returns account_missing, registration_required or ready, with no account-creation estimate or broadcast. The browser client first checks the API policy and rejects substituted destinations or registration calls."
+        ],
+        "code": {
+          "label": "Read-only SDK and CLI",
+          "text": "const result = await gateway.recipientReadiness(trustedPolicy, recipient, { signal });\n// result.state, result.checkedAtBlock, result.registrationCall\n\nnpm run cli -- recipient-readiness trusted-policy.json https://rpc.testnet.near.org receiver.testnet"
+        }
       }
     ]
   },

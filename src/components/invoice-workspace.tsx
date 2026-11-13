@@ -6,6 +6,7 @@ import { MerchantShell } from "./merchant-shell";
 import { InvoicePreview } from "./invoice-preview";
 import { InvoiceSummary, saveJson } from "./invoice-summary";
 import { InvoiceLibraryPanel } from './invoice-library';
+import { RecipientReadiness } from './recipient-readiness';
 import {
   HttpGateway,
   parsePolicy,
@@ -204,6 +205,7 @@ export function InvoiceWorkspace() {
                   onChange={(e) => setRecipient(e.target.value)}
                 />
               </label>
+              <RecipientReadiness policy={policy} recipient={recipient} api={api} disabled={busy}/>
               <div className="invoice-term-grid">
                 <label className="form-label">
                   Number of notes
