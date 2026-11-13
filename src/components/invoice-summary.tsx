@@ -33,18 +33,28 @@ export function InvoiceSummary({
   api,
   enabled = true,
   onChecked,
+  paymentIndex: controlledIndex,
+  onPaymentIndexChange,
+  disabled = false,
+  checkedStatus,
 }: {
   signed: SignedInvoice;
   api: string;
   enabled?: boolean;
   onChecked?: (s: InvoiceStatus | null) => void;
+  paymentIndex?: number;
+  onPaymentIndexChange?: (index: number) => void;
+  disabled?: boolean;
+  checkedStatus?: InvoiceStatus | null;
 }) {
-  const [status, setStatus] = useState<InvoiceStatus | null>(null),
+  const [localStatus, setStatus] = useState<InvoiceStatus | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [paymentIndex, setPaymentIndex] = useState(0),
+    [localIndex, setPaymentIndex] = useState(0),
     [roots, setRoots] = useState<string[]>([]);
   const generation = useRef(0);
+  const status = checkedStatus === undefined ? localStatus : checkedStatus,
+    paymentIndex = controlledIndex ?? localIndex;
   const i = signed.invoice,
     q = invoiceQuote(i),
     coverage = status ? BigInt(status.paidTokens) * 100n / BigInt(status.expectedTokens) : 0n;
@@ -78,7 +88,7 @@ export function InvoiceSummary({
       const references = await invoicePaymentRoots(i);
       if (requestGeneration !== generation.current) return;
       setStatus(s);
-      if (i.version === 2) {
+      if (i.version === 2 && controlledIndex === undefined) {
         const used = new Set(s.confirmations.map(c => c.settlementRoot));
         const next = references.findIndex(r => !used.has(r));
         if (next >= 0) setPaymentIndex(next);
@@ -132,7 +142,7 @@ export function InvoiceSummary({
         funding private notes has its own deposit fee.
       </p>
       <div className="invoice-payment-reference">
-        <label className="form-label">Payment unit<select value={paymentIndex} onChange={e => setPaymentIndex(Number(e.target.value))} disabled={!roots.length || busy}>
+        <label className="form-label">Payment unit<select value={paymentIndex} onChange={e => { const index = Number(e.target.value); if (onPaymentIndexChange) onPaymentIndexChange(index); else setPaymentIndex(index); }} disabled={!roots.length || busy || disabled}>
           {roots.map((root, index) => <option value={index} key={root}> {i.version === 2 ? `Payment ${index + 1} of ${i.units}` : "Legacy shared reference"}{status?.confirmations.some(c => c.settlementRoot === root) ? " · Indexed payment recorded" : ""}</option>)}
         </select></label>
         <p>{i.version === 2 ? "Each payment unit uses a different signed reference. The payout account, amount and timing remain public; link holders and the API can still associate these payments." : "Legacy invoice: every payment shares one public reference. New invoices use per-payment references; this signed request cannot be silently upgraded."}</p>
@@ -141,7 +151,7 @@ export function InvoiceSummary({
       </div>
       <button
         className="button button-dark"
-        disabled={busy || !enabled}
+        disabled={busy || !enabled || disabled}
         onClick={() => void refresh()}
       >
         <RefreshCw size={15} />

@@ -12,6 +12,7 @@ import {
 import { SettlementFrame } from "./merchant-shell";
 import { IndexedActivityPanel } from "./indexed-activity";
 import { InvoiceSummary } from "./invoice-summary";
+import { InvoiceNotePayment } from './invoice-note-payment';
 import { GroupSelector, type GroupSelection } from './group-selector';
 import { RecipientReadiness } from './recipient-readiness';
 import {
@@ -29,9 +30,11 @@ import {
   type SignedInvoice,
   type InvoiceStatus,
   invoicePaymentRoots,
-  assertInvoiceReferenceAvailable,
+  invoiceRoot,
+  invoiceSettlementGuards,
+  matchInvoiceProof,
+  type ProofBundle,
   matchInvoicePlan,
-  requireOpenInvoice,
 } from "@/vendor/core-client/index.js";
 import { liveWallet, nearConnector } from "@/lib/wallet";
 import { usePageHideLock } from '@/lib/page-hide-lock';
@@ -77,6 +80,8 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
     [notice, setNotice] = useState(""),
     [invoiceStatus, setInvoiceStatus] = useState<InvoiceStatus | null>(null);
   const [groupSelection, setGroupSelection] = useState<GroupSelection | null>(null);
+  const [paymentIndex, setPaymentIndex] = useState(0);
+  const unit = useRef(0), polls = useRef(new Map<string, number>());
   const journal = useRef<OperationJournal | null>(null),
     session = useRef<SettlementSession | null>(null), pendingJournal = useRef<OperationJournal | null>(null),
     epoch = useRef(0), running = useRef(false);
@@ -97,6 +102,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
     setSelected("");
     setPassphrase("");
     setBusy(false); setTxHash(''); setInvoiceStatus(null); setNotice(''); setError('');
+    polls.current.clear();
   }
   usePageHideLock(lock);
   function invalidateGroup() {
@@ -120,7 +126,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
     try {
       await fn(check); check();
     } catch (e) {
-      if (active()) setError(e instanceof Error ? e.message : "Operation failed");
+      if (active() && !(e instanceof Error && e.name === 'AbortError')) setError(e instanceof Error ? e.message : "Operation failed");
     } finally {
       if (active() && journal.current) {
         try {
@@ -162,11 +168,17 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
     } catch (error) { j.lock(); if (pendingJournal.current === j) pendingJournal.current = null; throw error; }
     pendingJournal.current = null;
     journal.current = j;
+    const gateway = new HttpGateway(api), version = epoch.current;
+    const guardedGateway = { invoiceStatus: async (signed: SignedInvoice) => {
+      try { const status = await gateway.invoiceStatus(signed); if (version === epoch.current) setInvoiceStatus(status); return status; }
+      catch (error) { if (version === epoch.current) setInvoiceStatus(null); throw error; }
+    } };
     session.current = new SettlementSession(
       j,
-      new HttpGateway(api),
+      gateway,
       liveWallet,
       policy,
+      invoice ? invoiceSettlementGuards(guardedGateway, invoice) : undefined,
     );
     setPassphrase("");
     setUnlocked(true);
@@ -177,28 +189,52 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
   async function refresh(id: string, check: () => void) {
     check(); const current = session.current;
     if (!current) throw new Error("Unlock the journal");
-    const next = await current.review(id); check(); setReview(next);
+    let next: Review;
+    try { next = await current.review(id); check(); }
+    catch (error) { check(); setReview(null); throw error; }
+    if (invoice && journal.current) {
+      const all = await journal.current.list(); check();
+      const operation = all.find(o => o.id === id), roots = await invoicePaymentRoots(invoice.invoice); check();
+      const index = operation?.reference.kind === 'withdrawal' ? roots.indexOf(operation.reference.expectedDisclosureRoot ?? '') : -1;
+      if (index >= 0 && index !== unit.current) { unit.current = index; setPaymentIndex(index); }
+      if (next.action === 'complete') {
+        try { const status = await new HttpGateway(api).invoiceStatus(invoice); check(); setInvoiceStatus(status); }
+        catch { check(); setInvoiceStatus(null); setNotice('Withdrawal confirmed. Invoice indexing is not available yet; refresh the invoice separately.'); }
+      }
+    }
+    setReview(next);
     setSelected(id);
   }
-  async function invoiceGate(root: string | undefined, check: () => void) {
-    check();
-    if (!invoice) return;
-    setInvoiceStatus(null);
-    requireOpenInvoice(invoice.invoice);
-    const status = await new HttpGateway(api).invoiceStatus(invoice);
-    check();
-    setInvoiceStatus(status);
-    if (root) await assertInvoiceReferenceAvailable(invoice.invoice, root, status);
-    check();
-    if (!["awaiting_payment", "partial"].includes(status.state))
-      throw new Error(
-        "This invoice is already covered or needs merchant review",
-      );
+  function selectPaymentIndex(index: number) {
+    if (running.current) return;
+    unit.current = index; setPaymentIndex(index); setReview(null); setSelected(''); setNotice(''); setError('');
+  }
+  async function prepareInvoicePayment(bundle: ProofBundle, index: number, check: () => void) {
+    if (!invoice || !session.current || !journal.current || index !== unit.current) throw new Error('Invoice payment selection changed');
+    const matched = await matchInvoiceProof(bundle, invoice, index, payer); check();
+    if (index !== unit.current) throw new Error('Invoice payment selection changed');
+    const operation = await session.current.importPlan(matched.bundle.plan); check();
+    polls.current.set(operation.id, 0); await refresh(operation.id, check);
   }
   const op = operations.find((o) => o.id === selected),
     quote = policy?.tokenId ? feeQuote(policy) : null;
+  useEffect(() => {
+    if (!invoice || !unlocked || !selected || !review || !['wait', 'reconcile'].includes(review.action)) return;
+    const version = epoch.current; let active = true, timer: ReturnType<typeof setTimeout>;
+    const tick = async () => {
+      if (!active || version !== epoch.current) return;
+      if (running.current) { timer = setTimeout(() => void tick(), 2000); return; }
+      const count = polls.current.get(selected) ?? 0;
+      if (count >= 10) return;
+      polls.current.set(selected, count + 1);
+      await run(check => refresh(selected, check));
+      if (active && version === epoch.current) timer = setTimeout(() => void tick(), 2000);
+    };
+    timer = setTimeout(() => void tick(), 2000);
+    return () => { active = false; clearTimeout(timer); };
+  }, [invoice, unlocked, selected, review?.action]);
   return (
-    <SettlementFrame checkout={!!invoice} summary={invoice && <InvoiceSummary key={invoice.invoice.id + api} signed={invoice} api={api} enabled={verified} onChecked={setInvoiceStatus}/> }>
+    <SettlementFrame checkout={!!invoice} summary={invoice && <InvoiceSummary key={invoice.invoice.id + api} signed={invoice} api={api} enabled={verified} onChecked={setInvoiceStatus} paymentIndex={paymentIndex} onPaymentIndexChange={selectPaymentIndex} disabled={busy} checkedStatus={invoiceStatus}/> }>
         <div className="merchant-page-heading">
           <div><h1>{invoice ? "Pay with your wallet" : "Settlements"}</h1><p>{invoice ? "Review the request, connect your wallet, and approve each payment step." : "Prepare transfers, review wallet approvals, and follow finalized settlement."}</p></div>
           {!invoice && <a href="#prepared-payment" className="button button-dark"><ArrowUpRight size={15}/> Review a payment</a>}
@@ -434,7 +470,6 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                 </button>
                 <button
                   className="button button-outline"
-                  disabled={busy}
                   onClick={lock}
                 >
                   <LockKeyhole size={15} /> Lock
@@ -453,9 +488,12 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
           </div>
           <p>
             Import a public deposit plan from <Link href="/notes/">Private notes</Link> or
-            Core’s CLI. Keep your encrypted note backup; generate withdrawal
-            proofs locally with <code>shared-spend-args</code>.
+            a withdrawal plan from <Link href="/prove/">Local proofs</Link> or Core’s CLI. Keep your encrypted note backup until final reconciliation.
           </p>
+          {invoice && verified && policy && unlocked && payer && <InvoiceNotePayment key={`${api}:${canonical(policy)}:${payer}`} signed={invoice} paymentIndex={paymentIndex} policy={policy} api={api} disabled={busy}
+            progress={review?.action === 'complete' ? 'confirmed' : op?.attempts.length && ['wait','reconcile'].includes(review?.action ?? '') ? 'wallet' : review ? 'review' : 'note'}
+            run={run} onPrepared={prepareInvoicePayment} getOperations={async () => { if (!journal.current) throw new Error('Unlock the journal'); return journal.current.list(); }}/>}
+          {invoice && <p className="small-note">Alternatively, import an existing public FT payment plan below. Keep private notes in the local proof form.</p>}
           <label className="live-file form-label">
             Public FT payment plan
             <input
@@ -481,8 +519,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                     throw new Error('This group is selected for withdrawals and recovery. New deposit imports are disabled.');
                   check();
                   if (invoice) {
-                    const payment = await matchInvoicePlan(plan, invoice.invoice, payer); check();
-                    await invoiceGate(payment.reference.expectedDisclosureRoot, check);
+                    await matchInvoicePlan(plan, invoice.invoice, payer, unit.current); check();
                   }
                   check(); const activeSession = session.current;
                   if (!activeSession) throw new Error("Unlock the journal");
@@ -542,6 +579,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                     <strong>{review.observation.state}</strong>
                   </div>
                   <h3>{review.message}</h3>
+                  {invoice && review.action === 'complete' && <p className="invoice-payment-confirmed" role="status">Withdrawal confirmed for this payment unit. The recipient received the full note principal. Invoice totals are shown separately from the index.</p>}
                   <div className="live-policy">
                     <span>Reviewed payer</span>
                     <code>{op.payer}</code>
@@ -608,8 +646,10 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                               if (
                                 review.kind !== "retry" &&
                                 review.kind !== "refund"
-                              )
-                                await invoiceGate(op.reference.expectedDisclosureRoot, check);
+                              ) {
+                                const root = await invoiceRoot(invoice.invoice, unit.current); check();
+                                if (op.reference.expectedDisclosureRoot !== root) throw new Error('Select the operation’s invoice payment unit before signing');
+                              }
                             }
                             check(); const activeSession = session.current;
                             if (!activeSession) throw new Error("Unlock the journal");
@@ -633,7 +673,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                     <button
                       className="button button-outline"
                       disabled={busy}
-                      onClick={() => void run(check => refresh(op.id, check))}
+                      onClick={() => { polls.current.set(op.id, 0); void run(check => refresh(op.id, check)); }}
                     >
                       Refresh finalized state
                     </button>

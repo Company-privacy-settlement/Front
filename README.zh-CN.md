@@ -24,7 +24,7 @@ Core 的落地页、文档与钱包工具，使用 Next.js 构建。Core 是支�
 网站与网页 Docs 默认使用英文，README 同时提供韩文与简体中文。落地页、Docs 与应用共享黑白绿色调、移动端横向约束与内部滚动。网页指南源文件为 `src/lib/docs.ts`。
 
 
-**Local proofs** (`/prove/`) 在本地 worker 中生成 FT 提现证明，检查独立材料哈希与策略验证密钥字节，支持取消及下载证明文件验证。[配置与信任模型](https://github.com/Company-privacy-settlement/Core/blob/main/docs/BROWSER_PROVER.md)。票据与发票自动关联仍为独立工作。
+**Local proofs** (`/prove/`) 在本地 worker 中生成 FT 提现证明，检查独立材料哈希与策略验证密钥字节，支持取消及下载证明文件验证。[配置与信任模型](https://github.com/Company-privacy-settlement/Core/blob/main/docs/BROWSER_PROVER.md)。[发票结账](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICE_PAYMENTS.md)支持原分组加密票据选择 → 本地证明 → 金额与费用确认 → 逐项钱包授权 → 最终付款确认，并提供所选单位绑定、取消、签名前商户密钥/状态复查与保守恢复。
 
 ## 运行与验证
 
@@ -43,7 +43,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-静态输出位于 `out/`。构建会校验内置 Core 浏览器包与类型声明的 SHA-256 清单，无需相邻仓库或 API 密钥。更新 Core 后，先在 Core 执行 `npm run build:client`，再在此执行 `npm run sync:core`。测试覆盖 Docs、移动端布局、发票、收款人准备、证据、票据、钱包恢复、日志及示例 KYB。2026-11-13 记录的完整浏览器测试通过 132 项，详见 [验证范围](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)。
+静态输出位于 `out/`。构建会校验内置 Core 浏览器包与类型声明的 SHA-256 清单，无需相邻仓库或 API 密钥。更新 Core 后，先在 Core 执行 `npm run build:client`，再在此执行 `npm run sync:core`。测试覆盖 Docs、移动端布局、发票、收款人准备、证据、票据、钱包恢复、日志及示例 KYB。2026-11-13 验证了 148 个浏览器用例：完整运行通过 146 项，更新所选单位预期后的两项定向重跑通过，详见 [验证范围](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)。
 
 ## 组织与访问权限
 
@@ -59,7 +59,7 @@ npm run test:e2e
 2. 设置各分组 API 地址并检查已验证容量。托管前端需要可访问的 HTTPS API，并在 CORS 中允许准确的前端来源。不附带已注资的公开测试网分组。
 3. 连接兼容的 NEAR 测试网钱包，创建或解锁本地加密操作日志；日志打开期间禁止切换分组。
 4. 在 Notes 创建 FT 票据，下载加密备份并重新打开后准备公开存款计划。导入 Settlements，逐项审核注册、存储、代币转账及 gas 调用。
-5. 使用票据原始分组，在 **Local proofs** 或 Core CLI 生成 FT 提现证明。导入可信证明文件和独立获得的清单哈希；浏览器重建树并支持证明生成、取消及文件验证。导入公开提款计划，核对准确收款人与引用，并依据最终化状态确认支付。
+5. 在签名结账中选择付款单位与原分组加密票据，导入可信证明文件及独立材料清单哈希并生成本地证明。确认完整本金、额外 0.15% 提现费用和独立 NEAR 成本，分别授权前置操作及付款，并等待最终确认。Local proofs 与 CLI/公开计划导入仍可使用。
 
 分组使用固定面额及**总计 256 个输出**。存款和私密转移消耗输出，提款不会恢复容量。已满或停用分组仅支持原分组恢复。原生 NEAR v2 通过 Contract/Core CLI 使用；浏览器目前执行测试网 FT 分组。
 

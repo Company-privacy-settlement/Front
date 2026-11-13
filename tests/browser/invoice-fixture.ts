@@ -1,6 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { generateKeyPairSync, createHash, sign } from "node:crypto";
-import { invoiceFromFragment } from "../../src/vendor/core-client/index.js";
+import { invoiceFromFragment, type Policy } from "../../src/vendor/core-client/index.js";
 export const policy = {
   network: "testnet" as const,
   registry: "forest.testnet",
@@ -33,7 +33,8 @@ function string(s: string) {
   size.writeUInt32LE(b.length);
   return Buffer.concat([size, b]);
 }
-export async function fixture(page: Page) {
+export async function fixture(page: Page, options: {policy?: Policy; delayed?: boolean; lostResponse?: boolean; hidePending?: boolean; prerequisite?: boolean} = {}) {
+  const policy = options.policy ?? exportedPolicy;
   const key = generateKeyPairSync("ed25519"),
     publicKey =
       "ed25519:" +
@@ -41,8 +42,9 @@ export async function fixture(page: Page) {
         key.publicKey.export({ format: "der", type: "spki" }).subarray(-32),
       ),
     settled = new Set<string>(),
-    paymentRoots = new Map<string, string>();
+    paymentRoots = new Map<string, string>(), pending = new Map<string,string>();
   let invoiceDigest = "";
+  let prerequisitePaid = !options.prerequisite;
   const bodies: unknown[] = [];
   await page.exposeFunction(
     "fixtureInvoiceSign",
@@ -76,14 +78,17 @@ export async function fixture(page: Page) {
     },
   );
   await page.exposeFunction("fixtureInvoicePay", (payment: { nullifier: string; root: string }) => {
-    settled.add(payment.nullifier);
+    if (options.delayed) pending.set(payment.nullifier,payment.root);
+    else settled.add(payment.nullifier);
     paymentRoots.set(payment.nullifier, payment.root);
   });
+  await page.exposeFunction('fixtureInvoicePrerequisite', () => { prerequisitePaid = true; });
   await page.route(
     "https://raw.githubusercontent.com/hot-dao/**/manifest.json",
     (r) => r.fulfill({ json: { wallets: [], version: "1" } }),
   );
-  await page.addInitScript(() => {
+  await page.addInitScript(({lostResponse}) => {
+    (window as any).fixturePaymentCalls = [];
     const account = () =>
       localStorage.getItem("fixtureInvoiceAccount") || "merchant.testnet";
     const wallet = {
@@ -116,8 +121,13 @@ export async function fixture(page: Page) {
           recipient: p.recipient,
         }),
       signAndSendTransaction: async (p: any) => {
-        const msg = JSON.parse(p.actions[0].params.args.msg);
-        await (window as any).fixtureInvoicePay({ nullifier: msg.public_inputs[0], root: msg.disclosure_root });
+        (window as any).fixturePaymentCalls.push(p);
+        if (p.actions[0].params.methodName === 'prepay_storage') await (window as any).fixtureInvoicePrerequisite();
+        else {
+          const msg = JSON.parse(p.actions[0].params.args.msg);
+          await (window as any).fixtureInvoicePay({ nullifier: msg.public_inputs[0], root: msg.disclosure_root });
+          if (lostResponse) throw new Error('Fixture response lost after broadcast');
+        }
         return { transaction: { hash: "B".repeat(44), signer_id: account() } };
       },
     };
@@ -126,7 +136,7 @@ export async function fixture(page: Page) {
         new CustomEvent("near-wallet-injected", { detail: wallet }),
       ),
     );
-  });
+  }, {lostResponse:options.lostResponse??false});
   await page.route("https://core-api.example/**", async (route) => {
     const path = new URL(route.request().url()).pathname,
       body = route.request().postDataJSON();
@@ -173,26 +183,27 @@ export async function fixture(page: Page) {
     } else if (path === "/v1/ft/preflight")
       json = {
         canPrepare: true,
-        prerequisitesSatisfied: true,
-        prerequisites: [],
+        prerequisitesSatisfied: prerequisitePaid,
+        prerequisites: prerequisitePaid ? [] : [{contract:policy.registry,method:'prepay_storage',args:{account_id:body.payer},gas:'300000000000000',attachedYoctoNear:'25000000000000000000000'}],
         blockers: [],
         tokenAmountRequired: "1500",
         payerTokenBalance: "1000000",
         checkedAtBlock: { hash, height: 200 },
       };
+    else if (path === '/v1/transactions/verify') json = body.call.method === 'prepay_storage' && prerequisitePaid ? {status:'final',effect:'accepted',transaction:body.transaction} : {status:'pending'};
     else if (path === "/v1/settlements/status") {
-      const complete = settled.has(body.nullifier);
+      const complete = settled.has(body.nullifier), processing = !options.hidePending && pending.has(body.nullifier);
       json = {
-        state: complete ? "Complete" : "NotFound",
+        state: complete ? "Complete" : processing ? 'Pending' : "NotFound",
         complete,
         refunded: false,
         retryAvailable: false,
         refundAvailable: false,
         retryCall: null,
         refundCall: null,
-        record: complete
+        record: complete || processing
           ? {
-              state: "Complete",
+              state: complete ? "Complete" : 'Pending',
               vault: body.expectedVault,
               recipient: body.expectedRecipient,
               disclosure_root: body.expectedDisclosureRoot,
@@ -213,9 +224,10 @@ export async function fixture(page: Page) {
       headers: { "access-control-allow-origin": "*" },
     });
   });
-  return { settled, bodies, getDigest: () => invoiceDigest };
+  return { settled, pending, bodies, getDigest: () => invoiceDigest, confirmPending: () => {for(const [nullifier] of pending)settled.add(nullifier);pending.clear();} };
 }
-export async function issue(page: Page) {
+const exportedPolicy = policy;
+export async function issue(page: Page, selectedPolicy: Policy = policy) {
   await page.goto("/invoices/");
   await page.getByLabel("Core API origin").fill("https://core-api.example");
   await page
@@ -223,7 +235,7 @@ export async function issue(page: Page) {
     .setInputFiles({
       name: "policy.json",
       mimeType: "application/json",
-      buffer: Buffer.from(JSON.stringify(policy)),
+      buffer: Buffer.from(JSON.stringify(selectedPolicy)),
     });
   await page.getByRole("button", { name: "Connect merchant wallet" }).click();
   await page.getByText("Invoice Fixture Wallet", { exact: true }).click();

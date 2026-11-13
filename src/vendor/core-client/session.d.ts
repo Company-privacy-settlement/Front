@@ -1,5 +1,5 @@
 import { OperationJournal } from "./journal.js";
-import type { Attempt, Call, Gateway, Observation, Operation, Policy, TxRef, WalletPort } from "./types.js";
+import type { Attempt, Call, Gateway, Observation, Operation, Policy, Reference, TxRef, WalletPort } from "./types.js";
 export type Review = {
     operationId: string;
     action: "sign" | "wait" | "reconcile" | "blocked" | "complete" | "refunded";
@@ -10,12 +10,20 @@ export type Review = {
     callHash?: string;
     recordHash: string;
 };
+export type SettlementGuards = {
+    beforeImport?: (payment: {
+        payment: Call;
+        reference: Reference;
+    }, payer: string, operations: readonly Operation[]) => Promise<void>;
+    beforeSubmit?: (operation: Operation, review: Review, operations: readonly Operation[]) => Promise<() => void>;
+};
 export declare class SettlementSession {
     readonly journal: OperationJournal;
     readonly gateway: Gateway;
     readonly wallet: WalletPort;
+    private readonly guards;
     readonly policy: Policy;
-    constructor(journal: OperationJournal, gateway: Gateway, wallet: WalletPort, policy: Policy);
+    constructor(journal: OperationJournal, gateway: Gateway, wallet: WalletPort, policy: Policy, guards?: SettlementGuards);
     private trusted;
     private identity;
     importPlan(plan: unknown): Promise<Operation>;

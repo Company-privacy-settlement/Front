@@ -90,6 +90,7 @@ export interface WalletPort {
         operationId: string;
         attempt: number;
         identity: Identity;
+        authorize?: () => void;
     }): Promise<TxRef | void>;
 }
 export type Attempt = {

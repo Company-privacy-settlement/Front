@@ -13,7 +13,7 @@ export const docs: Doc[] = [
         "title": "Private settlement on NEAR",
         "paragraphs": [
           "Core is a development protocol for business-to-business payments and business-to-worker or contractor transfers on NEAR. Independent vaults hold principal. Shared zero-knowledge notes authorize a direct payout from one verified funded vault, with recipient-signed invoices and selected evidence for reconciliation.",
-          "The current implementation supports native NEAR shared groups and token-bound USDC/NEP-141 groups. The browser workspace executes prepared testnet FT plans. FT note creation, encrypted backups and public deposit preparation are available on Private notes. Standalone FT withdrawal proving and proof-file verification are available in Local proofs. Native/private-transfer proving remains available through the Core CLI."
+          "The current implementation supports native NEAR shared groups and token-bound USDC/NEP-141 groups. The browser executes configured testnet FT plans. Private notes creates encrypted notes and deposit plans; invoice checkout connects an original-group note to local proof generation, fee review, wallet approval and finalized confirmation. Local proofs remains available for standalone proofs and proof-file verification. Native/private-transfer proving remains in the Core CLI."
         ]
       },
       {
@@ -92,7 +92,7 @@ export const docs: Doc[] = [
           "Obtain a group policy independently of the API; verify network, registry, token, denomination, treasury and code/verifier hashes. Inspect approved capacity and recipient readiness.",
           "Create an FT note locally in Private notes. Download its encrypted backup and reopen it before preparing a public deposit plan.",
           "Import the deposit plan in Settlements with the same policy and an encrypted journal. Review each prerequisite/payment call, then verify its bound Active record.",
-          "Open the encrypted note and original group in Local proofs or use the Core CLI to generate a new Groth16 withdrawal proof. For checkout, bind the exact signed invoice recipient and selected unit reference.",
+          "In invoice checkout, select a unit and open its original-group encrypted note. Import trusted proving files and an independently obtained manifest hash, then generate the local proof with its signed recipient and reference derived automatically. Local proofs and the CLI remain alternatives.",
           "Import the public withdrawal plan and review each wallet call. A wallet response or timeout does not establish failure or completion.",
           "Confirm the bound withdrawal Complete state and indexed invoice totals/coverage. Keep separate backups and disclose only the evidence you intend to share."
         ]
@@ -216,14 +216,14 @@ export const docs: Doc[] = [
         ],
         "paragraphs": [
           "An unsafe development setup remains visibly labeled. File integrity does not qualify the setup ceremony, current liquidity, recipient readiness or final payment. The proof file contains public recipient, vault, reference and nullifier-hash data; keep the encrypted note separately.",
-          "Locking, page-hide and persisted cache return cancel pending workers and clear the open note. Cancellation alone keeps the note open for an explicit retry. Physical memory erasure cannot be guaranteed. Connected note-to-invoice proving and physical mobile-device qualification remain separate work."
+          "Locking, page-hide and persisted cache return cancel pending workers and clear the open note. Cancellation alone keeps the note open for an explicit retry. Physical memory erasure cannot be guaranteed. Connected note-to-invoice proving is available in checkout; physical mobile-device qualification remains separate work."
         ]
       },
       {
         "id": "withdraw",
         "title": "Pay a recipient",
         "paragraphs": [
-          "Generate a new Groth16 FT withdrawal proof in Local proofs or with the Core CLI using your saved note and original verified group. Select a verified vault with available liquidity and bind the exact recipient and disclosure reference. Connected note-to-invoice selection remains manual.",
+          "For invoices, choose a unit in checkout, open your saved original-group encrypted note and generate its proof locally. The signed recipient and unit reference are derived automatically. Select an eligible original-group vault. Standalone Local proofs and Core CLI remain alternatives.",
           "The note provides the principal. The fee payer separately covers the withdrawal protocol fee and applicable NEAR costs. The recipient receives the full fixed-denomination principal."
         ]
       },
@@ -331,10 +331,17 @@ export const docs: Doc[] = [
         "id": "checkout",
         "title": "Pay the signed terms",
         "steps": [
-          "Open the request and review its recipient, asset, principal, fees, and deadline.",
-          "Independently verify the group and merchant. Connect the payer wallet and unlock an encrypted journal.",
-          "Select a payment unit, download its proof action, and generate a withdrawal proof locally.",
-          "Import the prepared public plan and approve reviewed calls one at a time. Use a different reference for each remaining unit."
+          "Open the request and review its recipient, asset, principal, fees and deadline.",
+          "Independently import the trusted testnet FT policy and verify the matching API/current merchant key. Connect the fee payer wallet and unlock your encrypted journal.",
+          "Select Payment unit, open an original-group encrypted note with its passphrase and select a payout vault. Import the reviewed proving files and independently obtained artifact-manifest SHA-256 under Trusted proving files.",
+          "Choose Generate invoice proof. The disposable local worker verifies assets, rebuilds the tree and proves the signed recipient and selected unit reference. Cancel proof stops the job without importing or paying.",
+          "Choose Review amount & fees. Check full principal, the additive 0.15% withdrawal fee in token atomic units and separate NEAR costs. Approve each prerequisite and payment in the wallet individually.",
+          "Wait for the bound finalized withdrawal confirmation; invoice totals are indexed separately. Select a different funded note for each remaining unit and retain encrypted backups through reconciliation."
+        ],
+        "paragraphs": [
+          "Current merchant ownership, invoice availability and local duplicate-note/unit checks run before and after proving, at public-plan import and again before signatures. Switching units or locking clears private note/proof state; public proving files remain available for the next unit.",
+          "Checkout polls public recovery up to ten times, two seconds apart, without signing or resending. An uncertain wallet response remains blocked for reconciliation. Fixed-recipient recovery of already accepted funds remains available after expiry or key rotation.",
+          "The CLI/public-plan path remains available with the exact selected unit. Independent concurrent payers can still overpay: deadlines and unit caps are application rules, not contract reservations. A prompt already handed to an external wallet can settle late."
         ]
       },
       {
@@ -976,7 +983,7 @@ export const docs: Doc[] = [
         "id": "limits",
         "title": "Current protocol limits",
         "paragraphs": [
-          "Groups use fixed denominations and 256 total outputs, including private transfers. Withdrawal does not recycle capacity. Groups remain separate proof/privacy domains. Arbitrary-amount private payments, automatic private cross-group migration, browser proving and a bundled funded public deployment remain outside the implementation.",
+          "Groups use fixed denominations and 256 total outputs, including private transfers. Withdrawal does not recycle capacity. Groups remain separate proof/privacy domains. Arbitrary-amount private payments, automatic private cross-group migration and a bundled funded public deployment remain outside the implementation.",
           "Production use needs independent contract/circuit/SDK review and a reviewed trusted setup. Real KYB decisions, jurisdiction-specific AI preparation, and statutory filing remain separate integrations."
         ]
       }

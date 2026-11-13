@@ -4,17 +4,11 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { ArrowUpRight, Download, LockKeyhole, Square } from 'lucide-react';
 import { MerchantShell } from './merchant-shell';
 import { usePageHideLock } from '@/lib/page-hide-lock';
+import { ProvingFilesFields, provingAssets, provingFilesReady, type ProvingFileSelection } from './proving-files';
 import { BrowserProver, HttpGateway, feeQuote, openNoteBackup, parsePolicy, parseProofBundle, parseProvingContext,
-  type Policy, type PrivateNote, type ProvingAssets, type ProvingContext, type ProverResult, type ProverStage } from '@/vendor/core-client/index.js';
+  type Policy, type PrivateNote, type ProvingContext, type ProverResult, type ProverStage } from '@/vendor/core-client/index.js';
 
 const labels: Record<ProverStage, string> = { assets: 'Checking proving files', tree: 'Rebuilding the original group tree', witness: 'Calculating the private witness', proving: 'Generating your proof', verifying: 'Verifying the proof locally' };
-type Asset = 'manifest' | 'wasm' | 'zkey' | 'verificationKey';
-const files: { key: Asset; label: string; limit: number }[] = [
-  { key: 'manifest', label: 'Proving manifest JSON', limit: 8192 },
-  { key: 'wasm', label: 'Circuit WASM file', limit: 8 * 1024 * 1024 },
-  { key: 'zkey', label: 'Proving key file', limit: 16 * 1024 * 1024 },
-  { key: 'verificationKey', label: 'Verification key JSON', limit: 16384 },
-];
 function download(value: unknown, name: string) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' })), a = document.createElement('a');
   a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -27,7 +21,7 @@ function selected(event: ChangeEvent<HTMLInputElement>, limit: number): File {
 
 export function ProverWorkspace() {
   const [policy, setPolicy] = useState<Policy | null>(null), [note, setNote] = useState<PrivateNote | null>(null), [password, setPassword] = useState('');
-  const [assets, setAssets] = useState<Partial<Record<Asset, File>>>({}), [manifestHash, setManifestHash] = useState('');
+  const [assets, setAssets] = useState<ProvingFileSelection>({}), [manifestHash, setManifestHash] = useState('');
   const [api, setApi] = useState('http://localhost:3001'), [vault, setVault] = useState(''), [context, setContext] = useState<ProvingContext | null>(null);
   const [recipient, setRecipient] = useState(''), [root, setRoot] = useState(''), [result, setResult] = useState<ProverResult | null>(null);
   const [busy, setBusy] = useState(false), [stage, setStage] = useState(''), [error, setError] = useState(''), [notice, setNotice] = useState('');
@@ -71,15 +65,6 @@ export function ProverWorkspace() {
       current.current = opened.note; setNote(opened.note); setPassword(''); setNotice('Note opened locally. No secret was sent to the API.');
     });
   }
-  function assetFile(event: ChangeEvent<HTMLInputElement>, entry: typeof files[number]) {
-    setResult(null); setError(''); setNotice('');
-    try { const file = selected(event, entry.limit); setAssets(previous => ({ ...previous, [entry.key]: file })); }
-    catch (e) { setAssets(previous => ({ ...previous, [entry.key]: undefined })); setError((e as Error).message); }
-  }
-  function provingFiles(): ProvingAssets {
-    if (!assets.manifest || !assets.wasm || !assets.zkey || !assets.verificationKey || !/^[a-f0-9]{64}$/.test(manifestHash)) throw new Error('Select all four proving files and an independently obtained manifest SHA-256');
-    return { manifest: assets.manifest, wasm: assets.wasm, zkey: assets.zkey, verificationKey: assets.verificationKey, manifestSha256: manifestHash };
-  }
   async function loadContext() {
     if (!policy) return; setContext(null);
     await run(async (check, signal) => {
@@ -100,7 +85,7 @@ export function ProverWorkspace() {
   async function prove() {
     const privateNote = current.current; if (!policy || !privateNote || !context) return;
     await run(async (check, signal) => {
-      const output = await new BrowserProver(worker).prove({ policy, note: privateNote, context, action: { recipient, disclosureRoot: root } }, provingFiles(), {
+      const output = await new BrowserProver(worker).prove({ policy, note: privateNote, context, action: { recipient, disclosureRoot: root } }, provingAssets(assets, manifestHash), {
         signal, onProgress: next => { check(); setStage(labels[next]); },
       });
       check(); setResult(output); setNotice('Proof generated and verified locally. No payment has been sent.');
@@ -112,11 +97,11 @@ export function ProverWorkspace() {
     if (!policy) return;
     await run(async (check, signal) => {
       const text = await file.text(); check(); const bundle = await parseProofBundle(JSON.parse(text), policy); check();
-      const output = await new BrowserProver(worker).verify(bundle, policy, provingFiles(), { signal, onProgress: next => { check(); setStage(labels[next]); } });
+      const output = await new BrowserProver(worker).verify(bundle, policy, provingAssets(assets, manifestHash), { signal, onProgress: next => { check(); setStage(labels[next]); } });
       check(); setResult(output); setNotice('Proof file integrity and Groth16 proof verified locally. This does not confirm a payment or current chain readiness.');
     });
   }
-  const ready = !!policy && files.every(entry => !!assets[entry.key]) && /^[a-f0-9]{64}$/.test(manifestHash);
+  const ready = !!policy && provingFilesReady(assets, manifestHash);
   return <MerchantShell section="Local proofs">
     <div className="merchant-page-heading"><div><h1>Local proofs</h1><p>Generate a withdrawal proof on your device. Keep your note private.</p></div><Link href="/docs/payments/#browser-proving" className="button button-outline">Read the guide <ArrowUpRight size={14}/></Link></div>
     <div className="notes-grid prover-grid">
@@ -129,8 +114,7 @@ export function ProverWorkspace() {
         {note && <div className="note-public-result"><h3>Public commitment</h3><code className="note-commitment">{note.commitment}</code></div>}
         <div className="notes-actions"><button className="button button-outline" onClick={lock}><LockKeyhole size={14}/> Lock note</button><Link href="/notes/" className="button button-outline">Create or back up a note</Link></div>
         <div className="note-restore"><h2>Check your proving files</h2><p>Use files from a release you trust. Obtain the manifest hash separately; a hash supplied alongside untrusted files is insufficient.</p>
-          <label className="form-label">Trusted proving manifest SHA-256<input value={manifestHash} maxLength={64} disabled={busy} placeholder="64 lowercase hexadecimal characters" onChange={e => { setManifestHash(e.target.value); invalidate(); }}/></label>
-          {files.map(entry => <label className="form-label" key={entry.key}>{entry.label}<input type="file" disabled={busy} onChange={e => assetFile(e, entry)}/>{assets[entry.key] && <span className="prover-filename">{assets[entry.key]!.name}</span>}</label>)}
+          <ProvingFilesFields files={assets} hash={manifestHash} disabled={busy} onFiles={next => { setAssets(next); invalidate(); }} onHash={next => { setManifestHash(next); invalidate(); }} onError={setError}/>
           <p className="notes-help">The circuit, proving key and verification key are checked before use. The verification key must also match the trusted group policy.</p>
           <label className="form-label">Verify an existing proof file<input type="file" accept=".json,application/json" disabled={busy || !ready} onChange={e => void verifyFile(e)}/></label>
         </div>

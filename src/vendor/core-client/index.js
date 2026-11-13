@@ -800,10 +800,10 @@ function requireOpenInvoice(invoice, now = Date.now()) {
   if (now < Date.parse(i.createdAt) - 3e5 || now >= Date.parse(i.expiresAt))
     throw new Error("This invoice is expired or not yet valid");
 }
-async function matchInvoicePlan(input, invoice, payer) {
+async function matchInvoicePlan(input, invoice, payer, paymentIndex) {
   requireOpenInvoice(invoice);
   const p = await preparedPayment(input, invoice.policy, payer);
-  if (p.reference.kind !== "withdrawal" || p.reference.expectedRecipient !== invoice.recipient || !(await invoicePaymentRoots(invoice)).includes(p.reference.expectedDisclosureRoot ?? ""))
+  if (p.reference.kind !== "withdrawal" || p.reference.expectedRecipient !== invoice.recipient || !(await invoicePaymentRoots(invoice)).includes(p.reference.expectedDisclosureRoot ?? "") || paymentIndex !== void 0 && p.reference.expectedDisclosureRoot !== await invoiceRoot(invoice, paymentIndex))
     throw new Error("Payment proof must bind this invoice root and recipient");
   return p;
 }
@@ -1022,15 +1022,17 @@ function browserInvoiceLibraryStorage(owner) {
 
 // sdk/client/session.ts
 var SettlementSession = class {
-  constructor(journal, gateway, wallet, policy) {
+  constructor(journal, gateway, wallet, policy, guards = {}) {
     this.journal = journal;
     this.gateway = gateway;
     this.wallet = wallet;
+    this.guards = guards;
     this.policy = parsePolicy(policy);
   }
   journal;
   gateway;
   wallet;
+  guards;
   policy;
   async trusted() {
     if (canonical(parsePolicy(await this.gateway.policy())) !== canonical(this.policy))
@@ -1054,6 +1056,7 @@ var SettlementSession = class {
       identity2.accountId
     );
     return this.journal.update(async (operations, persist) => {
+      await this.guards.beforeImport?.(prepared, identity2.accountId, operations);
       if (operations.length >= 100)
         throw new Error(
           "Journal capacity reached; preserve a backup and start another journal"
@@ -1234,6 +1237,8 @@ var SettlementSession = class {
         throw new Error(
           "Attempt limit reached; reconcile existing transactions"
         );
+      const authorize = await this.guards.beforeSubmit?.(o, review, operations);
+      check();
       const a = {
         kind: review.kind,
         call: review.call,
@@ -1245,10 +1250,21 @@ var SettlementSession = class {
       await persist();
       check();
       try {
+        authorize?.();
+      } catch (error) {
+        o.attempts.pop();
+        await persist();
+        throw error;
+      }
+      try {
         const tx = await this.wallet.sign(a.call, {
           operationId: id,
           attempt: o.attempts.length - 1,
-          identity: { network: this.policy.network, accountId: o.payer }
+          identity: { network: this.policy.network, accountId: o.payer },
+          authorize: () => {
+            check();
+            authorize?.();
+          }
         });
         if (tx) {
           a.transaction = transactionRef(tx);
@@ -1285,109 +1301,6 @@ var SettlementSession = class {
     });
   }
 };
-
-// sdk/client/groups.ts
-function exact4(value2, keys) {
-  if (Object.keys(value2).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected group fields");
-}
-function count(value2) {
-  if (typeof value2 !== "number" || !Number.isSafeInteger(value2) || value2 < 0) throw new Error("Invalid group count");
-  return value2;
-}
-function boolean(value2) {
-  if (typeof value2 !== "boolean") throw new Error("Invalid group flag");
-  return value2;
-}
-function parseApprovedGroups(input) {
-  const value2 = object(input);
-  exact4(value2, ["version", "groups"]);
-  if (value2.version !== 1 || !Array.isArray(value2.groups) || value2.groups.length < 1 || value2.groups.length > 8) throw new Error("Use an approved directory with 1\u20138 groups");
-  const ids = /* @__PURE__ */ new Set(), registries = /* @__PURE__ */ new Set();
-  const groups = value2.groups.map((raw) => {
-    const g = object(raw);
-    exact4(g, ["id", "depositsEnabled", "policy"]);
-    if (typeof g.id !== "string" || !/^[a-z0-9][a-z0-9-]{0,31}$/.test(g.id)) throw new Error("Invalid group ID");
-    const policy = parsePolicy(g.policy);
-    if (ids.has(g.id) || registries.has(policy.registry)) throw new Error("Duplicate group ID or registry");
-    ids.add(g.id);
-    registries.add(policy.registry);
-    return { id: g.id, depositsEnabled: boolean(g.depositsEnabled), policy };
-  });
-  const first = groups[0].policy;
-  if (groups.some((g) => g.policy.network !== first.network || g.policy.tokenId !== first.tokenId || g.policy.denomination !== first.denomination))
-    throw new Error("Approved groups must use the same network, asset and denomination");
-  return { version: 1, groups };
-}
-function parseGroupCapacity(input, trusted) {
-  const value2 = object(input), policy = parsePolicy(value2.policy), expected = parsePolicy(trusted);
-  exact4(value2, ["policy", "checkedAtBlock", "capacity", "usedOutputs", "remainingOutputs", "outstandingNotes", "depositCapacityAvailable", "depositVaultObserved", "checkedVaults", "vaultScanComplete", "chainFreshnessChecked"]);
-  if (canonical(policy) !== canonical(expected)) throw new Error("Group capacity policy differs from the trusted group");
-  const block3 = object(value2.checkedAtBlock);
-  exact4(block3, ["hash", "height"]);
-  if (typeof block3.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block3.hash)) throw new Error("Invalid group block");
-  const usedOutputs = count(value2.usedOutputs), remainingOutputs = count(value2.remainingOutputs), outstandingNotes = count(value2.outstandingNotes), checkedVaults = count(value2.checkedVaults);
-  const depositCapacityAvailable = boolean(value2.depositCapacityAvailable), depositVaultObserved = boolean(value2.depositVaultObserved), vaultScanComplete = boolean(value2.vaultScanComplete);
-  if (value2.capacity !== 256 || usedOutputs > 256 || remainingOutputs !== 256 - usedOutputs || outstandingNotes > usedOutputs || checkedVaults > 1 || depositCapacityAvailable !== remainingOutputs > 0 || depositVaultObserved && (!depositCapacityAvailable || checkedVaults === 0) || value2.chainFreshnessChecked !== false)
-    throw new Error("Inconsistent group capacity snapshot");
-  return { policy, checkedAtBlock: { hash: block3.hash, height: count(block3.height) }, capacity: 256, usedOutputs, remainingOutputs, outstandingNotes, depositCapacityAvailable, depositVaultObserved, checkedVaults, vaultScanComplete, chainFreshnessChecked: false };
-}
-
-// sdk/client/recipients.ts
-function parseRecipientReadiness(raw, trusted, expectedRecipient) {
-  const r = object(raw), policy = parsePolicy(r.policy), expected = parsePolicy(trusted), recipient = account(r.recipient), block3 = object(r.checkedAtBlock);
-  const fields = ["policy", "recipient", "checkedAtBlock", "accountKind", "accountExists", "tokenRegistered", "state", "canReceiveTokens", "storageMinimumYoctoNear", "registrationCall", "activationAmountYoctoNear", "gasBudgetIncluded", "chainFreshnessChecked"];
-  if (Object.keys(r).sort().join("|") !== fields.sort().join("|") || Object.keys(block3).sort().join("|") !== "hash|height") throw new Error("Unexpected recipient readiness fields");
-  if (!policy.tokenId || canonical(policy) !== canonical(expected) || recipient !== account(expectedRecipient) || recipient === policy.registry || recipient.endsWith("." + policy.registry)) throw new Error("Recipient readiness differs from the trusted destination");
-  if (typeof block3.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block3.hash) || typeof block3.height !== "number" || !Number.isSafeInteger(block3.height) || block3.height < 0) throw new Error("Invalid recipient readiness block");
-  if (typeof r.accountExists !== "boolean" || typeof r.tokenRegistered !== "boolean") throw new Error("Invalid recipient readiness flags");
-  const state = !r.accountExists ? "account_missing" : !r.tokenRegistered ? "registration_required" : "ready";
-  const accountKind = /^[0-9a-f]{64}$/.test(recipient) ? "near_implicit" : /^0x[0-9a-f]{40}$/.test(recipient) ? "eth_implicit" : "named_or_other";
-  if (r.state !== state || r.accountKind !== accountKind || r.canReceiveTokens !== (state === "ready") || r.activationAmountYoctoNear !== null || r.gasBudgetIncluded !== false || r.chainFreshnessChecked !== false) throw new Error("Inconsistent recipient readiness");
-  if (typeof r.storageMinimumYoctoNear !== "string" || !/^[1-9][0-9]{0,24}$/.test(r.storageMinimumYoctoNear) || BigInt(r.storageMinimumYoctoNear) > 10n ** 24n) throw new Error("Invalid recipient registration minimum");
-  const registrationCall = r.registrationCall === null ? null : parseCall(r.registrationCall);
-  const expectedCall = state === "registration_required" ? { contract: policy.tokenId, method: "storage_deposit", args: { account_id: recipient, registration_only: true }, attachedYoctoNear: r.storageMinimumYoctoNear, gas: GAS } : null;
-  if (canonical(registrationCall) !== canonical(expectedCall)) throw new Error("Recipient registration call is not bound to this account and token");
-  return {
-    policy,
-    recipient,
-    checkedAtBlock: { hash: block3.hash, height: block3.height },
-    accountKind,
-    accountExists: r.accountExists,
-    tokenRegistered: r.tokenRegistered,
-    state,
-    canReceiveTokens: state === "ready",
-    storageMinimumYoctoNear: r.storageMinimumYoctoNear,
-    registrationCall,
-    activationAmountYoctoNear: null,
-    gasBudgetIncluded: false,
-    chainFreshnessChecked: false
-  };
-}
-
-// sdk/client/deposits.ts
-function exact5(value2, keys) {
-  if (Object.keys(value2).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected public deposit fields");
-}
-function parseDepositRequest(raw) {
-  const value2 = object(raw);
-  exact5(value2, ["commitment", "disclosureRoot", ...value2.vault === void 0 ? [] : ["vault"]]);
-  const commitment = scalar(value2.commitment);
-  if (commitment === "0" || typeof value2.disclosureRoot !== "string" || !/^[a-f0-9]{64}$/.test(value2.disclosureRoot)) throw new Error("Invalid public deposit commitment or disclosure root");
-  return { commitment, disclosureRoot: value2.disclosureRoot, ...value2.vault === void 0 ? {} : { vault: account(value2.vault) } };
-}
-async function parseDepositPlan(raw, trusted, expected) {
-  const value2 = object(raw), policy = parsePolicy(value2.policy), request = parseDepositRequest(expected);
-  exact5(value2, ["policy", "checkedAtBlock", "plan", "remainingOutputs", "checkedVaults", "vaultScanComplete"]);
-  if (!policy.tokenId || canonical(policy) !== canonical(parsePolicy(trusted))) throw new Error("Deposit policy differs from the trusted group");
-  const block3 = object(value2.checkedAtBlock), plan = object(value2.plan);
-  exact5(block3, ["hash", "height"]);
-  exact5(plan, ["tokenCall", "checkedAtBlock"]);
-  if (typeof block3.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block3.hash) || typeof block3.height !== "number" || !Number.isSafeInteger(block3.height) || block3.height < 0 || plan.checkedAtBlock !== block3.hash) throw new Error("Invalid deposit block");
-  const { payment, reference } = await preparedPayment(plan, policy, "inspection.testnet");
-  if (reference.kind !== "deposit" || reference.commitment !== request.commitment || reference.expectedDisclosureRoot !== request.disclosureRoot || request.vault && reference.vault !== request.vault || payment.gas !== GAS) throw new Error("Deposit call differs from the requested note and receipt");
-  if (typeof value2.remainingOutputs !== "number" || !Number.isInteger(value2.remainingOutputs) || value2.remainingOutputs < 1 || value2.remainingOutputs > 256 || typeof value2.checkedVaults !== "number" || !Number.isInteger(value2.checkedVaults) || value2.checkedVaults < 1 || value2.checkedVaults > 20 || typeof value2.vaultScanComplete !== "boolean") throw new Error("Invalid deposit capacity snapshot");
-  return { policy, checkedAtBlock: { hash: block3.hash, height: block3.height }, plan: { tokenCall: payment, checkedAtBlock: block3.hash }, remainingOutputs: value2.remainingOutputs, checkedVaults: value2.checkedVaults, vaultScanComplete: value2.vaultScanComplete };
-}
 
 // sdk/client/poseidon-constants.ts
 var parameters = {
@@ -1898,7 +1811,7 @@ var parameters = {
 // sdk/client/notes.ts
 var FIELD2 = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 var FORMAT2 = "core-private-note";
-function exact6(value2, fields) {
+function exact4(value2, fields) {
   if (Object.keys(value2).sort().join("|") !== [...fields].sort().join("|")) throw new Error("Unexpected private note fields");
 }
 var constants = Object.fromEntries([2, 3].map((n) => [n, { C: parameters[n].C.map(BigInt), M: parameters[n].M.map((row) => row.map(BigInt)) }]));
@@ -1933,7 +1846,7 @@ async function createPrivateNote(policy) {
 }
 async function validatePrivateNote(policy, raw) {
   const note = object(raw);
-  exact6(note, ["version", "domain", "secret", "nullifier", "commitment"]);
+  exact4(note, ["version", "domain", "secret", "nullifier", "commitment"]);
   const domain = scalar(note.domain), secret = scalar(note.secret), nullifier = scalar(note.nullifier), commitment = scalar(note.commitment);
   if (note.version !== 1 || commitment === "0" || domain !== await noteDomain(policy) || commitment !== noteHash([secret, nullifier, domain])) throw new Error("Invalid note or different settlement group");
   return { version: 1, domain, secret, nullifier, commitment };
@@ -1953,7 +1866,7 @@ async function openNoteBackup(envelope, password, expectedPolicy) {
     throw error;
   }
   const payload = object(decoded);
-  exact6(payload, ["version", "policy", "note"]);
+  exact4(payload, ["version", "policy", "note"]);
   const policy = parsePolicy(payload.policy);
   if (payload.version !== 1 || expected && canonical(policy) !== canonical(expected)) throw new Error("Backup differs from the trusted policy");
   return { policy, note: await validatePrivateNote(policy, payload.note) };
@@ -1962,7 +1875,7 @@ async function openNoteBackup(envelope, password, expectedPolicy) {
 // sdk/client/prover.ts
 var HASH = /^[a-f0-9]{64}$/;
 var Q = 21888242871839275222246405745257275088696311157297823662689037894645226208583n;
-function exact7(o, keys) {
+function exact5(o, keys) {
   if (Object.keys(o).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected proving fields");
 }
 function hash2(value2) {
@@ -1971,7 +1884,7 @@ function hash2(value2) {
 }
 function block(input) {
   const b = object(input);
-  exact7(b, ["hash", "height"]);
+  exact5(b, ["hash", "height"]);
   if (typeof b.hash !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(b.hash) || !Number.isSafeInteger(b.height) || Number(b.height) < 0) throw new Error("Invalid finalized snapshot");
   return { hash: b.hash, height: b.height };
 }
@@ -1988,14 +1901,14 @@ function vaultFor(policy, value2) {
 }
 function parseProvingAction(input, policy) {
   const a = object(input);
-  exact7(a, ["recipient", "disclosureRoot"]);
+  exact5(a, ["recipient", "disclosureRoot"]);
   const recipient = account(a.recipient);
   if (recipient === policy.registry || recipient.endsWith("." + policy.registry)) throw new Error("Choose an external recipient");
   return { recipient, disclosureRoot: hash2(a.disclosureRoot) };
 }
 function parseProvingContext(input, expected) {
   const c = object(input);
-  exact7(c, ["version", "policy", "checkedAtBlock", "root", "commitments", "vault"]);
+  exact5(c, ["version", "policy", "checkedAtBlock", "root", "commitments", "vault"]);
   const policy = ft(c.policy);
   if (c.version !== 1 || canonical(policy) !== canonical(ft(expected))) throw new Error("Proving context differs from the trusted policy");
   if (!Array.isArray(c.commitments) || c.commitments.length < 1 || c.commitments.length > 256) throw new Error("Expected 1\u2013256 ordered commitments");
@@ -2017,10 +1930,10 @@ async function verifyProvingAssets(assets, expected) {
   const manifestBytes = await read(assets.manifest, 8192);
   if (await digest2(manifestBytes) !== hash2(assets.manifestSha256)) throw new Error("Artifact manifest hash mismatch");
   const manifest = object(JSON.parse(new TextDecoder().decode(manifestBytes)));
-  exact7(manifest, ["protocol", "depth", "setup", "hashes"]);
+  exact5(manifest, ["protocol", "depth", "setup", "hashes"]);
   if (manifest.protocol !== "core-v1" || manifest.depth !== 8 || typeof manifest.setup !== "string" || !/^[A-Za-z0-9_.:-]{1,128}$/.test(manifest.setup)) throw new Error("Unsupported proving manifest");
   const hashes = object(manifest.hashes);
-  exact7(hashes, ["spend.r1cs", "spend_js/spend.wasm", "spend.zkey", "verification_key.json"]);
+  exact5(hashes, ["spend.r1cs", "spend_js/spend.wasm", "spend.zkey", "verification_key.json"]);
   Object.values(hashes).forEach(hash2);
   const wasm = await read(assets.wasm, 8 * 1024 * 1024), zkey = await read(assets.zkey, 16 * 1024 * 1024), key2 = await read(assets.verificationKey, 16384);
   if (await digest2(wasm) !== hashes["spend_js/spend.wasm"] || await digest2(zkey) !== hashes["spend.zkey"] || await digest2(key2) !== hashes["verification_key.json"]) throw new Error("Proving asset hash mismatch");
@@ -2060,7 +1973,7 @@ function encodeVerificationKeyBytes(key2) {
 }
 function parseSpend(input) {
   const p = object(input);
-  exact7(p, ["proof", "public_inputs"]);
+  exact5(p, ["proof", "public_inputs"]);
   if (typeof p.proof !== "string" || !/^[A-Za-z0-9+/]{342}==$/.test(p.proof) || atob(p.proof).length !== 256 || btoa(atob(p.proof)) !== p.proof || !Array.isArray(p.public_inputs) || p.public_inputs.length !== 5) throw new Error("Invalid spend proof");
   return { proof: p.proof, public_inputs: p.public_inputs.map(scalar) };
 }
@@ -2076,11 +1989,11 @@ async function publicPlan(policy, action, spend, checkedAtBlock) {
 }
 async function parseProofBundle(raw, expected) {
   const b = object(raw);
-  exact7(b, ["format", "version", "policy", "action", "checkedAtBlock", "artifactManifestSha256", "setup", "spend", "plan", "digest"]);
+  exact5(b, ["format", "version", "policy", "action", "checkedAtBlock", "artifactManifestSha256", "setup", "spend", "plan", "digest"]);
   const { digest: checksum, ...payload } = b;
   if (b.format !== "core-browser-proof" || b.version !== 1 || await sha256(canonical(payload)) !== hash2(checksum) || canonical(ft(b.policy)) !== canonical(ft(expected))) throw new Error("Proof file integrity or policy mismatch");
   const policy = ft(expected), a = object(b.action);
-  exact7(a, ["vault", "recipient", "disclosureRoot"]);
+  exact5(a, ["vault", "recipient", "disclosureRoot"]);
   const action = { ...parseProvingAction({ recipient: a.recipient, disclosureRoot: a.disclosureRoot }, policy), vault: vaultFor(policy, a.vault) }, spend = parseSpend(b.spend), checkedAtBlock = block(b.checkedAtBlock);
   if (spend.public_inputs[4] !== await noteDomain(policy) || spend.public_inputs[3] !== await withdrawalContext(policy, action.vault, action)) throw new Error("Proof file does not bind this withdrawal");
   if (canonical(b.plan) !== canonical(await publicPlan(policy, action, spend, checkedAtBlock.hash)) || typeof b.setup !== "string" || !/^[A-Za-z0-9_.:-]{1,128}$/.test(b.setup)) throw new Error("Proof plan or setup metadata mismatch");
@@ -2179,6 +2092,202 @@ var BrowserProver = class {
     });
   }
 };
+
+// sdk/client/invoice-payment.ts
+function copy(input) {
+  return JSON.parse(canonical(parseSignedInvoice(input)));
+}
+function reference(root, signed, value2) {
+  if (value2.kind !== "withdrawal" || value2.expectedRecipient !== signed.invoice.recipient || value2.expectedDisclosureRoot !== root) throw new Error("Payment is not bound to the selected invoice unit");
+}
+function localAvailability(signed, root, nullifier, operations, except, reuseExact = false) {
+  for (const operation of operations) {
+    if (operation.id === except || canonical(operation.policy) !== canonical(signed.invoice.policy) || operation.reference.kind !== "withdrawal") continue;
+    const old = operation.reference;
+    const exact9 = old.nullifier === nullifier && old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root;
+    if (exact9 && reuseExact) continue;
+    if (old.nullifier === nullifier) throw new Error("This note already has a local withdrawal. Reconcile the existing operation; do not spend it again.");
+    if (old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root && (signed.invoice.version === 2 || operation.outcome === "open")) throw new Error("This invoice unit already has a local payment. Reconcile that operation before selecting another note.");
+  }
+}
+async function available(gateway, signed, root, signal) {
+  signal?.throwIfAborted();
+  requireOpenInvoice(signed.invoice);
+  const status = await gateway.invoiceStatus(copy(signed), { signal });
+  signal?.throwIfAborted();
+  await assertInvoiceReferenceAvailable(signed.invoice, root, status);
+  signal?.throwIfAborted();
+  requireOpenInvoice(signed.invoice);
+  if (!["awaiting_payment", "partial"].includes(status.state) || BigInt(status.remainingTokens) < BigInt(signed.invoice.policy.denomination)) throw new Error("This invoice is already covered or needs merchant review");
+  return status;
+}
+async function matchInvoiceProof(raw, input, paymentIndex, payer) {
+  const signed = await verifySignedInvoice(copy(input)), bundle = await parseProofBundle(raw, signed.invoice.policy);
+  const prepared = await matchInvoicePlan(bundle.plan, signed.invoice, payer, paymentIndex);
+  const root = await invoiceRoot(signed.invoice, paymentIndex);
+  reference(root, signed, prepared.reference);
+  if (bundle.action.recipient !== signed.invoice.recipient || bundle.action.disclosureRoot !== root) throw new Error("Proof does not match the selected signed invoice unit");
+  return { bundle, prepared, root };
+}
+async function prepareInvoiceProof(prover, gateway, input, paymentIndex, rawNote, assets, vault2, options = {}) {
+  const signed = await verifySignedInvoice(copy(input));
+  options.signal?.throwIfAborted();
+  const policy = parsePolicy(signed.invoice.policy), root = await invoiceRoot(signed.invoice, paymentIndex), note = await validatePrivateNote(policy, rawNote);
+  const nullifier = noteHash([note.nullifier, note.domain]);
+  options.signal?.throwIfAborted();
+  if (options.getOperations) localAvailability(signed, root, nullifier, await options.getOperations());
+  await available(gateway, signed, root, options.signal);
+  const context = parseProvingContext(await gateway.provingContext(parsePolicy(policy), vault2, { signal: options.signal }), policy);
+  options.signal?.throwIfAborted();
+  if (context.vault !== vault2) throw new Error("API substituted the selected payout vault");
+  const action = { recipient: signed.invoice.recipient, disclosureRoot: root };
+  const result = await prover.prove({ policy, note, context, action }, assets, { signal: options.signal, onProgress: options.onProgress });
+  options.signal?.throwIfAborted();
+  const matched = await matchInvoiceProof(result.bundle, signed, paymentIndex, signed.invoice.recipient);
+  options.signal?.throwIfAborted();
+  if (matched.bundle.spend.public_inputs[0] !== nullifier || matched.bundle.spend.public_inputs[2] !== context.root) throw new Error("Prover returned a different note or group root");
+  await available(gateway, signed, root, options.signal);
+  if (options.getOperations) localAvailability(signed, root, nullifier, await options.getOperations());
+  options.signal?.throwIfAborted();
+  return result;
+}
+function invoiceSettlementGuards(gateway, input) {
+  const signed = copy(input);
+  const binding = async (value2) => {
+    const roots = await invoicePaymentRoots(signed.invoice), root = value2.kind === "withdrawal" ? value2.expectedDisclosureRoot : void 0;
+    if (!root || !roots.includes(root)) throw new Error("Operation is not bound to this signed invoice");
+    reference(root, signed, value2);
+    return root;
+  };
+  return {
+    async beforeImport(payment, _payer, operations) {
+      await verifySignedInvoice(copy(signed));
+      const root = await binding(payment.reference);
+      if (payment.reference.kind !== "withdrawal") throw new Error("Invoice requires a withdrawal");
+      localAvailability(signed, root, payment.reference.nullifier, operations, void 0, true);
+      await available(gateway, signed, root);
+    },
+    async beforeSubmit(operation, review, operations) {
+      const root = await binding(operation.reference);
+      if (operation.reference.kind !== "withdrawal") throw new Error("Invoice requires a withdrawal");
+      if (review.kind === "retry" || review.kind === "refund") return () => {
+      };
+      await verifySignedInvoice(copy(signed));
+      localAvailability(signed, root, operation.reference.nullifier, operations, operation.id);
+      await available(gateway, signed, root);
+      const checked = Date.now();
+      return () => {
+        requireOpenInvoice(signed.invoice);
+        const age = Date.now() - checked;
+        if (age < 0 || age > 15e3) throw new Error("Invoice authorization is stale. Refresh and review before signing.");
+        reference(root, signed, operation.reference);
+      };
+    }
+  };
+}
+
+// sdk/client/groups.ts
+function exact6(value2, keys) {
+  if (Object.keys(value2).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected group fields");
+}
+function count(value2) {
+  if (typeof value2 !== "number" || !Number.isSafeInteger(value2) || value2 < 0) throw new Error("Invalid group count");
+  return value2;
+}
+function boolean(value2) {
+  if (typeof value2 !== "boolean") throw new Error("Invalid group flag");
+  return value2;
+}
+function parseApprovedGroups(input) {
+  const value2 = object(input);
+  exact6(value2, ["version", "groups"]);
+  if (value2.version !== 1 || !Array.isArray(value2.groups) || value2.groups.length < 1 || value2.groups.length > 8) throw new Error("Use an approved directory with 1\u20138 groups");
+  const ids = /* @__PURE__ */ new Set(), registries = /* @__PURE__ */ new Set();
+  const groups = value2.groups.map((raw) => {
+    const g = object(raw);
+    exact6(g, ["id", "depositsEnabled", "policy"]);
+    if (typeof g.id !== "string" || !/^[a-z0-9][a-z0-9-]{0,31}$/.test(g.id)) throw new Error("Invalid group ID");
+    const policy = parsePolicy(g.policy);
+    if (ids.has(g.id) || registries.has(policy.registry)) throw new Error("Duplicate group ID or registry");
+    ids.add(g.id);
+    registries.add(policy.registry);
+    return { id: g.id, depositsEnabled: boolean(g.depositsEnabled), policy };
+  });
+  const first = groups[0].policy;
+  if (groups.some((g) => g.policy.network !== first.network || g.policy.tokenId !== first.tokenId || g.policy.denomination !== first.denomination))
+    throw new Error("Approved groups must use the same network, asset and denomination");
+  return { version: 1, groups };
+}
+function parseGroupCapacity(input, trusted) {
+  const value2 = object(input), policy = parsePolicy(value2.policy), expected = parsePolicy(trusted);
+  exact6(value2, ["policy", "checkedAtBlock", "capacity", "usedOutputs", "remainingOutputs", "outstandingNotes", "depositCapacityAvailable", "depositVaultObserved", "checkedVaults", "vaultScanComplete", "chainFreshnessChecked"]);
+  if (canonical(policy) !== canonical(expected)) throw new Error("Group capacity policy differs from the trusted group");
+  const block3 = object(value2.checkedAtBlock);
+  exact6(block3, ["hash", "height"]);
+  if (typeof block3.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block3.hash)) throw new Error("Invalid group block");
+  const usedOutputs = count(value2.usedOutputs), remainingOutputs = count(value2.remainingOutputs), outstandingNotes = count(value2.outstandingNotes), checkedVaults = count(value2.checkedVaults);
+  const depositCapacityAvailable = boolean(value2.depositCapacityAvailable), depositVaultObserved = boolean(value2.depositVaultObserved), vaultScanComplete = boolean(value2.vaultScanComplete);
+  if (value2.capacity !== 256 || usedOutputs > 256 || remainingOutputs !== 256 - usedOutputs || outstandingNotes > usedOutputs || checkedVaults > 1 || depositCapacityAvailable !== remainingOutputs > 0 || depositVaultObserved && (!depositCapacityAvailable || checkedVaults === 0) || value2.chainFreshnessChecked !== false)
+    throw new Error("Inconsistent group capacity snapshot");
+  return { policy, checkedAtBlock: { hash: block3.hash, height: count(block3.height) }, capacity: 256, usedOutputs, remainingOutputs, outstandingNotes, depositCapacityAvailable, depositVaultObserved, checkedVaults, vaultScanComplete, chainFreshnessChecked: false };
+}
+
+// sdk/client/recipients.ts
+function parseRecipientReadiness(raw, trusted, expectedRecipient) {
+  const r = object(raw), policy = parsePolicy(r.policy), expected = parsePolicy(trusted), recipient = account(r.recipient), block3 = object(r.checkedAtBlock);
+  const fields = ["policy", "recipient", "checkedAtBlock", "accountKind", "accountExists", "tokenRegistered", "state", "canReceiveTokens", "storageMinimumYoctoNear", "registrationCall", "activationAmountYoctoNear", "gasBudgetIncluded", "chainFreshnessChecked"];
+  if (Object.keys(r).sort().join("|") !== fields.sort().join("|") || Object.keys(block3).sort().join("|") !== "hash|height") throw new Error("Unexpected recipient readiness fields");
+  if (!policy.tokenId || canonical(policy) !== canonical(expected) || recipient !== account(expectedRecipient) || recipient === policy.registry || recipient.endsWith("." + policy.registry)) throw new Error("Recipient readiness differs from the trusted destination");
+  if (typeof block3.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block3.hash) || typeof block3.height !== "number" || !Number.isSafeInteger(block3.height) || block3.height < 0) throw new Error("Invalid recipient readiness block");
+  if (typeof r.accountExists !== "boolean" || typeof r.tokenRegistered !== "boolean") throw new Error("Invalid recipient readiness flags");
+  const state = !r.accountExists ? "account_missing" : !r.tokenRegistered ? "registration_required" : "ready";
+  const accountKind = /^[0-9a-f]{64}$/.test(recipient) ? "near_implicit" : /^0x[0-9a-f]{40}$/.test(recipient) ? "eth_implicit" : "named_or_other";
+  if (r.state !== state || r.accountKind !== accountKind || r.canReceiveTokens !== (state === "ready") || r.activationAmountYoctoNear !== null || r.gasBudgetIncluded !== false || r.chainFreshnessChecked !== false) throw new Error("Inconsistent recipient readiness");
+  if (typeof r.storageMinimumYoctoNear !== "string" || !/^[1-9][0-9]{0,24}$/.test(r.storageMinimumYoctoNear) || BigInt(r.storageMinimumYoctoNear) > 10n ** 24n) throw new Error("Invalid recipient registration minimum");
+  const registrationCall = r.registrationCall === null ? null : parseCall(r.registrationCall);
+  const expectedCall = state === "registration_required" ? { contract: policy.tokenId, method: "storage_deposit", args: { account_id: recipient, registration_only: true }, attachedYoctoNear: r.storageMinimumYoctoNear, gas: GAS } : null;
+  if (canonical(registrationCall) !== canonical(expectedCall)) throw new Error("Recipient registration call is not bound to this account and token");
+  return {
+    policy,
+    recipient,
+    checkedAtBlock: { hash: block3.hash, height: block3.height },
+    accountKind,
+    accountExists: r.accountExists,
+    tokenRegistered: r.tokenRegistered,
+    state,
+    canReceiveTokens: state === "ready",
+    storageMinimumYoctoNear: r.storageMinimumYoctoNear,
+    registrationCall,
+    activationAmountYoctoNear: null,
+    gasBudgetIncluded: false,
+    chainFreshnessChecked: false
+  };
+}
+
+// sdk/client/deposits.ts
+function exact7(value2, keys) {
+  if (Object.keys(value2).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected public deposit fields");
+}
+function parseDepositRequest(raw) {
+  const value2 = object(raw);
+  exact7(value2, ["commitment", "disclosureRoot", ...value2.vault === void 0 ? [] : ["vault"]]);
+  const commitment = scalar(value2.commitment);
+  if (commitment === "0" || typeof value2.disclosureRoot !== "string" || !/^[a-f0-9]{64}$/.test(value2.disclosureRoot)) throw new Error("Invalid public deposit commitment or disclosure root");
+  return { commitment, disclosureRoot: value2.disclosureRoot, ...value2.vault === void 0 ? {} : { vault: account(value2.vault) } };
+}
+async function parseDepositPlan(raw, trusted, expected) {
+  const value2 = object(raw), policy = parsePolicy(value2.policy), request = parseDepositRequest(expected);
+  exact7(value2, ["policy", "checkedAtBlock", "plan", "remainingOutputs", "checkedVaults", "vaultScanComplete"]);
+  if (!policy.tokenId || canonical(policy) !== canonical(parsePolicy(trusted))) throw new Error("Deposit policy differs from the trusted group");
+  const block3 = object(value2.checkedAtBlock), plan = object(value2.plan);
+  exact7(block3, ["hash", "height"]);
+  exact7(plan, ["tokenCall", "checkedAtBlock"]);
+  if (typeof block3.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block3.hash) || typeof block3.height !== "number" || !Number.isSafeInteger(block3.height) || block3.height < 0 || plan.checkedAtBlock !== block3.hash) throw new Error("Invalid deposit block");
+  const { payment, reference: reference2 } = await preparedPayment(plan, policy, "inspection.testnet");
+  if (reference2.kind !== "deposit" || reference2.commitment !== request.commitment || reference2.expectedDisclosureRoot !== request.disclosureRoot || request.vault && reference2.vault !== request.vault || payment.gas !== GAS) throw new Error("Deposit call differs from the requested note and receipt");
+  if (typeof value2.remainingOutputs !== "number" || !Number.isInteger(value2.remainingOutputs) || value2.remainingOutputs < 1 || value2.remainingOutputs > 256 || typeof value2.checkedVaults !== "number" || !Number.isInteger(value2.checkedVaults) || value2.checkedVaults < 1 || value2.checkedVaults > 20 || typeof value2.vaultScanComplete !== "boolean") throw new Error("Invalid deposit capacity snapshot");
+  return { policy, checkedAtBlock: { hash: block3.hash, height: block3.height }, plan: { tokenCall: payment, checkedAtBlock: block3.hash }, remainingOutputs: value2.remainingOutputs, checkedVaults: value2.checkedVaults, vaultScanComplete: value2.vaultScanComplete };
+}
 
 // sdk/client/activity.ts
 var activityKinds = [
@@ -2401,8 +2510,8 @@ var HttpGateway = class {
   preflight(request) {
     return this.request("/v1/ft/preflight", request);
   }
-  observe(reference) {
-    return this.request("/v1/settlements/status", reference);
+  observe(reference2) {
+    return this.request("/v1/settlements/status", reference2);
   }
   verify(transaction, call) {
     return this.request("/v1/transactions/verify", { transaction, call });
@@ -2435,12 +2544,14 @@ var HttpGateway = class {
     if (result.vault !== selected) throw new Error("API substituted the selected payout vault");
     return result;
   }
-  async verifyInvoice(input) {
+  async verifyInvoice(input, options = {}) {
     const signed = await verifySignedInvoice(input);
-    await this.trusted(signed.invoice.policy);
+    options.signal?.throwIfAborted();
+    await this.trusted(signed.invoice.policy, options.signal);
     const result = await this.request(
       "/v1/invoices/verify",
-      await invoiceProof(signed)
+      await invoiceProof(signed),
+      options.signal
     );
     if (result.invoiceHash !== await invoiceHash(signed.invoice) || result.merchantAccount !== signed.invoice.merchantAccount || result.verified !== true || result.claims?.legalIdentityVerified !== false || result.claims?.kybVerified !== false)
       throw new Error(
@@ -2448,8 +2559,8 @@ var HttpGateway = class {
       );
     return signed;
   }
-  async invoiceStatus(input) {
-    const signed = await this.verifyInvoice(input), hash4 = await invoiceHash(signed.invoice), result = await this.request("/v1/invoices/status", await invoiceStatusRequest(signed.invoice)), roots = await invoicePaymentRoots(signed.invoice);
+  async invoiceStatus(input, options = {}) {
+    const signed = await this.verifyInvoice(input, options), hash4 = await invoiceHash(signed.invoice), result = await this.request("/v1/invoices/status", await invoiceStatusRequest(signed.invoice), options.signal), roots = await invoicePaymentRoots(signed.invoice);
     if (result.invoiceHash !== hash4 || (signed.invoice.version === 1 ? result.settlementRoot !== roots[0] : result.settlementRoot !== null || canonical(result.settlementRoots) !== canonical(roots)) || result.expectedTokens !== invoiceQuote(signed.invoice).principalTokens || ![
       "awaiting_payment",
       "partial",
@@ -2622,9 +2733,11 @@ export {
   invoiceQuote,
   invoiceRoot,
   invoiceRootsFromHash,
+  invoiceSettlementGuards,
   invoiceSigningDigest,
   invoiceStatusRequest,
   matchInvoicePlan,
+  matchInvoiceProof,
   nonceBytes,
   noteDomain,
   noteHash,
@@ -2647,6 +2760,7 @@ export {
   parseProvingContext,
   parseRecipientReadiness,
   parseSignedInvoice,
+  prepareInvoiceProof,
   preparedPayment,
   requireOpenInvoice,
   sha256,

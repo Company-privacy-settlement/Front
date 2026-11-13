@@ -8,6 +8,7 @@ import './groups.css';
 import './invoice-library.css';
 import './recipient-readiness.css';
 import './notes.css';
+import './invoice-note-payment.css';
 import './evidence.css';
 import './organization.css';
 

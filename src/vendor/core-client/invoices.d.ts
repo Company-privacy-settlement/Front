@@ -95,7 +95,7 @@ export declare function invoiceQuote(invoice: Invoice): {
     storageYoctoNearPerAttempt: string;
 };
 export declare function requireOpenInvoice(invoice: Invoice, now?: number): void;
-export declare function matchInvoicePlan(input: unknown, invoice: Invoice, payer: string): Promise<{
+export declare function matchInvoicePlan(input: unknown, invoice: Invoice, payer: string, paymentIndex?: number): Promise<{
     payment: import("./types.js").Call;
     reference: import("./types.js").Reference;
 }>;

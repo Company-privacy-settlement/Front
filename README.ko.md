@@ -24,7 +24,7 @@ Core의 랜딩, 문서와 지갑 도구입니다. 기업 간·기업과 근로�
 사이트와 웹 Docs의 기본 언어는 영어입니다. README는 한국어·중국어도 지원합니다. 랜딩·앱·Docs는 검정·흰색·초록 톤과 모바일 가로 넘침 방지, 내부 콘텐츠 스크롤을 공유합니다. 웹 가이드 원본은 `src/lib/docs.ts`입니다.
 
 
-**Local proofs** (`/prove/`)는 로컬 워커에서 FT 출금 증명을 생성하고 독립 아티팩트 해시와 정책 검증기 바이트를 확인합니다. 취소와 내려받은 증명 파일 검증도 지원합니다. [설정·신뢰 모델](https://github.com/Company-privacy-settlement/Core/blob/main/docs/BROWSER_PROVER.md). 노트와 인보이스 자동 연결은 별도 작업입니다.
+**Local proofs** (`/prove/`)는 로컬 워커에서 FT 출금 증명을 생성하고 독립 아티팩트 해시와 정책 검증기 바이트를 확인합니다. 취소와 내려받은 증명 파일 검증도 지원합니다. [설정·신뢰 모델](https://github.com/Company-privacy-settlement/Core/blob/main/docs/BROWSER_PROVER.md). [인보이스 결제](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICE_PAYMENTS.md)에서 원래 그룹의 암호화 노트 선택 → 로컬 증명 → 금액·수수료 확인 → 개별 지갑 승인 → 최종화 결제 확인을 지원합니다. 선택 단위 고정, 취소, 서명 직전 기업 키·상태 재검사와 보수적 복구를 적용합니다.
 
 ## 실행과 검증
 
@@ -43,7 +43,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-정적 결과물은 `out/`입니다. 빌드는 내장 Core 브라우저 번들·타입 선언의 SHA-256 매니페스트를 검증하며 형제 저장소나 API 키 없이 실행됩니다. Core 변경 후 Core에서 `npm run build:client`, 여기서 `npm run sync:core`를 실행합니다. 테스트는 Docs, 모바일 레이아웃, 인보이스, 수취인 준비, 증빙, 노트, 지갑 복구, 저널과 샘플 KYB를 다룹니다. 2026-11-13에 기록한 전체 브라우저 실행은 132개 통과입니다. [검증 범위](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md).
+정적 결과물은 `out/`입니다. 빌드는 내장 Core 브라우저 번들·타입 선언의 SHA-256 매니페스트를 검증하며 형제 저장소나 API 키 없이 실행됩니다. Core 변경 후 Core에서 `npm run build:client`, 여기서 `npm run sync:core`를 실행합니다. 테스트는 Docs, 모바일 레이아웃, 인보이스, 수취인 준비, 증빙, 노트, 지갑 복구, 저널과 샘플 KYB를 다룹니다. 2026-11-13 브라우저 검증은 148개입니다. 전체 실행에서 146개가 통과했고 선택 단위 기대값을 갱신한 2개는 별도 재실행해 통과했습니다. [검증 범위](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md).
 
 ## 조직과 접근 권한
 
@@ -59,7 +59,7 @@ Organization에서 독립 운영하는 Organization API 주소를 입력하고 N
 2. 그룹별 API 주소를 넣고 검증된 용량을 확인합니다. 호스팅된 프론트에는 접근 가능한 HTTPS API와 정확한 프론트 origin의 CORS 허용이 필요합니다. 자금이 들어 있는 공개 테스트넷 그룹은 제공하지 않습니다.
 3. 호환되는 NEAR 테스트넷 지갑을 연결하고 로컬 암호화 작업 저널을 생성·해제합니다. 저널이 열린 동안 그룹 변경은 잠깁니다.
 4. Notes에서 FT 노트를 만들고 암호화 백업을 내려받은 뒤 다시 열어 공개 입금 플랜을 준비합니다. Settlements로 가져와 등록·스토리지·토큰 전송·가스 호출을 각각 검토합니다.
-5. 원래 그룹으로 **Local proofs** 또는 Core CLI에서 FT 출금 증명을 만듭니다. 신뢰한 증명 파일과 독립적으로 받은 매니페스트 해시를 가져오면 브라우저가 트리를 재구성하고 증명 생성·취소·파일 검증을 수행합니다. 공개 출금 플랜의 정확한 수취인·참조를 확인하고 최종화 상태를 대조한 뒤 결제를 완료로 판단합니다.
+5. 서명된 결제창에서 결제 단위와 원래 그룹의 암호화 노트를 선택합니다. 신뢰한 증명 파일과 독립 매니페스트 해시를 가져와 로컬 증명을 생성합니다. 원금·별도 0.15% 출금 수수료·NEAR 비용을 확인한 뒤 선행 작업과 결제를 각각 승인하고 최종화 확인을 기다립니다. Local proofs와 CLI/공개 플랜 가져오기도 유지합니다.
 
 그룹은 고정 금액과 **총 256개 출력**을 사용합니다. 입금·비공개 전송은 출력을 사용하고 출금해도 용량이 복구되지 않습니다. 가득 찼거나 중단된 그룹에서는 원래 그룹 복구만 가능합니다. 네이티브 NEAR v2는 Contract/Core CLI, 현재 브라우저 실행은 테스트넷 FT 그룹을 지원합니다.
 

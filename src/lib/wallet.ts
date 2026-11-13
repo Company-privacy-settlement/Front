@@ -40,6 +40,7 @@ export const liveWallet: WalletPort = {
       throw new Error(
         "Wallet changed after review; reconnect the reviewed payer",
       );
+    context.authorize?.();
     const outcome = await wallet.signAndSendTransaction({
       network: "testnet",
       signerId: identity.accountId,

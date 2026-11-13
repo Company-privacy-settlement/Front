@@ -23,8 +23,12 @@ export declare class HttpGateway implements Gateway {
     provingContext(policy: Policy, vault: string, options?: {
         signal?: AbortSignal;
     }): Promise<import("./prover.js").ProvingContext>;
-    verifyInvoice(input: SignedInvoice): Promise<SignedInvoice>;
-    invoiceStatus(input: SignedInvoice): Promise<InvoiceStatus>;
+    verifyInvoice(input: SignedInvoice, options?: {
+        signal?: AbortSignal;
+    }): Promise<SignedInvoice>;
+    invoiceStatus(input: SignedInvoice, options?: {
+        signal?: AbortSignal;
+    }): Promise<InvoiceStatus>;
     indexStatus(policy: Policy): Promise<import("./activity.js").IndexStatus>;
     activity(policy: Policy, query?: ActivityFilters & {
         limit?: number;

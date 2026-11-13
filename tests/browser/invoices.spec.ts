@@ -217,6 +217,7 @@ test("recipient signs an invoice, payer rejects another invoice proof, and two c
   );
   expect(f.settled.size).toBe(0);
   for (const [paymentIndex, nf] of ["42", "43"].entries()) {
+    await page.getByRole('combobox', {name:'Payment unit',exact:true}).selectOption(String(paymentIndex));
     await expect(input).toBeEnabled();
     await input.setInputFiles({
       name: "payment.json",
@@ -239,12 +240,11 @@ test("recipient signs an invoice, payer rejects another invoice proof, and two c
       ),
     ).toBeVisible();
     if (paymentIndex === 0) {
-      await expect(page.getByRole("combobox", { name: "Payment unit", exact: true })).toHaveValue("1");
-      await page.getByRole("combobox", { name: "Payment unit", exact: true }).selectOption("0");
+      // Refresh preserves the explicitly selected unit; it cannot silently rebind a note/proof.
+      await expect(page.getByRole("combobox", { name: "Payment unit", exact: true })).toHaveValue("0");
       await expect(page.getByRole("button", { name: "Download proof action" })).toBeDisabled();
-      await page.getByRole("combobox", { name: "Payment unit", exact: true }).selectOption("1");
       await input.setInputFiles({ name: "reused-reference.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(await plan(created.signed, "44", false, 0))) });
-      await expect(page.locator(".live-feedback[role=alert]")).toContainText("already has an indexed payment");
+      await expect(page.locator(".live-feedback[role=alert]")).toContainText("already has a local payment");
       expect(f.settled.size).toBe(1);
     }
   }
