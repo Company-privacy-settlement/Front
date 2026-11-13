@@ -28,7 +28,7 @@ test('landing links open the requested documentation section', async ({ page }) 
 test('all documentation pages render directly in a narrow bounded viewport', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  for (const [slug, title] of [['', 'Getting started'], ['architecture', 'Architecture'], ['payments', 'Payments & fees'], ['invoices', 'Invoices & checkout'], ['groups', 'Groups & capacity'], ['privacy', 'Privacy & evidence'], ['kyb', 'Business verification'], ['sdk-api', 'SDK & API'], ['recovery', 'Recovery & limits']]) {
+  for (const [slug, title] of [['', 'Getting started'], ['architecture', 'Architecture'], ['payments', 'Payments & fees'], ['invoices', 'Invoices & checkout'], ['groups', 'Groups & capacity'], ['privacy', 'Privacy & evidence'], ['kyb', 'Business verification'], ['sdk-api', 'SDK & API'], ['recovery', 'Recovery & limits'], ['organizations', 'Organizations & access']]) {
     const response = await page.goto('/docs/' + (slug ? slug + '/' : ''));
     expect(response?.status()).toBe(200);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);

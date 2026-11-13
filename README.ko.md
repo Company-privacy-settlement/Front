@@ -11,13 +11,14 @@ Core의 랜딩, 문서와 지갑 도구입니다. 기업 간·기업과 근로�
 | 경로 | 현재 기능 |
 | --- | --- |
 | `/` | 서비스 랜딩과 문서 진입 |
-| `/docs/` | 시작, 구조, 수수료, 인보이스, 그룹, 프라이버시, KYB, SDK/API, 복구의 영문 가이드 9개 |
+| `/docs/` | 시작, 구조, 수수료, 인보이스, 그룹, 프라이버시, KYB, SDK/API, 복구, 조직의 영문 가이드 10개 |
 | `/live/` | 독립적으로 설정한 테스트넷 FT 정산, 지갑 호출 검토, 암호화 저널과 공개 인덱스 활동 |
 | `/notes/` | 로컬 FT 노트 생성, 암호화 백업·재열기, 선택적 공개 루트 가져오기와 공개 입금 플랜 준비 |
 | `/invoices/` | 결제 단위별 참조를 갖는 수취인 NEP-413 서명 요청, 선택적 로컬 암호화 인보이스 보관함 |
 | `/pay/#invoice=…` | 서명 결제, 수취인 준비 상태, 출금 플랜의 정확한 바인딩과 최종화된 정산 조회 |
 | `/evidence/` | 비공개 영수증, 암호화 백업, 선택 필드 증명과 별도로 신뢰한 루트에 대한 무결성 검사 |
 | `/kyb/` | 개요·기업·소유자/관계자·문서·검토·상태의 샘플 입력 6단계 |
+| `/organization/` | 별도 Organization API를 통한 조직·멤버·초대·역할·소유권·감사 기록 관리 |
 | `/app/` | 기존 경로를 해당 Docs로 이동 |
 
 사이트와 웹 Docs의 기본 언어는 영어입니다. README는 한국어·중국어도 지원합니다. 랜딩·앱·Docs는 검정·흰색·초록 톤과 모바일 가로 넘침 방지, 내부 콘텐츠 스크롤을 공유합니다. 웹 가이드 원본은 `src/lib/docs.ts`입니다.
@@ -39,7 +40,11 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-정적 결과물은 `out/`입니다. 빌드는 내장 Core 브라우저 번들·타입 선언의 SHA-256 매니페스트를 검증하며 형제 저장소나 API 키 없이 실행됩니다. Core 변경 후 Core에서 `npm run build:client`, 여기서 `npm run sync:core`를 실행합니다. 테스트는 Docs, 모바일 레이아웃, 인보이스, 수취인 준비, 증빙, 노트, 지갑 복구, 저널과 샘플 KYB를 다룹니다. 2026-11-13에 기록한 전체 브라우저 실행은 98개 통과입니다. [검증 범위](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md).
+정적 결과물은 `out/`입니다. 빌드는 내장 Core 브라우저 번들·타입 선언의 SHA-256 매니페스트를 검증하며 형제 저장소나 API 키 없이 실행됩니다. Core 변경 후 Core에서 `npm run build:client`, 여기서 `npm run sync:core`를 실행합니다. 테스트는 Docs, 모바일 레이아웃, 인보이스, 수취인 준비, 증빙, 노트, 지갑 복구, 저널과 샘플 KYB를 다룹니다. 2026-11-13에 기록한 전체 브라우저 실행은 112개 통과입니다. [검증 범위](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md).
+
+## 조직과 접근 권한
+
+Organization에서 독립 운영하는 Organization API 주소를 입력하고 NEP-413 지원 테스트넷 지갑으로 로그인합니다. 조직 생성·선택, 계정 지정 초대·수락, 허용된 멤버 역할 변경과 감사 기록을 관리합니다. 토큰은 메모리에만 두며 페이지 숨김·API 주소 변경 시 삭제합니다. Owner/Admin/Operator/Viewer/Auditor 권한은 서버에서 검사하고 지갑 서명·KYB·호스팅 접근 범위와 구분합니다. 별도 백엔드 배포가 필요하며 공개 기업 서버를 기본 제공하지 않습니다. [설정과 한계](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md).
 
 ## 통합 CI
 

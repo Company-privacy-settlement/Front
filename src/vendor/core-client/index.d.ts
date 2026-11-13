@@ -1,4 +1,5 @@
 export type * from "./types.js";
+export * from './organizations.js';
 export { canonical, sha256 } from "./crypto.js";
 export { parsePolicy, preparedPayment, feeQuote } from "./payment.js";
 export { OperationJournal, browserJournalStorage } from "./journal.js";

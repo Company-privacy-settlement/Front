@@ -11,13 +11,14 @@ Core 的落地页、文档与钱包工具，使用 Next.js 构建。Core 是支�
 | 路径 | 当前功能 |
 | --- | --- |
 | `/` | 服务落地页与文档入口 |
-| `/docs/` | 九篇英文指南：入门、架构、费用、发票、分组、隐私、KYB、SDK/API、恢复 |
+| `/docs/` | 十篇英文指南：入门、架构、费用、发票、分组、隐私、KYB、SDK/API、恢复和组织 |
 | `/live/` | 独立配置的测试网 FT 结算、逐项钱包审核、加密日志与公开索引活动 |
 | `/notes/` | 本地 FT 票据生成、加密备份及重新打开、可选披露根导入与公开存款计划 |
 | `/invoices/` | 收款人 NEP-413 签名请求、每支付单位独立引用、可选本地加密发票库 |
 | `/pay/#invoice=…` | 签名结账、收款人准备检查、精确提款计划绑定与最终结算对账 |
 | `/evidence/` | 私密收据、加密备份、选定字段证明与独立可信根的完整性检查 |
 | `/kyb/` | 六步示例流程：概览、企业、人员/所有权、文件、审核、状态 |
+| `/organization/` | 通过独立 Organization API 管理组织、成员、邀请、角色、所有权和审计历史 |
 | `/app/` | 旧路径重定向至对应 Docs |
 
 网站与网页 Docs 默认使用英文，README 同时提供韩文与简体中文。落地页、Docs 与应用共享黑白绿色调、移动端横向约束与内部滚动。网页指南源文件为 `src/lib/docs.ts`。
@@ -39,7 +40,11 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-静态输出位于 `out/`。构建会校验内置 Core 浏览器包与类型声明的 SHA-256 清单，无需相邻仓库或 API 密钥。更新 Core 后，先在 Core 执行 `npm run build:client`，再在此执行 `npm run sync:core`。测试覆盖 Docs、移动端布局、发票、收款人准备、证据、票据、钱包恢复、日志及示例 KYB。2026-11-13 记录的完整浏览器测试通过 98 项，详见 [验证范围](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)。
+静态输出位于 `out/`。构建会校验内置 Core 浏览器包与类型声明的 SHA-256 清单，无需相邻仓库或 API 密钥。更新 Core 后，先在 Core 执行 `npm run build:client`，再在此执行 `npm run sync:core`。测试覆盖 Docs、移动端布局、发票、收款人准备、证据、票据、钱包恢复、日志及示例 KYB。2026-11-13 记录的完整浏览器测试通过 112 项，详见 [验证范围](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)。
+
+## 组织与访问权限
+
+在 Organization 输入独立部署的 Organization API 来源，使用支持 NEP-413 的测试网钱包登录。可创建/选择组织、定向邀请及接受、管理允许的成员角色和查看审计记录。令牌仅在内存中，页面隐藏或 API 来源变化即清除。Owner/Admin/Operator/Viewer/Auditor 权限由服务端检查，与钱包签名、KYB 和托管网站访问范围分开。后端需要独立部署，不内置公开企业服务器。[配置及边界](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md)。
 
 ## 集成 CI
 

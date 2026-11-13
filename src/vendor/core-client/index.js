@@ -318,6 +318,69 @@ function validateRecovery(input, policy, ref) {
   throw new Error("Unapproved recovery call");
 }
 
+// sdk/client/organizations.ts
+var ORGANIZATION_ROLES = Object.freeze(["owner", "admin", "operator", "viewer", "auditor"]);
+var ORGANIZATION_PERMISSIONS = Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "ownership.transfer"]);
+var ORGANIZATION_ROLE_PERMISSIONS = Object.freeze({
+  owner: ORGANIZATION_PERMISSIONS,
+  admin: Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read"]),
+  operator: Object.freeze(["organization.read", "members.read"]),
+  viewer: Object.freeze(["organization.read"]),
+  auditor: Object.freeze(["organization.read", "members.read", "audit.read"])
+});
+function organizationOrigin(value2) {
+  const u = new URL(value2);
+  if (u.origin !== value2 || u.username || u.password || u.protocol !== "https:" && !(u.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(u.hostname))) throw new Error("Use an exact HTTPS service origin or loopback HTTP origin");
+  return value2;
+}
+function organizationLoginMessage(c) {
+  return canonical({ purpose: "Sign in to Core Organizations", version: 1, network: "testnet", ...c });
+}
+function parseOrganizationChallenge(value2, accountId, audience, origin, now = Date.now()) {
+  const c = value2;
+  if (!c || typeof c !== "object" || Object.keys(c).sort().join("|") !== "accountId|audience|expiresAt|id|message|network|nonce|origin|recipient" || typeof c.id !== "string" || !/^[a-f0-9-]{36}$/.test(c.id) || c.accountId !== account(accountId) || c.audience !== organizationOrigin(audience) || c.origin !== organizationOrigin(origin) || c.network !== "testnet" || typeof c.nonce !== "string" || c.nonce.length !== 64 || !/^[a-f0-9]{64}$/.test(c.nonce) || c.recipient !== new URL(audience).host || !Number.isFinite(Date.parse(c.expiresAt)) || Date.parse(c.expiresAt) <= now || Date.parse(c.expiresAt) > now + 36e4 || c.message !== organizationLoginMessage({ accountId, audience, origin, expiresAt: c.expiresAt })) throw new Error("Organization login challenge binding mismatch");
+  return c;
+}
+async function organizationSigningDigest(c) {
+  const str = (value2) => {
+    const b = new TextEncoder().encode(value2), n = new Uint8Array(4);
+    new DataView(n.buffer).setUint32(0, b.length, true);
+    return [...n, ...b];
+  };
+  const tag = new Uint8Array(4);
+  new DataView(tag.buffer).setUint32(0, 2147484061, true);
+  const nonce = Uint8Array.from(c.nonce.match(/../g).map((v) => parseInt(v, 16)));
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", Uint8Array.from([...tag, ...str(c.message), ...nonce, ...str(c.recipient), 0])));
+}
+var OrganizationApiError = class extends Error {
+  constructor(status, code) {
+    super(code);
+    this.status = status;
+    this.code = code;
+  }
+  status;
+  code;
+};
+var OrganizationClient = class {
+  constructor(origin, token) {
+    this.token = token;
+    this.origin = organizationOrigin(origin);
+  }
+  token;
+  origin;
+  async request(path, method = "GET", body, signal) {
+    const url = new URL(path, this.origin);
+    if (!path.startsWith("/") || url.origin !== this.origin || !/^\/(?:v1\/(?:auth|me|organizations)(?:\/[a-zA-Z0-9_.-]+)*|healthz)$/.test(url.pathname) || url.hash || url.search && !(url.pathname.endsWith("/audit") && /^\?before=[1-9][0-9]{0,15}$/.test(url.search))) throw new Error("Invalid organization API path");
+    const response = await fetch(this.origin + path, { method, signal, credentials: "omit", redirect: "error", cache: "no-store", headers: {
+      ...body !== void 0 ? { "content-type": "application/json" } : {},
+      ...this.token ? { authorization: `Bearer ${this.token}` } : {}
+    }, ...body !== void 0 ? { body: JSON.stringify(body) } : {} });
+    const value2 = await response.json();
+    if (!response.ok) throw new OrganizationApiError(response.status, typeof value2?.error === "string" ? value2.error : "ORGANIZATION_REQUEST_FAILED");
+    return value2;
+  }
+};
+
 // sdk/client/journal.ts
 function transactionRef(input) {
   const t = object(input);
@@ -2294,7 +2357,12 @@ export {
   HttpGateway,
   INVOICE_SIGNING_RECIPIENT,
   InvoiceLibrary,
+  ORGANIZATION_PERMISSIONS,
+  ORGANIZATION_ROLES,
+  ORGANIZATION_ROLE_PERMISSIONS,
   OperationJournal,
+  OrganizationApiError,
+  OrganizationClient,
   RECEIPT_FIELDS,
   SettlementSession,
   activityKinds,
@@ -2326,6 +2394,9 @@ export {
   noteHash,
   openNoteBackup,
   openReceiptBackup,
+  organizationLoginMessage,
+  organizationOrigin,
+  organizationSigningDigest,
   parseActivityPage,
   parseApprovedGroups,
   parseDepositPlan,
@@ -2333,6 +2404,7 @@ export {
   parseGroupCapacity,
   parseIndexStatus,
   parseInvoice,
+  parseOrganizationChallenge,
   parsePolicy,
   parseRecipientReadiness,
   parseSignedInvoice,

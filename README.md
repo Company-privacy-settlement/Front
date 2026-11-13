@@ -11,13 +11,14 @@ English-first landing, documentation and wallet tools for Core, a development pr
 | Route | Current behavior |
 | --- | --- |
 | `/` | Service landing and documentation entry |
-| `/docs/` | Nine English guides: setup, architecture, fees, invoices, groups, privacy, KYB, SDK/API and recovery |
+| `/docs/` | Ten English guides: setup, architecture, fees, invoices, groups, privacy, KYB, SDK/API, recovery and organizations |
 | `/live/` | Independently configured testnet FT settlements, reviewed wallet calls, encrypted journal and public indexed activity |
 | `/notes/` | Local FT note creation, encrypted backup/reopen, optional disclosure-root import and public deposit-plan preparation |
 | `/invoices/` | Recipient-signed NEP-413 requests with per-unit references; optional encrypted local invoice library |
 | `/pay/#invoice=…` | Signed checkout, recipient readiness, exact withdrawal-plan binding and finalized invoice reconciliation |
 | `/evidence/` | Private receipts, encrypted backups, selected-field proofs and integrity checks against an independently supplied root |
 | `/kyb/` | Six-page sample intake: overview, business, people/ownership, documents, review and status |
+| `/organization/` | Wallet-authenticated organizations, members, invitations, fixed roles, ownership and audit history through the separate Organization API |
 | `/app/` | Legacy routes redirect to the relevant Docs guide |
 
 The site and web Docs default to English. READMEs also support Korean and Simplified Chinese. Landing, Docs and app share black, white and green styling, contained mobile layouts and independently scrolling content. `src/lib/docs.ts` is the web-guide source.
@@ -39,7 +40,11 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The static export is `out/`. Build verifies the vendored Core browser bundle/declarations against their SHA-256 manifest and requires no sibling checkout or API keys. After changing Core: run `npm run build:client` in Core, then `npm run sync:core` here. Tests cover Docs, mobile containment, invoices, recipient readiness, evidence, notes, wallet recovery, journals and sample KYB. The latest recorded full browser run on 2026-11-13 passed 98 cases; see Core’s [roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md) for validation scope.
+The static export is `out/`. Build verifies the vendored Core browser bundle/declarations against their SHA-256 manifest and requires no sibling checkout or API keys. After changing Core: run `npm run build:client` in Core, then `npm run sync:core` here. Tests cover Docs, mobile containment, invoices, recipient readiness, evidence, notes, wallet recovery, journals and sample KYB. The latest recorded full browser run on 2026-11-13 passed 112 cases; see Core’s [roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md) for validation scope.
+
+## Organizations and access
+
+Open Organization, supply the independently hosted Organization API origin, and sign in with a NEP-413-capable testnet wallet. Choose/create an organization, invite a wallet account, accept invitations, manage permitted member roles and read the audit log. Tokens stay in memory and clear on page-hide/origin change. Owner/Admin/Operator/Viewer/Auditor permissions are enforced by the server, separate from wallet signing, KYB and the hosted Site audience. The backend needs its own deployment; no public organization service is bundled. [Setup and boundaries](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md).
 
 ## Integrated CI
 

@@ -838,5 +838,83 @@ export const docs: Doc[] = [
         ]
       }
     ]
+  },
+  {
+    "slug": "organizations",
+    "title": "Organizations & access",
+    "description": "Sign in with your NEAR testnet wallet, create an organization and manage members with server-enforced roles.",
+    "source": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md",
+    "sections": [
+      {
+        "id": "sign-in",
+        "title": "Sign in to your organization",
+        "paragraphs": [
+          "Open Organization from the workspace navigation. Enter the independently provided Organization API origin, then choose Sign in with testnet wallet. Use a wallet that supports NEP-413 message signing. The message binds your account, service, frontend origin and a five-minute nonce.",
+          "The organization service verifies the signature and the current finalized FullAccess key. A one-hour session stays in memory. Changing the API origin, leaving the page or returning from browser history clears the local session. Explicit Sign out revokes the server session."
+        ]
+      },
+      {
+        "id": "team",
+        "title": "Create and invite",
+        "steps": [
+          "Create an organization with a workspace name. This does not verify a legal entity.",
+          "Open Invitations, enter a NEAR testnet account and choose a permitted role.",
+          "The recipient signs in to the same organization service and accepts from Your invitations. Invitations expire after seven days; no email or Telegram message is sent.",
+          "Review Members to change a permitted role or remove a member. Changes take effect on the next server authorization check."
+        ]
+      },
+      {
+        "id": "roles",
+        "title": "Roles and permissions",
+        "table": {
+          "headings": [
+            "Role",
+            "Access"
+          ],
+          "rows": [
+            [
+              "Owner",
+              "All organization controls, including Admin management and ownership transfer."
+            ],
+            [
+              "Admin",
+              "Edit the workspace name, read audit events and manage Operators, Viewers and Auditors. Cannot manage Owners or Admins."
+            ],
+            [
+              "Operator",
+              "View organization details and the member directory."
+            ],
+            [
+              "Viewer",
+              "View organization details. No member directory, invitations or audit log."
+            ],
+            [
+              "Auditor",
+              "View organization details, members and the audit log. No writes."
+            ]
+          ]
+        },
+        "paragraphs": [
+          "Roles are fixed. The server checks organization membership on every request. UI controls are not an authorization boundary. These roles do not grant wallet signing, invoice ownership, fund access or payment approvals."
+        ]
+      },
+      {
+        "id": "ownership",
+        "title": "Ownership and recovery",
+        "paragraphs": [
+          "An organization always has one active Owner. An Owner must explicitly transfer ownership to an active member before leaving. The former Owner becomes an Admin. Version checks reject stale changes; refresh before retrying.",
+          "An accepted member can leave. Removing a member immediately blocks their organization access. Pending invitations also check that their inviter still has permission when accepted. There is no platform-admin owner reset, lost-wallet recovery or corporate multisig workflow."
+        ]
+      },
+      {
+        "id": "privacy",
+        "title": "Data and service boundary",
+        "paragraphs": [
+          "Organization data is kept off-chain in a separate authenticated SQLite service. Names, wallet membership and audit metadata are not application-encrypted; the host must protect its volume and backups. No private note, payment key, identity document or salary is submitted to this API.",
+          "The website remains owner-private. Organization membership does not grant access to this hosted site; the two access boundaries are separate. Public HTTPS hosting and a funded testnet wallet journey remain deployment tasks.",
+          "Business verification, corporate identity, maker-checker approvals, custom roles, SSO and automatic signing are separate work. The public read-only settlement API continues to require independently trusted deployment policies."
+        ]
+      }
+    ]
   }
 ];

@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowDown, ArrowUpRight, ArrowLeftRight, BookOpen, ChevronRight, FileCheck2, LockKeyhole, Menu, Wallet, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowDown, ArrowUpRight, ArrowLeftRight, BookOpen, ChevronRight, FileCheck2, LockKeyhole, Menu, Wallet, ShieldCheck, Users } from "lucide-react";
 import { Brand, NearMark } from "./brand";
 
 const navigation = [
@@ -12,6 +12,7 @@ const navigation = [
   { title: "Private notes", href: "/notes/", icon: LockKeyhole },
   { title: "Evidence", href: "/evidence/", icon: FileCheck2 },
   { title: "Business verification", href: "/kyb/", icon: ShieldCheck },
+  { title: "Organization", href: "/organization/", icon: Users },
   { title: "Documentation", href: "/docs/", icon: BookOpen },
 ];
 function WorkspaceLinks({ section }: { section: string }) {
