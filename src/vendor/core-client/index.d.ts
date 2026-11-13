@@ -4,6 +4,8 @@ export { parsePolicy, preparedPayment, feeQuote } from "./payment.js";
 export { OperationJournal, browserJournalStorage } from "./journal.js";
 export { SettlementSession, type Review } from "./session.js";
 export { HttpGateway, CoreApiError } from "./http.js";
+export { parseApprovedGroups, parseGroupCapacity } from './groups.js';
+export type { ApprovedGroups, ApprovedGroup, GroupCapacity } from './groups.js';
 export { INVOICE_SIGNING_RECIPIENT, parseInvoice, createInvoice, invoicePaymentRoots, invoiceRootsFromHash, invoiceStatusRequest, assertInvoiceReferenceAvailable, parseSignedInvoice, invoiceHash, invoiceRoot, invoiceMessage, nonceBytes, invoiceSigningDigest, invoiceProof, verifySignedInvoice, invoiceQuote, requireOpenInvoice, matchInvoicePlan, invoiceLink, invoiceFromFragment, } from "./invoices.js";
 export type { Invoice, InvoiceSignature, SignedInvoice, InvoiceProof, InvoiceState, InvoiceStatus, } from "./invoices.js";
 export { activityKinds, parseIndexStatus, parseActivityPage, } from "./activity.js";

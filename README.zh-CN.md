@@ -6,7 +6,7 @@
 
 ## 文档
 
-`/docs/` 提供八篇英文指南：Getting started、Architecture、Payments & fees、Invoices & checkout、Privacy & evidence、Business verification、SDK & API、Recovery & limits。支持搜索、目录、章节链接、上下篇和移动菜单。内容位于 `src/lib/docs.ts`。旧 `/app/` 地址跳转至相关文档，不再呈现模拟仪表板。
+`/docs/` 提供九篇英文指南：Getting started、Architecture、Payments & fees、Invoices & checkout、Groups & capacity、Privacy & evidence、Business verification、SDK & API、Recovery & limits。支持搜索、目录、章节链接、上下篇和移动菜单。内容位于 `src/lib/docs.ts`。旧 `/app/` 地址跳转至相关文档，不再呈现模拟仪表板。
 
 首页、文档和应用统一采用黑白绿色调。标题上方没有装饰标签；页面适配视口高度，在内部阅读区域滚动，表格和代码可在窄屏横向滚动。
 
@@ -45,3 +45,5 @@ npm run test:e2e
 浏览器 SDK 与 SHA-256 清单位于 `src/vendor/core-client/`。在 Core 执行 `npm run build:client` 后，在 Front 执行 `npm run sync:core` 更新。
 
 [Contract](https://github.com/Company-privacy-settlement/Contract) · [Core](https://github.com/Company-privacy-settlement/Core) · [Front](https://github.com/Company-privacy-settlement/Front)
+
+导入独立批准的组目录后，可验证各组 API 策略和输出容量，并选择存款或恢复模式。恢复模式禁止导入新存款；日志解锁时会锁定组选择。[组指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/GROUPS.md)说明详细流程。

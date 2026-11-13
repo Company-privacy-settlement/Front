@@ -6,7 +6,7 @@ NEAR 기업 프라이버시 정산의 Next.js 문서 사이트와 지갑 인터�
 
 ## 문서
 
-`/docs/`는 Getting started, Architecture, Payments & fees, Invoices & checkout, Privacy & evidence, Business verification, SDK & API, Recovery & limits의 8개 영문 가이드를 제공합니다. 검색, 목차, 섹션 링크, 이전·다음 탐색, 모바일 메뉴가 포함됩니다. 콘텐츠는 `src/lib/docs.ts`에 있습니다. 기존 `/app/` 링크는 관련 Docs로 연결되며 시뮬레이션 대시보드를 표시하지 않습니다.
+`/docs/`는 Getting started, Architecture, Payments & fees, Invoices & checkout, Groups & capacity, Privacy & evidence, Business verification, SDK & API, Recovery & limits의 9개 영문 가이드를 제공합니다. 검색, 목차, 섹션 링크, 이전·다음 탐색, 모바일 메뉴가 포함됩니다. 콘텐츠는 `src/lib/docs.ts`에 있습니다. 기존 `/app/` 링크는 관련 Docs로 연결되며 시뮬레이션 대시보드를 표시하지 않습니다.
 
 랜딩·문서·앱은 검정·흰색·초록의 NEAR 톤을 사용합니다. 제목 위 장식 라벨은 없으며 화면 높이에 맞춘 읽기 영역만 스크롤합니다. 표·코드는 작은 화면에서 내부 가로 스크롤로 접근합니다.
 
@@ -45,3 +45,5 @@ npm run test:e2e
 Core SDK는 SHA-256 매니페스트와 함께 `src/vendor/core-client/`에 보관합니다. Core의 `npm run build:client` 후 Front의 `npm run sync:core`로 갱신합니다.
 
 [Contract](https://github.com/Company-privacy-settlement/Contract) · [Core](https://github.com/Company-privacy-settlement/Core) · [Front](https://github.com/Company-privacy-settlement/Front)
+
+승인된 그룹 목록을 가져오면 그룹별 API 정책·출력 용량을 검증하고 입금 또는 복구 모드로 선택할 수 있습니다. 복구 모드는 새 입금 가져오기를 막으며, 저널이 열려 있을 때는 그룹 변경을 잠급니다. [그룹 가이드](https://github.com/Company-privacy-settlement/Core/blob/main/docs/GROUPS.md)를 참고하세요.

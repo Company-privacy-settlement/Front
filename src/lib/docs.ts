@@ -277,6 +277,64 @@ export const docs: Doc[] = [
     ]
   },
   {
+    "slug": "groups",
+    "title": "Groups & capacity",
+    "description": "Choose an independently approved group for new deposits and keep existing notes on their original recovery path.",
+    "source": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/GROUPS.md",
+    "sections": [
+      {
+        "id": "approval",
+        "title": "Import your approved groups",
+        "paragraphs": [
+          "In Settlements, open Choose from approved groups and import your independently obtained directory. It contains 1–8 pinned policies, unique group IDs and an explicit depositsEnabled preference. Every entry shares the same network, token and denomination. The browser workspace accepts testnet FT groups.",
+          "The file is validated locally and stays in memory. It contains no API origins, private notes or passwords. Enter each group’s HTTPS Core API separately; localhost HTTP is supported for local use. Importing the directory makes no network requests."
+        ]
+      },
+      {
+        "id": "check",
+        "title": "Check capacity before selecting",
+        "steps": [
+          "Enter the Core API for a group and choose Check. The API policy must match every independently approved pin.",
+          "Review the reported block, remaining output slots and whether the first verified member can accept a deposit.",
+          "Choose Use for deposits for an enabled group with observed capacity. Selection checks the API again.",
+          "Download the selected policy for local CLI preparation, connect your wallet and unlock that group’s encrypted journal."
+        ],
+        "paragraphs": [
+          "Each group has 256 total tree outputs, including private-transfer outputs. Withdrawals do not restore capacity. The capacity endpoint checks the registry and at most the first member; a partial scan with no observed eligible vault is not proof that every vault is unavailable. Use the CLI for complete verified member discovery.",
+          "This snapshot reserves no output slot and does not establish wall-clock freshness of the RPC chain head. A failed refresh or edited API address invalidates the previous result. Payment review still performs fresh preflight and liquidity checks."
+        ]
+      },
+      {
+        "id": "recovery",
+        "title": "Keep the original group for recovery",
+        "paragraphs": [
+          "Full or deposit-disabled groups remain selectable with Use for recovery. The workspace verifies that group’s API and opens its own journal namespace. New deposit imports are blocked in recovery mode, while existing journal operations retain their retry/refund paths.",
+          "Choose the group in which the original note was created. Imported public plans must match that policy. A different available group cannot replace an existing note’s domain, payout vault or signed invoice policy. Lock the journal before changing groups.",
+          "If funds have not been sent and the original group fills, generate a fresh note for another approved group. Keep every funded note and its original trusted policy for withdrawal. Group changes do not migrate notes or merge privacy sets."
+        ]
+      },
+      {
+        "id": "cli",
+        "title": "Prepare notes and plans locally",
+        "code": {
+          "label": "Terminal · from Core",
+          "text": "npm run cli -- groups-status approved-groups.json https://rpc.testnet.near.org\nnpm run cli -- group-note approved-groups.json https://rpc.testnet.near.org receiver-note.encrypted.json\nnpm run cli -- group-deposit-args approved-groups.json https://rpc.testnet.near.org receiver-note.encrypted.json FRESH_DISCLOSURE_ROOT\nnpm run cli -- group-spend-args approved-groups.json https://rpc.testnet.near.org original-note.encrypted.json withdraw-action.json public-withdrawal.json"
+        },
+        "paragraphs": [
+          "Set CORE_NOTE_PASSWORD securely as described in the Core guide; never pass it as a command argument or upload an encrypted note to the browser/API. group-note follows the directory order or an explicit group preference. Existing notes remain group-bound.",
+          "Protocol fees remain 0.15% added on top of principal for each deposit and withdrawal. Token registration, NEAR storage and gas remain separate. Contracts and groups must already be deployed and independently approved."
+        ]
+      },
+      {
+        "id": "invoices",
+        "title": "Invoices remain group-bound",
+        "paragraphs": [
+          "Checkout verifies the policy in the merchant’s signed invoice and does not expose group switching. If a merchant needs a new group for new payments, they must issue a new signed invoice for that independently trusted policy. Existing funded notes can still pay an invoice matching their original group."
+        ]
+      }
+    ]
+  },
+  {
     "slug": "privacy",
     "title": "Privacy & evidence",
     "description": "Understand the private proof statement, public metadata, and the claims selected evidence can support.",
@@ -441,8 +499,18 @@ export const docs: Doc[] = [
             ],
             [
               "GET",
+              "/readyz",
+              "Verified deployment and attached-index readiness snapshot."
+            ],
+            [
+              "GET",
               "/v1/config",
               "Public policy for independent comparison."
+            ],
+            [
+              "GET",
+              "/v1/group/capacity",
+              "Pinned tree capacity and first-member deposit observation."
             ],
             [
               "GET",
@@ -505,6 +573,15 @@ export const docs: Doc[] = [
         "paragraphs": [
           "SQLite persists journal records, checkpoints, and verified provenance. V2 invoice lookup uses a disclosure-root index for up to 32 signed-derived references, with bounded matching-record reads.",
           "Errors distinguish disabled, not-ready, and failed reads. Incomplete coverage yields review_required. The checkpoint is not a latest-chain assertion or proof of complete company history."
+        ]
+      },
+      {
+        "id": "api-protection",
+        "title": "API limits and cancellation",
+        "paragraphs": [
+          "The default API permits two concurrent work requests and 120 weighted points per direct socket peer per minute. Capacity/catalog/readiness queries cost 5 points. Per-route source-read budgets and a 15-second deadline bound each request. Rate or concurrency rejections provide Retry-After; clients do not automatically repeat wallet signatures.",
+          "The CLI server cancels its HTTP RPC transport on timeout or disconnect. Non-cancellable adapters keep their work slot until underlying reads settle. Forwarding headers are ignored; clients behind a proxy share its peer budget unless the edge enforces individual limits.",
+          "/healthz checks liveness. /readyz verifies the deployment and, when attached, index age, block lag and current journal count. Set CORE_API_REQUIRE_INDEX=true to require an index. Readiness is a snapshot, not complete provenance or a guarantee of payment liquidity."
         ]
       }
     ]
@@ -572,4 +649,3 @@ export const docs: Doc[] = [
     ]
   }
 ];
-

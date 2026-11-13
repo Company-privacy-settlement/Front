@@ -10,6 +10,9 @@ export declare class HttpGateway implements Gateway {
     observe(reference: Reference): Promise<Observation>;
     verify(transaction: TxRef, call: Call): Promise<Verification>;
     private trusted;
+    groupCapacity(policy: Policy, options?: {
+        signal?: AbortSignal;
+    }): Promise<import("./groups.js").GroupCapacity>;
     verifyInvoice(input: SignedInvoice): Promise<SignedInvoice>;
     invoiceStatus(input: SignedInvoice): Promise<InvoiceStatus>;
     indexStatus(policy: Policy): Promise<import("./activity.js").IndexStatus>;
@@ -21,5 +24,6 @@ export declare class HttpGateway implements Gateway {
 export declare class CoreApiError extends Error {
     readonly status: number;
     readonly code?: string | undefined;
-    constructor(status: number, code?: string | undefined);
+    readonly retryAfterSeconds?: number | undefined;
+    constructor(status: number, code?: string | undefined, retryAfterSeconds?: number | undefined);
 }

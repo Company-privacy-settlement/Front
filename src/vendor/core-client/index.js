@@ -730,9 +730,55 @@ var SettlementSession = class {
   }
 };
 
+// sdk/client/groups.ts
+function exact2(value, keys) {
+  if (Object.keys(value).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unexpected group fields");
+}
+function count(value) {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) throw new Error("Invalid group count");
+  return value;
+}
+function boolean(value) {
+  if (typeof value !== "boolean") throw new Error("Invalid group flag");
+  return value;
+}
+function parseApprovedGroups(input) {
+  const value = object(input);
+  exact2(value, ["version", "groups"]);
+  if (value.version !== 1 || !Array.isArray(value.groups) || value.groups.length < 1 || value.groups.length > 8) throw new Error("Use an approved directory with 1\u20138 groups");
+  const ids = /* @__PURE__ */ new Set(), registries = /* @__PURE__ */ new Set();
+  const groups = value.groups.map((raw) => {
+    const g = object(raw);
+    exact2(g, ["id", "depositsEnabled", "policy"]);
+    if (typeof g.id !== "string" || !/^[a-z0-9][a-z0-9-]{0,31}$/.test(g.id)) throw new Error("Invalid group ID");
+    const policy = parsePolicy(g.policy);
+    if (ids.has(g.id) || registries.has(policy.registry)) throw new Error("Duplicate group ID or registry");
+    ids.add(g.id);
+    registries.add(policy.registry);
+    return { id: g.id, depositsEnabled: boolean(g.depositsEnabled), policy };
+  });
+  const first = groups[0].policy;
+  if (groups.some((g) => g.policy.network !== first.network || g.policy.tokenId !== first.tokenId || g.policy.denomination !== first.denomination))
+    throw new Error("Approved groups must use the same network, asset and denomination");
+  return { version: 1, groups };
+}
+function parseGroupCapacity(input, trusted) {
+  const value = object(input), policy = parsePolicy(value.policy), expected = parsePolicy(trusted);
+  exact2(value, ["policy", "checkedAtBlock", "capacity", "usedOutputs", "remainingOutputs", "outstandingNotes", "depositCapacityAvailable", "depositVaultObserved", "checkedVaults", "vaultScanComplete", "chainFreshnessChecked"]);
+  if (canonical(policy) !== canonical(expected)) throw new Error("Group capacity policy differs from the trusted group");
+  const block2 = object(value.checkedAtBlock);
+  exact2(block2, ["hash", "height"]);
+  if (typeof block2.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block2.hash)) throw new Error("Invalid group block");
+  const usedOutputs = count(value.usedOutputs), remainingOutputs = count(value.remainingOutputs), outstandingNotes = count(value.outstandingNotes), checkedVaults = count(value.checkedVaults);
+  const depositCapacityAvailable = boolean(value.depositCapacityAvailable), depositVaultObserved = boolean(value.depositVaultObserved), vaultScanComplete = boolean(value.vaultScanComplete);
+  if (value.capacity !== 256 || usedOutputs > 256 || remainingOutputs !== 256 - usedOutputs || outstandingNotes > usedOutputs || checkedVaults > 1 || depositCapacityAvailable !== remainingOutputs > 0 || depositVaultObserved && (!depositCapacityAvailable || checkedVaults === 0) || value.chainFreshnessChecked !== false)
+    throw new Error("Inconsistent group capacity snapshot");
+  return { policy, checkedAtBlock: { hash: block2.hash, height: count(block2.height) }, capacity: 256, usedOutputs, remainingOutputs, outstandingNotes, depositCapacityAvailable, depositVaultObserved, checkedVaults, vaultScanComplete, chainFreshnessChecked: false };
+}
+
 // sdk/client/invoices.ts
 var INVOICE_SIGNING_RECIPIENT = "core.invoice.v1";
-function exact2(o, keys) {
+function exact3(o, keys) {
   if (Object.keys(o).sort().join("|") !== keys.sort().join("|"))
     throw new Error("Unexpected invoice fields");
 }
@@ -753,7 +799,7 @@ function date(value) {
 }
 function parseInvoice(input) {
   const o = object(input);
-  exact2(o, [
+  exact3(o, [
     "version",
     "id",
     "merchantAccount",
@@ -810,9 +856,9 @@ function createInvoice(input) {
 }
 function parseSignedInvoice(input) {
   const o = object(input);
-  exact2(o, ["invoice", "signature"]);
+  exact3(o, ["invoice", "signature"]);
   const invoice = parseInvoice(o.invoice), s = object(o.signature);
-  exact2(s, ["accountId", "publicKey", "signature"]);
+  exact3(s, ["accountId", "publicKey", "signature"]);
   if (s.accountId !== invoice.merchantAccount || typeof s.publicKey !== "string" || !/^ed25519:[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s.publicKey) || typeof s.signature !== "string" || !/^[A-Za-z0-9+/]{86}==$/.test(s.signature) || atob(s.signature).length !== 64)
     throw new Error("Invalid invoice merchant signature");
   return {
@@ -1032,7 +1078,7 @@ var activityKinds = [
   "withdrawal_retried",
   "withdrawal_succeeded"
 ];
-var count = (v) => {
+var count2 = (v) => {
   if (typeof v !== "number" || !Number.isSafeInteger(v) || v < 0)
     throw new Error("Invalid index count");
   return v;
@@ -1044,7 +1090,7 @@ var hash2 = (v) => {
 };
 var block = (v) => {
   const b = object(v);
-  return { hash: hash2(b.hash), height: count(b.height) };
+  return { hash: hash2(b.hash), height: count2(b.height) };
 };
 var time = (v) => {
   if (typeof v !== "string" || !Number.isFinite(Date.parse(v)))
@@ -1063,10 +1109,10 @@ function parseIndexStatus(input, policy) {
   const claims = object(s.claims);
   if (claims.completeBusinessHistory !== false || claims.taxFilingAccepted !== false)
     throw new Error("Unsupported index claim");
-  const indexedRecords = count(s.indexedRecords), linkedRecords = count(s.linkedRecords), c = s.checkpoint === null ? null : object(s.checkpoint), checkpoint = c ? {
+  const indexedRecords = count2(s.indexedRecords), linkedRecords = count2(s.linkedRecords), c = s.checkpoint === null ? null : object(s.checkpoint), checkpoint = c ? {
     block: block(c.block),
-    nextIndex: count(c.nextIndex),
-    sourceRecordCount: count(c.sourceRecordCount),
+    nextIndex: count2(c.nextIndex),
+    sourceRecordCount: count2(c.sourceRecordCount),
     updatedAt: time(c.updatedAt)
   } : null;
   if (linkedRecords > indexedRecords || checkpoint && (checkpoint.nextIndex !== indexedRecords || checkpoint.sourceRecordCount < indexedRecords) || !checkpoint && indexedRecords !== 0 || s.remainingRecords !== (checkpoint ? checkpoint.sourceRecordCount - indexedRecords : null))
@@ -1075,7 +1121,7 @@ function parseIndexStatus(input, policy) {
   for (const [k, v] of Object.entries(object(s.candidates))) {
     if (!["pending", "linked", "unrelated", "invalid"].includes(k))
       throw new Error("Invalid provenance queue state");
-    candidates[k] = count(v);
+    candidates[k] = count2(v);
   }
   let discovery;
   if (s.discovery !== void 0) {
@@ -1086,15 +1132,15 @@ function parseIndexStatus(input, policy) {
     if (d.state !== null) {
       const x = object(d.state), cur = x.current === null ? null : object(x.current);
       state = {
-        startHeight: count(x.startHeight),
+        startHeight: count2(x.startHeight),
         lastComplete: x.lastComplete === null ? null : block(x.lastComplete),
         current: cur ? {
           block: block(cur.block),
-          offset: count(cur.offset),
-          total: count(cur.total)
+          offset: count2(cur.offset),
+          total: count2(cur.total)
         } : null,
-        scannedTransactions: count(x.scannedTransactions),
-        candidatesFound: count(x.candidatesFound),
+        scannedTransactions: count2(x.scannedTransactions),
+        candidatesFound: count2(x.candidatesFound),
         updatedAt: time(x.updatedAt),
         blocked: x.blocked === null ? null : typeof x.blocked === "string" && /^[A-Z_]{1,64}$/.test(x.blocked) ? x.blocked : (() => {
           throw new Error("Invalid discovery error");
@@ -1120,7 +1166,7 @@ function parseIndexStatus(input, policy) {
   };
 }
 function parseActivityPage(input, policy) {
-  const p = object(input), index = parseIndexStatus(p.index, policy), upper = count(object(p.snapshot).upperExclusive);
+  const p = object(input), index = parseIndexStatus(p.index, policy), upper = count2(object(p.snapshot).upperExclusive);
   if (p.scope !== "configured_registry_records" || upper > index.indexedRecords || !Array.isArray(p.items) || p.items.length > 50 || p.nextCursor !== null && (typeof p.nextCursor !== "string" || p.nextCursor.length > 1024 || !/^[A-Za-z0-9_-]+$/.test(p.nextCursor)))
     throw new Error("Invalid activity page");
   const items = p.items.map((value) => {
@@ -1131,14 +1177,14 @@ function parseActivityPage(input, policy) {
     if (typeof root !== "string" || !/^[a-f0-9]{64}$/.test(root))
       throw new Error("Invalid receipt root");
     const record = {
-      index: count(r.index),
+      index: count2(r.index),
       kind,
       commitment: r.commitment === null ? null : scalar(r.commitment),
       nullifier: r.nullifier === null ? null : scalar(r.nullifier),
       vault: r.vault === null ? null : account(r.vault),
       recipient: r.recipient === null ? null : account(r.recipient),
       disclosure_root: root,
-      block_height: count(r.block_height),
+      block_height: count2(r.block_height),
       timestamp_ns: atomic2(r.timestamp_ns),
       amount: atomic2(r.amount),
       asset_token_id: r.asset_token_id === null ? null : account(r.asset_token_id),
@@ -1204,7 +1250,7 @@ var HttpGateway = class {
       throw new Error("Use an HTTPS API origin (HTTP is allowed on localhost)");
     this.url = u.origin;
   }
-  async request(path, body) {
+  async request(path, body, signal) {
     const r = await fetch(this.url + path, {
       method: body === void 0 ? "GET" : "POST",
       headers: body === void 0 ? {} : { "content-type": "application/json" },
@@ -1212,7 +1258,7 @@ var HttpGateway = class {
       credentials: "omit",
       redirect: "error",
       cache: "no-store",
-      signal: AbortSignal.timeout(25e3)
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(25e3)]) : AbortSignal.timeout(25e3)
     });
     if (!r.ok) {
       let code;
@@ -1222,12 +1268,19 @@ var HttpGateway = class {
           "INDEX_DISABLED",
           "INDEX_NOT_READY",
           "INDEX_READ_FAILED",
-          "INVALID_CURSOR"
+          "INVALID_CURSOR",
+          "RATE_LIMITED",
+          "TOO_MANY_REQUESTS",
+          "RPC_BUDGET_EXCEEDED",
+          "RATE_LIMIT_CAPACITY",
+          "REQUEST_TIMEOUT"
         ].includes(e.error))
           code = e.error;
       } catch {
       }
-      throw new CoreApiError(r.status, code);
+      const retry = r.headers.get("retry-after");
+      const retryAfterSeconds = retry && /^[0-9]+$/.test(retry) && Number(retry) >= 1 && Number(retry) <= 3600 ? Number(retry) : void 0;
+      throw new CoreApiError(r.status, code, retryAfterSeconds);
     }
     return r.json();
   }
@@ -1243,9 +1296,13 @@ var HttpGateway = class {
   verify(transaction, call) {
     return this.request("/v1/transactions/verify", { transaction, call });
   }
-  async trusted(policy) {
-    if (canonical(await this.policy()) !== canonical(policy))
+  async trusted(policy, signal) {
+    if (canonical(parsePolicy((await this.request("/v1/config", void 0, signal)).policy)) !== canonical(policy))
       throw new Error("API policy differs from the trusted group");
+  }
+  async groupCapacity(policy, options = {}) {
+    await this.trusted(policy, options.signal);
+    return parseGroupCapacity(await this.request("/v1/group/capacity", void 0, options.signal), policy);
   }
   async verifyInvoice(input) {
     const signed = await verifySignedInvoice(input);
@@ -1293,13 +1350,15 @@ var HttpGateway = class {
   }
 };
 var CoreApiError = class extends Error {
-  constructor(status, code) {
-    super(`Core API request failed (${status}${code ? `: ${code}` : ""})`);
+  constructor(status, code, retryAfterSeconds) {
+    super(`Core API request failed (${status}${code ? `: ${code}` : ""})${retryAfterSeconds ? `; try again in ${retryAfterSeconds} seconds` : ""}`);
     this.status = status;
     this.code = code;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
   status;
   code;
+  retryAfterSeconds;
 };
 export {
   CoreApiError,
@@ -1327,6 +1386,8 @@ export {
   matchInvoicePlan,
   nonceBytes,
   parseActivityPage,
+  parseApprovedGroups,
+  parseGroupCapacity,
   parseIndexStatus,
   parseInvoice,
   parsePolicy,

@@ -6,7 +6,7 @@ English-first documentation and wallet interfaces for private business settlemen
 
 ## Documentation
 
-`/docs/` provides eight statically exported guides with searchable navigation, section links, a table of contents, previous/next links, and a mobile menu. English is the default language for the site and documentation. These README files remain available in English, Korean, and Simplified Chinese.
+`/docs/` provides nine statically exported guides with searchable navigation, section links, a table of contents, previous/next links, and a mobile menu. English is the default language for the site and documentation. These README files remain available in English, Korean, and Simplified Chinese.
 
 | Route | Guide |
 | --- | --- |
@@ -14,6 +14,7 @@ English-first documentation and wallet interfaces for private business settlemen
 | `/docs/architecture/` | Keyless vaults, shared notes, destination binding, and group capacity |
 | `/docs/payments/` | Deposits, withdrawals, 0.15% additive fees, and separate NEAR costs |
 | `/docs/invoices/` | Recipient-signed invoices, per-payment references, checkout, and reconciliation |
+| `/docs/groups/` | Approved directories, capacity selection, and original-group recovery |
 | `/docs/privacy/` | Private proof statement, public metadata, and selective evidence |
 | `/docs/kyb/` | Sample business intake and provider boundaries |
 | `/docs/sdk-api/` | CLI/browser SDK, read-only API endpoints, and finalized indexing |
@@ -39,6 +40,8 @@ npm run test:e2e
 `npm run build` verifies the vendored Core SDK and exports the site into `out/`. Front builds without sibling repositories and needs no bundled API keys. Browser checks cover documentation navigation and legacy routes, invoices, indexed activity, wallet recovery, KYB, and narrow-screen layout.
 
 ## Wallet settlement and invoices
+
+Settlements includes an approved-group selector. Import a caller-held directory, enter a Core API per group, and inspect verified capacity. Every selection rechecks policy/status. Full or deposit-disabled groups support recovery mode, which rejects new deposit imports and keeps the original group journal. Group controls lock while a journal is open. See `/docs/groups/` and [Core’s guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/GROUPS.md).
 
 `/live/` executes reviewed testnet FT calls for an independently configured deployment. Run the matching Core read-only API and index, import a policy obtained independently of that API, and compare every pinned value. A hosted Front needs a reachable HTTPS API with its exact origin allowed in CORS. No funded public-network group is bundled.
 

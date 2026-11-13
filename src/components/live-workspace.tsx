@@ -12,6 +12,7 @@ import {
 import { SettlementFrame } from "./merchant-shell";
 import { IndexedActivityPanel } from "./indexed-activity";
 import { InvoiceSummary } from "./invoice-summary";
+import { GroupSelector, type GroupSelection } from './group-selector';
 import {
   OperationJournal,
   SettlementSession,
@@ -20,6 +21,7 @@ import {
   canonical,
   feeQuote,
   parsePolicy,
+  preparedPayment,
   type Policy,
   type Operation,
   type Review,
@@ -72,6 +74,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [invoiceStatus, setInvoiceStatus] = useState<InvoiceStatus | null>(null);
+  const [groupSelection, setGroupSelection] = useState<GroupSelection | null>(null);
   const journal = useRef<OperationJournal | null>(null),
     session = useRef<SettlementSession | null>(null);
   useEffect(() => () => {
@@ -88,6 +91,16 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
     setReview(null);
     setSelected("");
     setPassphrase("");
+  }
+  function invalidateGroup() {
+    setVerified(false); setInvoiceStatus(null); setPolicy(null); setGroupSelection(null);
+    setReview(null); setSelected(''); setNotice('');
+  }
+  function useGroup(selection: GroupSelection) {
+    if (busy || unlocked || invoice) return;
+    lock(); setPayer(''); setTxHash(''); setError('');
+    setPolicy(selection.policy); setApi(selection.api); setVerified(true); setInvoiceStatus(null); setGroupSelection(selection);
+    setNotice(`Using ${selection.id} ${selection.allowNewDeposits ? 'for new deposits' : 'for withdrawals and recovery'}. The API matches its independently approved policy.`);
   }
   async function run(fn: () => Promise<void>) {
     if (busy) return;
@@ -200,6 +213,8 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
               Use the policy file supplied independently by your group operator.
               The API must match every pinned value.
             </p>
+            {!invoice && <GroupSelector disabled={busy || unlocked} onSelect={useGroup} onInvalidate={invalidateGroup}/>}
+            {groupSelection && <p className="group-selected" role="status">Selected group: <strong>{groupSelection.id}</strong> · {groupSelection.allowNewDeposits ? 'New deposits enabled' : 'Withdrawals and recovery'}</p>}
             <label className="form-label">
               Core API origin
               <input
@@ -223,6 +238,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                 disabled={busy || unlocked}
                 onChange={(e) => {
                   void run(async () => {
+                    setVerified(false); setInvoiceStatus(null); setPolicy(null); setGroupSelection(null);
                     const p = parsePolicy(JSON.parse(await fileText(e, 8192)));
                     if (
                       invoice &&
@@ -238,6 +254,8 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                     feeQuote(p);
                     setPolicy(p);
                     setVerified(false);
+                    setGroupSelection(null);
+                    setInvoiceStatus(null);
                   });
                 }}
               />
@@ -256,6 +274,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                   <summary>Inspect all pinned values</summary>
                   <pre>{JSON.stringify(policy, null, 2)}</pre>
                 </details>
+                <button type="button" className="text-link" onClick={() => download(JSON.stringify(policy, null, 2), `core-policy-${policy.registry}.json`)}>Download selected policy <Download size={13}/></button>
               </div>
             )}
             <button
@@ -440,6 +459,8 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                 void run(async () => {
                   if (!session.current) throw new Error("Unlock the journal");
                   const plan = JSON.parse(await fileText(e, 8192));
+                  if (groupSelection && !groupSelection.allowNewDeposits && (await preparedPayment(plan, policy!, payer)).reference.kind === 'deposit')
+                    throw new Error('This group is selected for withdrawals and recovery. New deposit imports are disabled.');
                   if (invoice) {
                     const payment = await matchInvoicePlan(plan, invoice.invoice, payer);
                     await invoiceGate(payment.reference.expectedDisclosureRoot);

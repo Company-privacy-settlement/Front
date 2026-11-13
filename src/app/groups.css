@@ -1,0 +1,24 @@
+.merchant-ui .group-picker { margin: 20px 0; border: 1px solid #dce6df; border-radius: 6px; background: #fbfdfb; }
+.merchant-ui .group-picker>summary { padding: 14px; font-size: 12px; font-weight: 550; color: #24583d; cursor: pointer; }
+.group-picker-content { padding: 0 14px 14px; min-width: 0; }
+.merchant-ui .group-picker-content>p { margin: 0 0 15px; }
+.group-options { display: grid; gap: 14px; }
+.group-option { padding: 15px; border: 1px solid #e0e6e2; border-radius: 6px; background: white; min-width: 0; }
+.group-option-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+.merchant-ui .group-option-heading h3 { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+.group-state { padding: 4px 7px; border-radius: 4px; background: #f0f2f4; color: #67716b; font-size: 10px; line-height: 1.5; }
+.group-state.available { color: #176743; background: #eff8f1; }
+.group-registry { display: block; color: #606c64; font-size: 11px; overflow-wrap: anywhere; }
+.merchant-ui .group-option .form-label { margin-block: 14px; }
+.group-capacity { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 18px; font-size: 10px; color: #68776b; }
+.group-capacity strong { color: #213e2b; font-size: 16px; font-weight: 550; }
+.group-option meter { width: 100%; height: 12px; margin-block: 5px 12px; accent-color: #007e52; }
+.group-option meter::-webkit-meter-bar { background: #edf1ed; border: 0; border-radius: 5px; }
+.group-option meter::-webkit-meter-optimum-value { background: #008756; border-radius: 5px; }
+.group-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.merchant-ui .group-actions .button { flex: 1 1 150px; font-size: 11px; min-height: 40px; }
+.merchant-ui .group-picker .group-explanation { font-size: 10px; line-height: 1.8; margin-top: 15px; }
+.merchant-ui .group-option .group-error { margin: 13px 0 0; overflow-wrap: anywhere; color: #a52b3b; }
+.merchant-ui .group-selected { border-left: 3px solid #007e52; background: #f3f8f4; padding: 11px 13px; overflow-wrap: anywhere; }
+.merchant-ui .live-policy>.text-link { grid-column: 1/-1; justify-self: start; margin: 0; text-align: left; }
+@media(max-width: 380px) { .group-picker-content { padding-inline: 10px; } .group-option { padding: 11px; } .group-actions .button { flex-basis: 100%; } }
