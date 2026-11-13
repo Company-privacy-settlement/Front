@@ -60,13 +60,17 @@ export const docs: Doc[] = [
               "Six-page sample intake; no provider submission or verified credential."
             ],
             [
+              "/organization/",
+              "Wallet-authenticated organizations, invitations, member roles, ownership and audit history through a separate Organization API."
+            ],
+            [
               "/app/",
               "Legacy routes redirect to the corresponding Docs guide."
             ]
           ]
         },
         "paragraphs": [
-          "The website and its nine guides default to English; repository READMEs also support Korean and Simplified Chinese. Current hosted access is owner-private, including checkout links. External customers need suitable site access and an independently configured funded deployment."
+          "The website and its ten guides default to English; repository READMEs also support Korean and Simplified Chinese. Current hosted access is owner-private, including checkout links. External customers need suitable site access and an independently configured funded deployment."
         ]
       },
       {
@@ -158,6 +162,14 @@ export const docs: Doc[] = [
         "paragraphs": [
           "Each group has a depth-8 tree with 256 total outputs, including transferred outputs. Capacity is shared across the group, not multiplied by its vault count. A full group can still process valid withdrawals.",
           "Assets and groups have separate proof domains. More vaults distribute custody; they do not create a measured anonymity guarantee or private cross-group bridge."
+        ]
+      },
+      {
+        "id": "organization-boundary",
+        "title": "Organization access is a separate service",
+        "paragraphs": [
+          "The read-only settlement API serves one independently trusted on-chain group. The Organization API authenticates wallet principals and stores off-chain team membership in a separate database. Organization sessions and roles are never accepted as a private note, invoice signature or settlement policy.",
+          "Owner, Admin, Operator, Viewer and Auditor control workspace access. They do not grant a signing key, change a keyless vault or approve a payment. Organization membership does not verify a legal entity or change this website’s owner-private access."
         ]
       }
     ]
@@ -599,7 +611,7 @@ export const docs: Doc[] = [
   {
     "slug": "sdk-api",
     "title": "SDK & API",
-    "description": "Connect local proving and wallet execution to a read-only API and durable finalized index.",
+    "description": "Configure the public settlement API and separate authenticated Organization API, then use the browser SDK safely.",
     "source": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/OPERATIONS.md",
     "sections": [
       {
@@ -761,6 +773,113 @@ export const docs: Doc[] = [
           "label": "Private backup and selected proof",
           "text": "const receipt = await createReceipt(values);\nconst encrypted = await encryptReceiptBackup(receipt, passphrase);\nconst full = await openReceiptBackup(downloadedBackup, passphrase);\nconst selected = await discloseReceipt(full, ['asset', 'amount']);\nawait verifyReceiptDisclosure(selected, independentlyObtainedRoot);"
         }
+      },
+      {
+        "id": "organization-service",
+        "title": "Run the Organization API",
+        "paragraphs": [
+          "Use a separate process and database for team access. The loopback default is port 3002, while the settlement API uses port 3001. Enter the independently configured Organization API origin in the Organization workspace. Do not point it at the read-only settlement API.",
+          "The server requires its own audience origin, owner-only database file, exact frontend Origin allowlist and HTTPS testnet RPC. localhost and 127.0.0.1 are different origins. A hosted frontend requires a reachable HTTPS backend; the current site does not include a deployed public Organization API."
+        ],
+        "code": {
+          "label": "Terminal · from Core, in a separate process",
+          "text": "export CORE_ORGANIZATION_ORIGIN=http://localhost:3002\nexport CORE_ORGANIZATION_DB=\"$PWD/data/organizations/organizations.sqlite\"\nexport CORE_ORGANIZATION_ALLOWED_ORIGINS=http://localhost:3000\nexport CORE_ORGANIZATION_RPC_URL=https://rpc.testnet.near.org\nnpm run serve:organizations"
+        }
+      },
+      {
+        "id": "organization-endpoints",
+        "title": "Organization API endpoints",
+        "paragraphs": [
+          "These routes belong to the Organization API origin. Except for process liveness and challenge/login, requests need an approved Origin and an origin-bound bearer session. The server checks the current finalized wallet key and current organization membership. A browser sends Origin automatically; a nonbrowser HTTP caller must provide it explicitly.",
+          "Existing-record mutations need the returned version. Never automatically replay a role, invitation, removal or ownership change after an uncertain response. Refresh the organization and audit log first."
+        ],
+        "table": {
+          "headings": [
+            "Method / route",
+            "Purpose"
+          ],
+          "rows": [
+            [
+              "POST /v1/auth/challenge",
+              "Create a five-minute account/audience/origin-bound sign-in challenge."
+            ],
+            [
+              "POST /v1/auth/login",
+              "Redeem the NEP-413 signature once for a one-hour session."
+            ],
+            [
+              "POST /v1/auth/logout",
+              "Revoke the supplied session; does not require an identity RPC read."
+            ],
+            [
+              "GET /v1/organizations",
+              "List only the principal’s active organization memberships."
+            ],
+            [
+              "POST /v1/organizations",
+              "Create a workspace name with the authenticated account as Owner."
+            ],
+            [
+              "GET /v1/organizations/:id",
+              "Read the current role, permissions and versions."
+            ],
+            [
+              "GET /v1/organizations/:id/members",
+              "Read the member directory when permitted."
+            ],
+            [
+              "PATCH /v1/organizations/:id/members/:account",
+              "Change a permitted role using the member version."
+            ],
+            [
+              "DELETE /v1/organizations/:id/members/:account",
+              "Remove a permitted member or leave using the membership version."
+            ],
+            [
+              "GET /v1/me/invitations",
+              "Read only invitations addressed to this authenticated account."
+            ],
+            [
+              "POST /v1/me/invitations/:id/accept or /decline",
+              "Explicitly resolve a targeted invitation using its version."
+            ],
+            [
+              "GET / POST /v1/organizations/:id/invitations",
+              "List or create permitted directed invitations."
+            ],
+            [
+              "DELETE /v1/organizations/:id/invitations/:invite",
+              "Revoke a permitted invitation using its version."
+            ],
+            [
+              "GET /v1/organizations/:id/roles",
+              "Read the fixed role/permission matrix."
+            ],
+            [
+              "PATCH /v1/organizations/:id",
+              "Rename the workspace using the organization version."
+            ],
+            [
+              "POST /v1/organizations/:id/ownership",
+              "Explicitly transfer to an active member using the organization version."
+            ],
+            [
+              "GET /v1/organizations/:id/audit?before=<sequence>",
+              "Read up to 50 organization-scoped audit events per page."
+            ]
+          ]
+        }
+      },
+      {
+        "id": "organization-client",
+        "title": "Organization browser client",
+        "paragraphs": [
+          "After verified wallet sign-in, create the client for that same approved service origin and keep the returned session only in memory. This example runs inside Front after the user selects an organization; only an Owner or Admin can rename it. The complete login and role boundaries are described in Organizations & access."
+        ],
+        "code": {
+          "label": "TypeScript · Front browser module",
+          "text": "import { OrganizationClient, type Organization } from \"@/vendor/core-client/index.js\";\n\n// session comes from the verified NEP-413 login flow.\nconst client = new OrganizationClient(organizationApiOrigin, session.token);\nconst path = `/v1/organizations/${selectedOrganizationId}`;\nconst organization = await client.request<Organization>(path);\nawait client.request(path, \"PATCH\", {\n  name: \"Example workspace\",\n  version: organization.version,\n});"
+        }
       }
     ]
   },
@@ -830,6 +949,15 @@ export const docs: Doc[] = [
         }
       },
       {
+        "id": "organization-access",
+        "title": "Recover organization access",
+        "paragraphs": [
+          "If the session expires or the signing key is removed in finalized chain state, sign in with a current FullAccess wallet key. If membership was removed, an authorized organization member must issue a new directed invitation. A wallet login does not restore that membership.",
+          "Version conflicts require a fresh read and explicit review. After an uncertain mutation result, inspect Members, Invitations and the Audit log before retrying; there is no automatic mutation replay. An Owner must transfer to an active member before leaving, and there is no lost-wallet Owner reset.",
+          "Organization records live in a separate server database. Browser note, receipt, journal or invoice-library backups cannot restore them. Restoring an old organization database can resurrect old memberships and sessions: the operator must clear sessions/challenges and reconcile current authorized records before reopening access. No automated organization restore or audience migration is implemented."
+        ]
+      },
+      {
         "id": "limits",
         "title": "Current protocol limits",
         "paragraphs": [
@@ -850,7 +978,8 @@ export const docs: Doc[] = [
         "title": "Sign in to your organization",
         "paragraphs": [
           "Open Organization from the workspace navigation. Enter the independently provided Organization API origin, then choose Sign in with testnet wallet. Use a wallet that supports NEP-413 message signing. The message binds your account, service, frontend origin and a five-minute nonce.",
-          "The organization service verifies the signature and the current finalized FullAccess key. A one-hour session stays in memory. Changing the API origin, leaving the page or returning from browser history clears the local session. Explicit Sign out revokes the server session."
+          "The organization service verifies the signature and the current finalized FullAccess key. A one-hour session stays in memory. Changing the API origin, leaving the page or returning from browser history clears the local session. Explicit Sign out revokes the server session.",
+          "Authentication uses an Ed25519 wallet returning the signed message directly; redirect-return callbacks are not implemented. A function-call key cannot sign in. The server checks a recent finalized testnet key on each private request and denies access when the identity RPC is unavailable."
         ]
       },
       {
@@ -860,7 +989,7 @@ export const docs: Doc[] = [
           "Create an organization with a workspace name. This does not verify a legal entity.",
           "Open Invitations, enter a NEAR testnet account and choose a permitted role.",
           "The recipient signs in to the same organization service and accepts from Your invitations. Invitations expire after seven days; no email or Telegram message is sent.",
-          "Review Members to change a permitted role or remove a member. Changes take effect on the next server authorization check."
+          "Review Members to change a permitted role or remove a member. The server rechecks membership on each request. An invitation also binds its inviter’s membership version; removing, changing or re-adding the inviter cannot revive old invitation authority. Revoke the old invitation before creating a replacement."
         ]
       },
       {
@@ -899,11 +1028,101 @@ export const docs: Doc[] = [
         ]
       },
       {
+        "id": "limits",
+        "title": "Membership limits and audit history",
+        "table": {
+          "headings": [
+            "Record",
+            "Current limit / behavior"
+          ],
+          "rows": [
+            [
+              "Organizations owned by one account",
+              "10"
+            ],
+            [
+              "Active memberships for one account",
+              "100"
+            ],
+            [
+              "Active members in one organization",
+              "100"
+            ],
+            [
+              "Unexpired pending invitations per organization / account inbox",
+              "100 / 100"
+            ],
+            [
+              "Sign-in challenge / server session / invitation",
+              "5 minutes / 1 hour / 7 days"
+            ],
+            [
+              "Active sessions per account",
+              "Up to 10"
+            ],
+            [
+              "Audit pagination",
+              "50 events per page; sequences are scoped to one organization."
+            ]
+          ]
+        },
+        "paragraphs": [
+          "Creation, renaming, invitations, member changes and ownership transfers append to the audit log in the same database transaction. Failed or stale changes do not append a successful change. This application history can be altered by a database administrator; it is not an independently anchored payment or tax proof."
+        ]
+      },
+      {
         "id": "ownership",
         "title": "Ownership and recovery",
         "paragraphs": [
           "An organization always has one active Owner. An Owner must explicitly transfer ownership to an active member before leaving. The former Owner becomes an Admin. Version checks reject stale changes; refresh before retrying.",
           "An accepted member can leave. Removing a member immediately blocks their organization access. Pending invitations also check that their inviter still has permission when accepted. There is no platform-admin owner reset, lost-wallet recovery or corporate multisig workflow."
+        ]
+      },
+      {
+        "id": "errors",
+        "title": "Resolve access and version errors",
+        "table": {
+          "headings": [
+            "Response",
+            "Next action"
+          ],
+          "rows": [
+            [
+              "401 SESSION_INVALID / FULL_ACCESS_KEY_REVOKED",
+              "Sign in again with the current wallet key. A new key does not restore removed organization membership."
+            ],
+            [
+              "403 ORIGIN_DENIED",
+              "Check that the configured backend allows the exact frontend origin."
+            ],
+            [
+              "403 PERMISSION_DENIED / ROLE_GRANT_DENIED",
+              "Refresh access and ask the Owner for the required role. Admins cannot manage Admins or Owners."
+            ],
+            [
+              "404 ORGANIZATION_NOT_FOUND",
+              "Refresh your organizations. Absent and foreign organizations use the same response."
+            ],
+            [
+              "409 VERSION_CONFLICT",
+              "Refresh the record and review its latest version before retrying explicitly."
+            ],
+            [
+              "409 INVITATION_AUTHORITY_REVOKED",
+              "Ask an authorized member to revoke the old invitation and issue a new one."
+            ],
+            [
+              "503 IDENTITY_CHAIN_UNAVAILABLE",
+              "Wait for a current testnet identity RPC; the service does not fall back to cached authorization."
+            ],
+            [
+              "504 / lost response",
+              "Inspect current membership and audit history before deciding whether another mutation is needed."
+            ]
+          ]
+        },
+        "paragraphs": [
+          "The browser clears credentials and private views on page-hide, history-cache return, unmount or API-origin change. Explicit Sign out revokes the server token. If logout transport fails, local credentials are still cleared; server revocation remains unconfirmed until expiry. A submitted request may already have committed."
         ]
       },
       {
