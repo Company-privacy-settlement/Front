@@ -54,13 +54,13 @@ test('approved groups show bounded capacity, apply verified selection, and prese
   await row(page, 'next').screenshot({ path: info.outputPath('approved-group.png') });
   await row(page, 'next').getByRole('button', { name: 'Use next for deposits' }).click();
   await expect(page.locator('.group-selected')).toContainText('New deposits enabled');
-  await expect(page.getByLabel('Core API origin', { exact: true })).toHaveValue('https://next-api.example');
+  await expect(page.getByLabel('Payment service origin', { exact: true })).toHaveValue('https://next-api.example');
   await expect(page.getByRole('button', { name: 'Policy matches' })).toBeVisible();
   await row(page, 'old').getByRole('button', { name: 'Use old for recovery' }).click();
   await expect(page.locator('.group-selected')).toContainText('Withdrawals and recovery');
   const downloaded = page.waitForEvent('download'); await page.getByRole('button', { name: 'Download selected policy' }).click();
   const file = await downloaded; expect(JSON.parse(await readFile((await file.path())!, 'utf8'))).toEqual(old);
-  await page.getByRole('button', { name: 'Connect testnet wallet' }).click();
+  await page.getByRole('button', { name: 'Connect payment wallet' }).click();
   await page.getByText('Groups Fixture Wallet', { exact: true }).click();
   await page.getByLabel('Journal passphrase').fill('group recovery test password');
   await page.getByRole('button', { name: 'Create journal' }).click();

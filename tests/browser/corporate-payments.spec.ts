@@ -28,7 +28,7 @@ test('a lost authorization response retains a reservation and never requests ano
 test('page-cache entry clears sessions/journal and blocks a late reserved dispatch',async({page,context})=>{
   const f=await corporateFixture();await f.ready(page,context);f.state.holdPermit=true;await page.getByRole('button',{name:'Sign approved prerequisite in wallet',exact:true}).click();await expect.poll(()=>f.state.reservations).toBe(1);
   const snapshot=await page.evaluate(()=>{window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));return{details:document.querySelectorAll('.corporate-payment-summary').length,passwords:[...document.querySelectorAll<HTMLInputElement>('input[type=password]')].map(x=>x.value)};});expect(snapshot.details).toBe(0);expect(snapshot.passwords.every(p=>!p)).toBe(true);
-  f.state.releasePermit!();await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true})));await expect(page.getByRole('button',{name:'Sign in with testnet wallet',exact:true})).toBeVisible();expect(await f.transactions(page)).toHaveLength(0);
+  f.state.releasePermit!();await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true})));await expect(page.getByRole('button',{name:'Sign in with wallet',exact:true})).toBeVisible();expect(await f.transactions(page)).toHaveLength(0);
 });
 test('a changed storage charge needs a new approval even when preflight accepts it',async({page,context})=>{
   const f=await corporateFixture();await f.ready(page,context);f.state.changedPrerequisite=true;await page.getByRole('button',{name:'Refresh settlement',exact:true}).click();await expect(page.getByLabel('Approved corporate execution',{exact:true})).toContainText('20000000000000000000000');

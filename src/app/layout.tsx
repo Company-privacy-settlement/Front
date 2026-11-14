@@ -11,6 +11,7 @@ import './notes.css';
 import './invoice-note-payment.css';
 import './evidence.css';
 import './organization.css';
+import './money-station.css';
 
-export const metadata: Metadata = { title: { default: 'Core — Private payments. Shared confidence.', template: '%s · Core' }, description: 'Documentation and wallet tools for private business settlement on NEAR. Distributed vaults, shared ZK notes, and selective evidence.' };
+export const metadata: Metadata = { title: { default: 'Money Station — Private payments. Clear proof.', template: '%s · Money Station' }, description: 'Private on-chain payments for business. Move money at network speed, protect sensitive business details, and prepare evidence for reconciliation and tax review.' };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="en"><body>{children}</body></html>; }

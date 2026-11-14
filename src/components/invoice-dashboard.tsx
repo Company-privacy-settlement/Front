@@ -1,4 +1,5 @@
 "use client";
+import {defaultApiOrigin} from '@/lib/deployment';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { Download, RefreshCw, Search } from 'lucide-react';
 import { canonical, exportInvoiceDashboard, filterInvoiceDashboard, HttpGateway, invoiceDashboardObservation, invoiceDashboardState, invoiceLink, loadOrganizationInvoices, OrganizationApiError, OrganizationInvoiceClient, parsePolicy, verifySignedInvoice,
@@ -11,7 +12,7 @@ function wait(signal:AbortSignal) { return new Promise<void>((resolve,reject)=>{
 export function InvoiceDashboard({organization,client,accountId,disabled,run}:{organization:Organization;client:OrganizationClient;accountId:string;disabled:boolean;run:Run}) {
   const [rows,setRows]=useState<InvoiceDashboardRow[]>([]),[ready,setReady]=useState(false),[query,setQuery]=useState(''),[state,setState]=useState<DashboardState|'all'>('all');
   const [asset,setAsset]=useState(''),[registry,setRegistry]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState(''),[page,setPage]=useState(0),[now,setNow]=useState(Date.now());
-  const [api,setApi]=useState('http://localhost:3001'),[policy,setPolicy]=useState<Policy|null>(null),[signed,setSigned]=useState<SignedInvoice|null>(null),[selected,setSelected]=useState<string|null>(null),[notice,setNotice]=useState(''),[checking,setChecking]=useState(false);
+  const [api,setApi]=useState(defaultApiOrigin),[policy,setPolicy]=useState<Policy|null>(null),[signed,setSigned]=useState<SignedInvoice|null>(null),[selected,setSelected]=useState<string|null>(null),[notice,setNotice]=useState(''),[checking,setChecking]=useState(false);
   const loaded=useRef(false),mounted=useRef(true),request=useRef<AbortController|null>(null);
   const canRead=organization.permissions.includes('invoices.read'),canCreate=organization.permissions.includes('invoices.create'),blocked=disabled||!ready;
   useEffect(()=>{mounted.current=true;const timer=setInterval(()=>setNow(Date.now()),30000);return()=>{mounted.current=false;request.current?.abort();clearInterval(timer);};},[]);
@@ -62,9 +63,9 @@ export function InvoiceDashboard({organization,client,accountId,disabled,run}:{o
     <div className="organization-section-title"><div><h2>Invoice payments</h2><p>Manage your organization’s invoices and reconcile finalized payments.</p></div><button className="button button-outline" disabled={blocked} onClick={()=>void run((_c,s,check)=>refresh(s,check))}><RefreshCw size={15}/>Refresh invoices</button></div>
     {!ready&&<p role="status">Loading organization invoices…</p>}
     <div className="invoice-dashboard-metrics"><div><span>Invoices</span><strong>{rows.length}</strong></div><div><span>Confirmed paid</span><strong>{counts.paid}</strong></div><div><span>Needs attention</span><strong>{counts.review}</strong></div><div><span>Unchecked</span><strong>{counts.unchecked}</strong></div></div>
-    <details className="invoice-dashboard-source"><summary>Settlement source</summary><p>Import an independently trusted testnet policy and enter its matching Core API. Status checks send public payment references only.</p>
+    <details className="invoice-dashboard-source"><summary>Settlement source</summary><p>Use an independently trusted settlement policy and its matching payment service. Status checks send public payment references only.</p>
       <label className="form-label">Dashboard settlement API origin<input value={api} disabled={blocked} onChange={e=>{setApi(e.target.value);resetSource();}}/></label>
-      <label className="form-label">Trusted dashboard policy JSON<input type="file" accept="application/json,.json" disabled={blocked} onChange={e=>{setPolicy(null);resetSource();void run(async(_c,_s,check)=>{const value=await read(e);check();const p=parsePolicy(value);if(p.network!=='testnet')throw new Error('Choose an independently trusted testnet policy');setPolicy(p);});}}/></label>
+      <label className="form-label">Trusted dashboard policy JSON<input type="file" accept="application/json,.json" disabled={blocked} onChange={e=>{setPolicy(null);resetSource();void run(async(_c,_s,check)=>{const value=await read(e);check();const p=parsePolicy(value);if(p.network!=='testnet')throw new Error('Choose an independently trusted settlement policy');setPolicy(p);});}}/></label>
       {policy&&<p className="small-note">Selected group: {policy.registry} · {policy.tokenId??'NEAR'}</p>}
     </details>
     <div className="live-buttons"><button className="button button-dark" disabled={blocked||!policy||!rows.some(r=>canonical(r.record.invoice.invoice.policy)===canonical(policy))} onClick={()=>void checkPayments()}>Check payments</button>{checking&&<button className="button button-outline" onClick={()=>request.current?.abort()}>Cancel payment check</button>}</div>

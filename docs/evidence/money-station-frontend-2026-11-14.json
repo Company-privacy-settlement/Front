@@ -1,0 +1,66 @@
+{
+  "format": "money-station-frontend-qualification-v1",
+  "checkedAt": "2026-11-14",
+  "brand": "Money Station",
+  "language": "en",
+  "walletNetwork": "testnet",
+  "repeatedNetworkBadgesRemoved": true,
+  "immediateDeliveryDefault": true,
+  "frontUnitTests": {
+    "passed": 12,
+    "failed": 0
+  },
+  "browserTests": {
+    "passed": 280,
+    "failed": 0,
+    "skipped": 0,
+    "projects": [
+      "desktop",
+      "mobile"
+    ],
+    "workers": 2,
+    "scope": "Whole Front browser suite with actual local proving artifacts and labelled injected wallet/API fixtures"
+  },
+  "realWalletPickerObserved": {
+    "providers": [
+      "Meteor Wallet",
+      "Intear Wallet",
+      "Ledger",
+      "Nightly Wallet",
+      "Ethereum Wallets",
+      "NEAR CLI"
+    ],
+    "humanWalletAuthenticationCompleted": false,
+    "paymentSignedDuringPickerInspection": false
+  },
+  "walletSafety": [
+    "connection requests share one pending selector",
+    "connection does not sign a payment",
+    "configured test-network guard remains active",
+    "disconnect locks payment review and preserves encrypted journal",
+    "disconnect clears organization credentials and merchant signed-request display"
+  ],
+  "configurationGate": "Exact HTTPS origins, strict token policy, independent canonical SHA-256; MONEY_STATION_REQUIRE_DEPLOYMENT=1 rejects missing services",
+  "actualPublicServiceConfiguration": "unconfigured; no localhost fallback bundled",
+  "publicBrowserUsdcQualified": false,
+  "productionSecurityQualified": false,
+  "siteAudience": "Existing owner-private audience preserved",
+  "screenshots": [
+    {
+      "file": "docs/assets/money-station-landing-desktop.png",
+      "sha256": "94dbc97a925ae8e0769f8942a05933e8d00fd8c4ba227f5d635cc7ba86ca0e7d"
+    },
+    {
+      "file": "docs/assets/money-station-landing-mobile.png",
+      "sha256": "3381b752a6dc24d891f5b48e88f007a4ac71f79dee3e0973f86547c7e3fb7e4e"
+    },
+    {
+      "file": "docs/assets/money-station-workspace-desktop.png",
+      "sha256": "940abd7362b0bb1f4977b559ff7578f125e0b36ff69a7f194a44344bb8033e49"
+    },
+    {
+      "file": "docs/assets/money-station-workspace-mobile.png",
+      "sha256": "62390a4dacce915908b54dc3f11f6614954157218e19b8331fad402975517dd8"
+    }
+  ]
+}

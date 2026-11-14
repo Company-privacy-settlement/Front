@@ -1,5 +1,6 @@
+import {publishWallet} from './wallet-state';
 import type { NearConnector } from "@hot-labs/near-connect";
-import type { WalletPort, TxRef } from "@/vendor/core-client/index.js";
+import type { WalletPort, TxRef, Identity } from "@/vendor/core-client/index.js";
 import {
   invoiceHash,
   invoiceMessage,
@@ -9,25 +10,31 @@ import {
   type Invoice,
 } from "@/vendor/core-client/index.js";
 let connector: NearConnector | undefined;
-export async function nearConnector() {
-  if (!connector) {
-    const { NearConnector } = await import("@hot-labs/near-connect");
-    connector = new NearConnector({
-      network: "testnet",
-      autoConnect: false,
-      features: { testnet: true, signAndSendTransaction: true },
-    });
-  }
-  return connector;
+let opening: Promise<NearConnector> | undefined;
+export async function nearConnector():Promise<NearConnector> {
+  if(connector)return connector;
+  if(!opening)opening=(async()=>{
+    const {NearConnector}=await import('@hot-labs/near-connect');
+    const created=new NearConnector({network:'testnet',autoConnect:false,features:{testnet:true,signAndSendTransaction:true},footerBranding:{heading:'Money Station',link:'https://wallet.near.org',linkText:'Find a wallet'}});
+    created.on('wallet:signIn',({accounts,success})=>{if(success&&created.network==='testnet')publishWallet(accounts[0]?.accountId??'');});
+    created.on('wallet:signOut',()=>publishWallet(''));
+    connector=created;return created;
+  })().catch(error=>{opening=undefined;throw error;});
+  return opening;
+}
+let connecting:Promise<Identity>|undefined;
+export function connectWallet():Promise<Identity>{
+  return connecting??=nearConnector().then(c=>c.connect()).then(()=>liveWallet.identity()).finally(()=>{connecting=undefined;});
 }
 export const liveWallet: WalletPort = {
   supportsBeforeDispatch: true,
   async identity() {
     const c = await nearConnector();
-    if (c.network !== "testnet") throw new Error("Select NEAR testnet");
+    if (c.network !== "testnet") throw new Error("Reconnect your wallet on the configured network");
     const wallet = await c.wallet(),
       accounts = await wallet.getAccounts({ network: "testnet" });
-    if (!accounts[0]) throw new Error("Connect a testnet wallet first");
+    if (!accounts[0]) throw new Error("Connect your wallet first");
+    publishWallet(accounts[0].accountId);
     return { network: "testnet", accountId: accounts[0].accountId };
   },
   async sign(call, context) {

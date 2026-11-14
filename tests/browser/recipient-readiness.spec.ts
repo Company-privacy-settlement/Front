@@ -13,7 +13,7 @@ function snapshot(recipient: string, exists = true, registered = false) {
 }
 async function draft(page: Page, recipient = implicit) {
   await page.goto('/invoices/');
-  await page.getByLabel('Core API origin').fill('https://core-api.example');
+  await page.getByLabel('Payment service origin').fill('https://core-api.example');
   await page.getByLabel('Trusted FT policy JSON').setInputFiles({ name: 'policy.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(policy)) });
   await page.getByLabel('Payout NEAR account').fill(recipient);
 }
@@ -66,7 +66,7 @@ test('failed or substituted readiness clears a previous ready snapshot and editi
   await expect(region(page)).not.toContainText('Ready for payment review');
   await expect(region(page).getByRole('button', { name: 'Check recipient', exact: true })).toBeEnabled();
   await check(); await expect(region(page)).toContainText('Ready for payment review');
-  await page.getByLabel('Core API origin').fill('https://other-api.example');
+  await page.getByLabel('Payment service origin').fill('https://other-api.example');
   await expect(region(page)).not.toContainText('Ready for payment review');
 });
 test('late recipient responses cannot repopulate an edited form and an untrusted API cannot propose registration', async ({ page }) => {
@@ -95,7 +95,7 @@ test('checkout readiness uses the signed invoice recipient only after independen
   });
   await page.goto(new URL(link).pathname + new URL(link).hash);
   await expect(region(page).getByRole('button', { name: 'Check recipient', exact: true })).toBeDisabled();
-  await page.getByLabel('Core API origin').fill('https://core-api.example');
+  await page.getByLabel('Payment service origin').fill('https://core-api.example');
   await page.getByLabel('Trusted policy JSON', { exact: true }).setInputFiles({ name: 'policy.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(policy)) });
   await page.getByRole('button', { name: 'Verify API policy', exact: true }).click();
   await expect(region(page).getByRole('button', { name: 'Check recipient', exact: true })).toBeEnabled();

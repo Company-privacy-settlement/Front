@@ -5,7 +5,7 @@ export const docs: Doc[] = [
   {
     "slug": "",
     "title": "Getting started",
-    "description": "Understand Core, prepare a trusted settlement group, and follow a private note to a confirmed payout.",
+    "description": "Use Money Station, understand the Core settlement protocol, and follow a private payment through confirmation.",
     "source": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md",
     "sections": [
       {
@@ -1079,7 +1079,7 @@ export const docs: Doc[] = [
   {
     "slug": "organizations",
     "title": "Organizations & access",
-    "description": "Sign in with your NEAR testnet wallet, create an organization and manage members with server-enforced roles.",
+    "description": "Sign in with your wallet, create an organization and manage members with server-enforced roles.",
     "source": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md",
     "sections": [
       {

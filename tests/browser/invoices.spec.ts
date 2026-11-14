@@ -29,11 +29,11 @@ test("invoice fragment changes clear the previous payment session and browser hi
   await expect(page.getByRole("heading", { name: "Design milestone", exact: true })).toBeVisible();
   await page.locator(".checkout-continue").click();
   expect(new URL(page.url()).hash).toBe(new URL(first.link).hash);
-  await page.getByLabel("Core API origin").fill("https://core-api.example");
+  await page.getByLabel("Payment service origin").fill("https://core-api.example");
   await page.getByLabel("Trusted policy JSON").setInputFiles({ name: "policy.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(policy)) });
   await page.getByRole("button", { name: "Verify API policy" }).click();
   await page.getByRole("button", { name: "Verify merchant & refresh payment" }).click();
-  await page.getByRole("button", { name: "Connect testnet wallet" }).click();
+  await page.getByRole("button", { name: "Connect payment wallet" }).click();
   await page.getByText("Invoice Fixture Wallet", { exact: true }).click();
   await page.getByLabel("Journal passphrase").fill("invoice navigation test password");
   await page.getByRole("button", { name: "Create journal" }).click();
@@ -46,8 +46,8 @@ test("invoice fragment changes clear the previous payment session and browser hi
   expect(await page.evaluate(() => (window as any).invoiceNavigationMarker)).toBe(true);
   await expect(page.getByRole("heading", { name: "Second invoice", exact: true })).toBeVisible();
   await expect(page.getByText("second-recipient.testnet", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Core API origin")).toHaveValue("http://localhost:3001");
-  await expect(page.getByRole("button", { name: "Connect testnet wallet" })).toBeVisible();
+  await expect(page.getByLabel("Payment service origin")).toHaveValue("");
+  await expect(page.getByRole("button", { name: "Connect payment wallet" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Your journal is unlocked" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Approve payment in wallet" })).toHaveCount(0);
   await expect(page.getByLabel("Public FT payment plan")).toBeDisabled();
@@ -167,7 +167,7 @@ test("recipient signs an invoice, payer rejects another invoice proof, and two c
     await page.setViewportSize(viewport);
   }
   await page.screenshot({ path: info.outputPath("checkout.png"), fullPage: true });
-  await page.getByLabel("Core API origin").fill("https://core-api.example");
+  await page.getByLabel("Payment service origin").fill("https://core-api.example");
   await page
     .getByLabel("Trusted policy JSON")
     .setInputFiles({
@@ -189,7 +189,7 @@ test("recipient signs an invoice, payer rejects another invoice proof, and two c
     const path = await (await download).path();
     expect(JSON.parse(await readFile(path!, "utf8"))).toEqual({ kind: "withdraw", target: created.signed.invoice.recipient, disclosureRoot: await invoiceRoot(created.signed.invoice, index) });
   }
-  await page.getByRole("button", { name: "Connect testnet wallet" }).click();
+  await page.getByRole("button", { name: "Connect payment wallet" }).click();
   await page.getByText("Invoice Fixture Wallet", { exact: true }).click();
   await page
     .getByLabel("Journal passphrase")
@@ -264,7 +264,7 @@ test("a late invoice lookup cannot restore verified status after deployment trus
   await fixture(page);
   const created = await issue(page);
   await page.goto(created.link);
-  await page.getByLabel("Core API origin").fill("https://core-api.example");
+  await page.getByLabel("Payment service origin").fill("https://core-api.example");
   const policyFile = { name: "policy.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(policy)) };
   await page.getByLabel("Trusted policy JSON").setInputFiles(policyFile);
   await page.getByRole("button", { name: "Verify API policy" }).click();
@@ -299,3 +299,4 @@ test("changing a signed invoice invalidates checkout before any payment interfac
   await expect(page.getByLabel("Public FT payment plan")).toHaveCount(0);
   expect(f.settled.size).toBe(0);
 });
+test('disconnecting the shared wallet locks merchant access and hides the previous signed request',async({page})=>{await fixture(page);await issue(page);await expect(page.locator('.invoice-share')).toHaveCount(1);await page.getByRole('button',{name:'Manage connected wallet'}).click();await page.getByRole('button',{name:'Disconnect wallet',exact:true}).click();await expect(page.getByRole('button',{name:'Connect merchant wallet',exact:true})).toBeVisible();await expect(page.locator('.invoice-share')).toHaveCount(0);});

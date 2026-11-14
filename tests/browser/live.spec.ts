@@ -72,7 +72,7 @@ async function injectedWallet(page: Page, loseResponse = false) {
   );
 }
 async function configure(page: Page) {
-  await page.getByLabel("Core API origin").fill("https://core-api.example");
+  await page.getByLabel("Payment service origin").fill("https://core-api.example");
   await page
     .getByLabel("Trusted policy JSON")
     .setInputFiles({
@@ -86,7 +86,7 @@ async function configure(page: Page) {
   ).toBeVisible();
 }
 async function connect(page: Page) {
-  await page.getByRole("button", { name: "Connect testnet wallet" }).click();
+  await page.getByRole("button", { name: "Connect payment wallet" }).click();
   await page.getByText("Fixture Wallet", { exact: true }).click();
   await expect(page.locator(".live-wallet").getByText(payer, { exact: true })).toBeVisible();
 }
@@ -372,3 +372,4 @@ test("lost wallet response stays blocked after reload and cannot produce another
     ),
   ).toBe(0);
 });
+test('disconnecting the shared wallet locks a reviewed payment without signing or deleting its encrypted journal',async({page})=>{await readyWorkspace(page);await createJournal(page);await importPlan(page);await expect(page.getByRole('button',{name:'Approve payment in wallet'})).toBeEnabled();const encrypted=await page.evaluate(key=>localStorage.getItem(key),journalKey);await page.getByRole('button',{name:'Manage connected wallet'}).click();await page.getByRole('button',{name:'Disconnect wallet',exact:true}).click();await expect(page.locator('.live-wallet strong')).toHaveText('No wallet connected');await expect(page.getByRole('button',{name:'Lock',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Approve payment in wallet'})).toHaveCount(0);expect(await page.evaluate(key=>localStorage.getItem(key),journalKey)).toBe(encrypted);expect(await page.evaluate(()=>(window as any).fixtureCalls)).toEqual([]);});

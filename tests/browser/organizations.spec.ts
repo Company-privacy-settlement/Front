@@ -50,7 +50,7 @@ async function setup(page: Page, initialRole: OrganizationRole = 'owner', delaye
   return state;
 }
 async function signIn(page: Page) {
-  await page.getByRole('button', { name: 'Sign in with testnet wallet' }).click();
+  await page.getByRole('button', { name: 'Sign in with wallet' }).click();
   await page.getByText('Organization Fixture Wallet', { exact: true }).click();
 }
 async function enter(page: Page) { await signIn(page); await page.getByLabel('Active organization').selectOption(id); await expect(page.locator('.organization-current h2')).toHaveText('Example organization'); }
@@ -93,14 +93,14 @@ test('page-hide during wallet signature prevents late login and private view res
   const state = await setup(page, 'owner', true); await signIn(page);
   await expect.poll(() => page.evaluate(() => (window as any).organizationSignatures.length)).toBe(1);
   await page.evaluate(() => { window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })); (window as any).releaseOrganizationSignature(); window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); });
-  await expect(page.getByRole('button', { name: 'Sign in with testnet wallet' })).toBeEnabled(); expect(state.loginCalls).toBe(0);
+  await expect(page.getByRole('button', { name: 'Sign in with wallet' })).toBeEnabled(); expect(state.loginCalls).toBe(0);
   await expect(page.getByLabel('Active organization')).toHaveCount(0);
 });
 test('changing service origin clears the session without forwarding its bearer to another origin', async ({ page }) => {
   await setup(page); await enter(page); const forwarded: string[] = [];
   await page.route('https://other-organization.example/**', route => { forwarded.push(route.request().headers().authorization ?? 'none'); return route.fulfill({ status: 503, json: { error: 'UNAVAILABLE' } }); });
   await page.getByLabel('Organization API origin').fill('https://other-organization.example');
-  await expect(page.getByRole('button', { name: 'Sign in with testnet wallet' })).toBeVisible(); await expect(page.locator('.organization-current')).toHaveCount(0); expect(forwarded).toEqual([]);
+  await expect(page.getByRole('button', { name: 'Sign in with wallet' })).toBeVisible(); await expect(page.locator('.organization-current')).toHaveCount(0); expect(forwarded).toEqual([]);
   const storage = await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage)); expect(storage).not.toContain('s'.repeat(43));
 });
 test('page-hide clears loaded member and audit views with no automatic sign-in on return', async ({ page }) => {
@@ -109,7 +109,7 @@ test('page-hide clears loaded member and audit views with no automatic sign-in o
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })));
   await expect(page.getByText('colleague.testnet', { exact: true })).toHaveCount(0);
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
-  await expect(page.getByRole('button', { name: 'Sign in with testnet wallet' })).toBeVisible(); expect(state.loginCalls).toBe(1);
+  await expect(page.getByRole('button', { name: 'Sign in with wallet' })).toBeVisible(); expect(state.loginCalls).toBe(1);
 });
 for (const failure of ['network', 'html'] as const) {
   test(`failed access refresh clears member data and owner controls: ${failure}`, async ({ page }) => {
@@ -137,6 +137,7 @@ test('stale mutation version clears the old role snapshot without replaying the 
 test('failed initial access loading clears a partially established login session', async ({ page }) => {
   const state = await setup(page); state.failure = 'network'; await signIn(page);
   await expect(page.locator('.organization-workspace [role="alert"]')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Sign in with testnet wallet', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Sign in with wallet', exact: true })).toBeEnabled();
   await expect(page.getByLabel('Active organization')).toHaveCount(0); expect(state.loginCalls).toBe(1);
 });
+test('disconnecting the shared wallet clears organization credentials and role controls',async({page})=>{await setup(page);await enter(page);await page.getByRole('button',{name:'Manage connected wallet'}).click();await page.getByRole('button',{name:'Disconnect wallet',exact:true}).click();await expect(page.getByRole('button',{name:'Sign in with wallet',exact:true})).toBeVisible();await expect(page.locator('.organization-current')).toHaveCount(0);await expect(page.getByLabel('Active organization')).toHaveCount(0);});

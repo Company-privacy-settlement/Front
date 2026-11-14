@@ -79,7 +79,7 @@ function item(
 }
 async function configure(page: Page) {
   await page.goto("/live/");
-  await page.getByLabel("Core API origin").fill("https://core-api.example");
+  await page.getByLabel("Payment service origin").fill("https://core-api.example");
   await page
     .getByLabel("Trusted policy JSON")
     .setInputFiles({

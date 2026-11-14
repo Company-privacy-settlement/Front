@@ -1,0 +1,12 @@
+'use client';
+import {useEffect,useRef,useState,useSyncExternalStore} from 'react';
+import {ArrowUpRight,Check,LoaderCircle,Wallet,X} from 'lucide-react';
+import Link from 'next/link';
+import {nearConnector,connectWallet,liveWallet} from '@/lib/wallet';
+import {subscribeWallet,walletSnapshot,walletServerSnapshot,publishWallet} from '@/lib/wallet-state';
+export function WalletButton({className='button button-dark',label='Connect wallet'}:{className?:string;label?:string}){
+ const {accountId}=useSyncExternalStore(subscribeWallet,walletSnapshot,walletServerSnapshot),[busy,setBusy]=useState(false),[error,setError]=useState(''),[open,setOpen]=useState(false),pending=useRef(false);
+ useEffect(()=>{if(!accountId)return;let active=true;const refresh=()=>{void liveWallet.identity().catch(()=>{if(active)publishWallet('');});};window.addEventListener('focus',refresh);return()=>{active=false;window.removeEventListener('focus',refresh);};},[accountId]);
+ async function connect(){if(pending.current)return;if(accountId){setOpen(v=>!v);return;}pending.current=true;setBusy(true);setError('');try{await connectWallet();}catch(e){setError(e instanceof Error?e.message:'Could not connect. Please try again.');}finally{pending.current=false;setBusy(false);}}
+ return <div className="ms-wallet-control"><button className={className} disabled={busy} aria-label={accountId?'Manage connected wallet':label} aria-expanded={accountId?open:undefined} onClick={()=>void connect()}>{busy?<LoaderCircle size={15} className="spin"/>:accountId?<Check size={15}/>:<Wallet size={15}/>}<span>{busy?'Connecting…':accountId?(accountId.length>22?accountId.slice(0,10)+'…'+accountId.slice(-8):accountId):label}</span>{!accountId&&!busy&&<ArrowUpRight size={15}/>}</button>{accountId&&open&&<div className="ms-wallet-menu" role="dialog" aria-label="Connected wallet"><button className="ms-wallet-close" aria-label="Close wallet menu" onClick={()=>setOpen(false)}><X size={16}/></button><span>Connected wallet</span><strong>{accountId}</strong><Link href="/live/" onClick={()=>setOpen(false)}>Open workspace <ArrowUpRight size={14}/></Link><button disabled={busy} onClick={()=>{setBusy(true);void nearConnector().then(c=>c.disconnect()).then(()=>setOpen(false)).catch(()=>setError('Could not disconnect. Try again.')).finally(()=>setBusy(false));}}>Disconnect wallet</button></div>}{error&&<div className="ms-wallet-error" role="alert"><span>{error}</span><button aria-label="Dismiss wallet error" onClick={()=>setError('')}><X size={14}/></button></div>}</div>;
+}

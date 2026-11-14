@@ -1,6 +1,10 @@
-# Core Front — invoices, proofs and business workflows
+# Money Station — 企业隐私支付
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md)
+
+Money Station 是 Core 结算协议的客户界面。落地页、应用和文档采用统一的黑绿设计，并以英语为默认语言。钱包使用配置的测试网络，产品界面不重复显示网络徽章。[服务配置与发布检查](docs/MONEY_STATION_DEPLOYMENT.md)。
+
+Money Station 前端验证：**12 项单元测试**和完整的 **280 项桌面/移动浏览器测试**通过。下方视频保留了较早的 Core 界面及其原有钱包/API 验证范围。
 
 基于 NEAR 的企业隐私结算：独立金库持有本金，共享零知识票据授权付款，选择披露证据用于对账。
 

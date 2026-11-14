@@ -36,7 +36,9 @@ import {
   type ProofBundle,
   matchInvoicePlan,
 } from "@/vendor/core-client/index.js";
-import { liveWallet, nearConnector } from "@/lib/wallet";
+import { liveWallet, nearConnector, connectWallet } from "@/lib/wallet";
+import {defaultApiOrigin,verifyDeployment} from '@/lib/deployment';
+import {subscribeWallet,walletSnapshot} from '@/lib/wallet-state';
 import { usePageHideLock } from '@/lib/page-hide-lock';
 
 async function fileText(
@@ -65,7 +67,7 @@ const display = (value: string) => {
   return `${n / unit}.${(n % unit).toString().padStart(24, "0").replace(/0+$/, "") || "0"}`;
 };
 export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
-  const [api, setApi] = useState("http://localhost:3001"),
+  const [api, setApi] = useState(defaultApiOrigin),
     [policy, setPolicy] = useState<Policy | null>(null),
     [verified, setVerified] = useState(false),
     [payer, setPayer] = useState(""),
@@ -84,7 +86,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
   const unit = useRef(0), polls = useRef(new Map<string, number>());
   const journal = useRef<OperationJournal | null>(null),
     session = useRef<SettlementSession | null>(null), pendingJournal = useRef<OperationJournal | null>(null),
-    epoch = useRef(0), running = useRef(false);
+    epoch = useRef(0), running = useRef(false), manualDeployment = useRef(false);
   useEffect(() => () => {
     epoch.current++; pendingJournal.current?.lock(); pendingJournal.current = null;
     journal.current?.lock();
@@ -105,11 +107,24 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
     polls.current.clear();
   }
   usePageHideLock(lock);
+  useEffect(()=>{
+    let previous=walletSnapshot().accountId;setPayer(previous);
+    return subscribeWallet(()=>{const next=walletSnapshot().accountId;if(previous&&next!==previous)lock();previous=next;setPayer(next);setReview(null);});
+  },[]);
+  useEffect(()=>{let active=true;void verifyDeployment().then(async config=>{
+    if(!config.policy||!active||manualDeployment.current)return;
+    if(invoice&&canonical(invoice.invoice.policy)!==canonical(config.policy))return;
+    const remote=await new HttpGateway(config.apiOrigin).policy();
+    if(!active||manualDeployment.current)return;if(canonical(remote)!==canonical(config.policy))throw Error('Payment service differs from the independently reviewed deployment');
+    setApi(config.apiOrigin);setPolicy(config.policy);setVerified(true);
+  }).catch(()=>{if(active)setError('The payment service could not be verified. Review the connection before preparing a payment.');});return()=>{active=false;};},[invoice]);
   function invalidateGroup() {
+    manualDeployment.current=true;
     setVerified(false); setInvoiceStatus(null); setPolicy(null); setGroupSelection(null);
     setReview(null); setSelected(''); setNotice('');
   }
   function useGroup(selection: GroupSelection) {
+    manualDeployment.current=true;
     if (busy || unlocked || invoice) return;
     lock(); setPayer(''); setTxHash(''); setError('');
     setPolicy(selection.policy); setApi(selection.api); setVerified(true); setInvoiceStatus(null); setGroupSelection(selection);
@@ -239,15 +254,15 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
           <div><h1>{invoice ? "Pay with your wallet" : "Settlements"}</h1><p>{invoice ? "Review the request, connect your wallet, and approve each payment step." : "Prepare transfers, review wallet approvals, and follow finalized settlement."}</p></div>
           {!invoice && <a href="#prepared-payment" className="button button-dark"><ArrowUpRight size={15}/> Review a payment</a>}
         </div>
-        {invoice ? <div className="checkout-method"><span className="checkout-method-icon"><Wallet size={22}/></span><div><strong>Private token payment</strong><span>NEAR testnet · Your connected wallet</span></div><ShieldCheck size={19}/></div> : <>
+        {invoice ? <div className="checkout-method"><span className="checkout-method-icon"><Wallet size={22}/></span><div><strong>Private token payment</strong><span>Your connected wallet</span></div><ShieldCheck size={19}/></div> : <>
           <div className="merchant-tabs" aria-label="Settlement workspace"><span aria-current="page">Overview</span><a href="#prepared-payment">Local operations</a><Link href="/invoices/">Invoices <ArrowUpRight size={13}/></Link><Link href="/relay/">Scheduled delivery <ArrowUpRight size={13}/></Link></div>
           <div className="settlement-readiness" aria-label="Settlement readiness">
             <a href="#settlement-group"><span>Payment group</span><strong>{verified ? "Verified" : policy ? "Ready to verify" : "Not configured"}</strong><small>{verified ? "API matches your trusted policy" : "Import an independently trusted policy"}</small></a>
-            <a href="#settlement-wallet"><span>Wallet</span><strong>{payer ? "Connected" : "Not connected"}</strong><small>{payer || "Connect a NEAR testnet wallet"}</small></a>
+            <a href="#settlement-wallet"><span>Wallet</span><strong>{payer ? "Connected" : "Not connected"}</strong><small>{payer || "Connect your wallet"}</small></a>
             <a href="#settlement-journal"><span>Local journal</span><strong>{unlocked ? `${operations.length} operation${operations.length === 1 ? "" : "s"}` : "Locked"}</strong><small>{unlocked ? "Encrypted records in this browser" : "Unlock to view your own operations"}</small></a>
           </div>
         </>}
-        <div className="demo-notice"><ShieldCheck size={16}/><span>Development testnet. Configure your own funded group. Each wallet approval can spend testnet assets and NEAR gas.</span></div>
+
         {error && (
           <p className="live-feedback error-text" role="alert">
             {error}
@@ -263,7 +278,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
         <div className="live-setup">
           <section className="panel live-card" id="settlement-group">
 
-            <h2>Choose your deployment</h2>
+            <h2>Payment network</h2>
             <p>
               Use the policy file supplied independently by your group operator.
               The API must match every pinned value.
@@ -271,13 +286,13 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
             {!invoice && <GroupSelector disabled={busy || unlocked} onSelect={useGroup} onInvalidate={invalidateGroup}/>}
             {groupSelection && <p className="group-selected" role="status">Selected group: <strong>{groupSelection.id}</strong> · {groupSelection.allowNewDeposits ? 'New deposits enabled' : 'Withdrawals and recovery'}</p>}
             <label className="form-label">
-              Core API origin
+              Payment service origin
               <input
                 type="url"
                 value={api}
                 disabled={busy || unlocked}
                 onChange={(e) => {
-                  setApi(e.target.value);
+                  manualDeployment.current=true;setApi(e.target.value);
                   setVerified(false);
                   setInvoiceStatus(null);
                 }}
@@ -294,7 +309,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                 onChange={(e) => {
                   void run(async (check) => {
                     setVerified(false); setInvoiceStatus(null); setPolicy(null); setGroupSelection(null);
-                    const contents = await fileText(e, 8192); check();
+                    manualDeployment.current=true;const contents = await fileText(e, 8192); check();
                     const p = parsePolicy(JSON.parse(contents));
                     if (
                       invoice &&
@@ -305,7 +320,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
                       );
                     if (p.network !== "testnet" || !p.tokenId)
                       throw new Error(
-                        "This workspace supports testnet FT shared groups",
+                        "Choose a token settlement group on the configured network",
                       );
                     feeQuote(p);
                     setPolicy(p);
@@ -369,21 +384,20 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
               <Wallet size={24} />
               <div>
                 <strong>{payer || "No wallet connected"}</strong>
-                <span>NEAR testnet · NEAR Connect</span>
+                <span>Keys stay with your wallet</span>
               </div>
             </div>
             <button
               className="button button-outline"
               disabled={busy}
+              aria-label="Connect payment wallet"
               onClick={() =>
                 void run(async (check) => {
-                  const c = await nearConnector(); check();
-                  await c.connect(); check();
-                  const identity = await liveWallet.identity(); check(); setPayer(identity.accountId);
+                  const identity = await connectWallet(); check(); setPayer(identity.accountId);
                 })
               }
             >
-              {payer ? "Reconnect wallet" : "Connect testnet wallet"}
+              {payer ? "Reconnect wallet" : "Connect wallet"}
               <ArrowUpRight size={16} />
             </button>
             {payer && (
@@ -744,8 +758,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
         <p className="small-note live-footnote">
           This journal contains public settlement metadata, not spendable
           private notes. The read-only Core API can observe requests; its
-          availability and RPC responses are trust dependencies. Testnet use
-          does not certify KYB, tax or legal compliance.
+          availability and RPC responses affect status checks. Payment evidence supports professional review; verification and statutory filing are separate steps.
         </p>
     </SettlementFrame>
   );

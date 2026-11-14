@@ -9,7 +9,7 @@ test('landing routes to English documentation and the actual workspace without d
   await expect(page.locator('a[href^="/app/"]')).toHaveCount(0);
   if (isMobile) {
     await page.locator('.landing-menu summary').click();
-    await expect(page.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', { name: 'Testnet workspace' })).toHaveAttribute('href', '/live/');
+    await expect(page.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', { name: 'Open workspace' })).toHaveAttribute('href', '/live/');
     await page.locator('.landing-menu summary').click();
   } else await expect(page.getByRole('link', { name: 'Open workspace', exact: true })).toHaveAttribute('href', '/live/');
   await page.locator('.hero-actions').getByRole('link', { name: 'Read the docs' }).click();

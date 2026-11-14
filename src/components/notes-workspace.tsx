@@ -1,4 +1,5 @@
 "use client";
+import {defaultApiOrigin} from '@/lib/deployment';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { ArrowUpRight, Download, LockKeyhole, Plus } from 'lucide-react';
@@ -17,7 +18,7 @@ async function file(event: ChangeEvent<HTMLInputElement>, limit = 16000) {
   return selected.text();
 }
 export function NotesWorkspace() {
-  const [policy, setPolicy] = useState<Policy | null>(null), [api, setApi] = useState('http://localhost:3001');
+  const [policy, setPolicy] = useState<Policy | null>(null), [api, setApi] = useState(defaultApiOrigin);
   const [opened, setOpened] = useState<OpenNote | null>(null), [verified, setVerified] = useState(false);
   const [password, setPassword] = useState(''), [confirmation, setConfirmation] = useState(''), [restorePassword, setRestorePassword] = useState('');
   const [root, setRoot] = useState(''), [vault, setVault] = useState(''), [plan, setPlan] = useState<DepositPlan | null>(null);
@@ -44,7 +45,7 @@ export function NotesWorkspace() {
     const contents = file(event);
     await run(async check => {
       const parsed = parsePolicy(JSON.parse(await contents)); check();
-      if (parsed.network !== 'testnet' || !parsed.tokenId) throw new Error('Choose a trusted testnet FT policy');
+      if (parsed.network !== 'testnet' || !parsed.tokenId) throw new Error('Choose a trusted token settlement policy');
       feeQuote(parsed); setPolicy(parsed); setPlan(null);
     });
   }
@@ -110,7 +111,7 @@ export function NotesWorkspace() {
       </section>
       <section className="panel live-card" aria-label="Public deposit plan">
         <h2>Prepare your deposit</h2><p>The API receives only a public commitment, disclosure root and optional vault. Your wallet approves registration, storage and payment later in Settlements.</p>
-        <label className="form-label">Core API origin<input value={api} disabled={busy} onChange={e => { setApi(e.target.value); setPlan(null); setNotice(''); setError(''); }}/></label>
+        <label className="form-label">Payment service origin<input value={api} disabled={busy} onChange={e => { setApi(e.target.value); setPlan(null); setNotice(''); setError(''); }}/></label>
         <label className="form-label">Disclosure root<input value={root} maxLength={64} disabled={busy || !opened} onChange={e => { setRoot(e.target.value); setPlan(null); setNotice(''); setError(''); }} placeholder="64 lowercase hexadecimal characters"/></label>
         <button className="button button-outline" disabled={busy || !opened} onClick={() => { setRoot([...crypto.getRandomValues(new Uint8Array(32))].map(b => b.toString(16).padStart(2,'0')).join('')); setPlan(null); setNotice(''); setError(''); }}>Use random reference</button>
         <p className="notes-help">Use your receipt root for selective evidence, or a random reference for a deposit without attached evidence. Keep receipt openings separately. <Link href="/evidence/">Create a private receipt</Link></p>

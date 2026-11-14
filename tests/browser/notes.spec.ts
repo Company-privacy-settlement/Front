@@ -42,7 +42,7 @@ test('browser creates a local encrypted note, verifies its downloaded backup and
   await expect(page.getByRole('button', { name: 'Prepare public deposit plan', exact: true })).toBeDisabled();
   await verify(page, contents); await expect(page.getByRole('status')).toContainText('Encrypted backup verified');
   await expect(page.getByLabel('Backup passphrase', { exact: true })).toHaveValue('');
-  await page.getByLabel('Core API origin').fill('https://core-api.example');
+  await page.getByLabel('Payment service origin').fill('https://core-api.example');
   await page.getByRole('button', { name: 'Use random reference', exact: true }).click();
   const receipt = await page.getByLabel('Disclosure root', { exact: true }).inputValue(); expect(receipt).toMatch(/^[a-f0-9]{64}$/);
   await page.getByRole('button', { name: 'Prepare public deposit plan', exact: true }).click();
@@ -76,7 +76,7 @@ test('wrong passwords, substituted policies and invalid backups cannot unlock a 
 test('a delayed deposit response cannot reopen a locked note or retain a public plan', async ({ page }, info) => {
   await setup(page); await create(page); const contents = await backup(page, info.outputPath('note.json')); await verify(page, contents);
   await expect(page.getByRole('status')).toContainText('Encrypted backup verified');
-  await page.getByLabel('Core API origin').fill('https://core-api.example'); await page.getByLabel('Disclosure root', { exact: true }).fill(root);
+  await page.getByLabel('Payment service origin').fill('https://core-api.example'); await page.getByLabel('Disclosure root', { exact: true }).fill(root);
   let release!: () => void, entered!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; }), started = new Promise<void>(resolve => { entered = resolve; });
   await page.route('https://core-api.example/v1/deposits/prepare', async route => {
@@ -141,7 +141,7 @@ test('page cache entry cancels note generation while encryption is still pending
 test('failed refreshes and substituted deposit plans clear previous wallet-review results', async ({ page }) => {
   await setup(page); const note = await createPrivateNote(policy), contents = await encryptNoteBackup(policy, note, password);
   await verify(page, contents); await expect(page.getByRole('status')).toContainText('Encrypted backup verified');
-  await page.getByLabel('Core API origin').fill('https://core-api.example'); await page.getByLabel('Disclosure root', { exact: true }).fill(root);
+  await page.getByLabel('Payment service origin').fill('https://core-api.example'); await page.getByLabel('Disclosure root', { exact: true }).fill(root);
   let mode = 'good';
   await page.route('https://core-api.example/v1/deposits/prepare', async route => {
     if (mode === 'fail') await route.fulfill({ status: 409, json: { error: 'VAULT_NOT_READY' } });

@@ -1,4 +1,5 @@
 "use client";
+import {defaultApiOrigin} from '@/lib/deployment';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { ArrowUpRight, Download, LockKeyhole, Square } from 'lucide-react';
@@ -22,7 +23,7 @@ function selected(event: ChangeEvent<HTMLInputElement>, limit: number): File {
 export function ProverWorkspace() {
   const [policy, setPolicy] = useState<Policy | null>(null), [note, setNote] = useState<PrivateNote | null>(null), [password, setPassword] = useState('');
   const [assets, setAssets] = useState<ProvingFileSelection>({}), [manifestHash, setManifestHash] = useState('');
-  const [api, setApi] = useState('http://localhost:3001'), [vault, setVault] = useState(''), [context, setContext] = useState<ProvingContext | null>(null);
+  const [api, setApi] = useState(defaultApiOrigin), [vault, setVault] = useState(''), [context, setContext] = useState<ProvingContext | null>(null);
   const [recipient, setRecipient] = useState(''), [root, setRoot] = useState(''), [result, setResult] = useState<ProverResult | null>(null);
   const [busy, setBusy] = useState(false), [stage, setStage] = useState(''), [error, setError] = useState(''), [notice, setNotice] = useState('');
   const generation = useRef(0), pending = useRef(false), controller = useRef<AbortController | null>(null), current = useRef<PrivateNote | null>(null);
@@ -50,7 +51,7 @@ export function ProverWorkspace() {
     let file: File; try { file = selected(event, 16000); } catch (e) { setError((e as Error).message); return; }
     await run(async check => {
       const text = await file.text(); check(); const parsed = parsePolicy(JSON.parse(text));
-      if (parsed.network !== 'testnet' || !parsed.tokenId) throw new Error('Choose a trusted testnet FT policy');
+      if (parsed.network !== 'testnet' || !parsed.tokenId) throw new Error('Choose a trusted token settlement policy');
       feeQuote(parsed); setPolicy(parsed); setVault(''); setNotice('Original group policy loaded.');
     });
   }
@@ -121,7 +122,7 @@ export function ProverWorkspace() {
       </section>
       <section className="panel live-card" aria-label="Withdrawal proof">
         <h2>Choose the withdrawal</h2><p>Only the public group snapshot is requested from the API. Your wallet reviews and sends the payment later in Settlements.</p>
-        <label className="form-label">Core API origin<input value={api} disabled={busy} onChange={e => { setApi(e.target.value); setContext(null); invalidate(); }}/></label>
+        <label className="form-label">Payment service origin<input value={api} disabled={busy} onChange={e => { setApi(e.target.value); setContext(null); invalidate(); }}/></label>
         <label className="form-label">Payout vault<input value={vault} disabled={busy} onChange={e => { setVault(e.target.value); setContext(null); invalidate(); }} placeholder="A verified vault in the original group"/></label>
         <button className="button button-outline" disabled={busy || !policy || !vault} onClick={() => void loadContext()}>Load finalized group snapshot</button>
         <label className="form-label">Or import public group snapshot JSON<input type="file" accept=".json,application/json" disabled={busy || !policy} onChange={e => void importContext(e)}/></label>

@@ -1,4 +1,5 @@
 'use client';
+import {defaultRelayOrigin} from '@/lib/deployment';
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
 import Link from 'next/link';
 import {ArrowUpRight,Clock3,Download} from 'lucide-react';
@@ -8,7 +9,7 @@ import {checkRelay,createRelayReceipt,parseRelayReceipt,parseRelayStatus,relayFe
 function download(receipt:RelayReceipt){const url=URL.createObjectURL(new Blob([JSON.stringify(receipt,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='core-relay-recovery.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function timestamp(n:number){return new Date(n).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'medium'});}
 export function RelayWorkspace(){
- const[policy,setPolicy]=useState<Policy|null>(null),[origin,setOrigin]=useState('http://localhost:3003'),[request,setRequest]=useState<RelayRequest|null>(null),[choice,setChoice]=useState('short');
+ const[policy,setPolicy]=useState<Policy|null>(null),[origin,setOrigin]=useState(defaultRelayOrigin),[request,setRequest]=useState<RelayRequest|null>(null),[choice,setChoice]=useState('immediate');
  const[receipt,setReceipt]=useState<RelayReceipt|null>(null),[status,setStatus]=useState<RelayStatus|null>(null),[saved,setSaved]=useState(false),[sent,setSent]=useState(false),[missing,setMissing]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[now,setNow]=useState(0);
  const lock=useRef(false),alive=useRef(true),epoch=useRef(0),pollBusy=useRef(false);
  useEffect(()=>{alive.current=true;const id=setInterval(()=>setNow(Date.now()),1000);return()=>{alive.current=false;clearInterval(id);};},[]);

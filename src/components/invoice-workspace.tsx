@@ -1,6 +1,7 @@
 "use client";
+import {defaultApiOrigin} from '@/lib/deployment';
 import Link from "next/link";
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { ArrowUpRight, Copy, Download, FilePlus2, Wallet } from "lucide-react";
 import { MerchantShell } from "./merchant-shell";
 import { InvoicePreview } from "./invoice-preview";
@@ -18,7 +19,8 @@ import {
   type Policy,
   type SignedInvoice,
 } from "@/vendor/core-client/index.js";
-import { nearConnector, liveWallet, signInvoice } from "@/lib/wallet";
+import { connectWallet, liveWallet, signInvoice } from "@/lib/wallet";
+import {subscribeWallet,walletSnapshot} from "@/lib/wallet-state";
 async function jsonFile(e: ChangeEvent<HTMLInputElement>) {
   const f = e.target.files?.[0];
   e.target.value = "";
@@ -27,7 +29,7 @@ async function jsonFile(e: ChangeEvent<HTMLInputElement>) {
   return JSON.parse(await f.text());
 }
 export function InvoiceWorkspace() {
-  const [api, setApi] = useState("http://localhost:3001"),
+  const [api, setApi] = useState(defaultApiOrigin),
     [policy, setPolicy] = useState<Policy | null>(null),
     [merchant, setMerchant] = useState(""),
     [recipient, setRecipient] = useState(""),
@@ -41,6 +43,9 @@ export function InvoiceWorkspace() {
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const [libraryInvoiceId, setLibraryInvoiceId] = useState('');
+  useEffect(()=>{let previous=walletSnapshot().accountId;setMerchant(previous);return subscribeWallet(()=>{
+    const next=walletSnapshot().accountId;if(next===previous)return;previous=next;setMerchant(next);setSigned(null);setLink('');setLibraryInvoiceId('');
+  });},[]);
   function hideLibraryInvoice(id?: string) {
     if (libraryInvoiceId && (id === undefined || id === libraryInvoiceId)) { setSigned(null); setLink(''); setLibraryInvoiceId(''); }
   }
@@ -88,7 +93,7 @@ export function InvoiceWorkspace() {
           <a href="#invoice-library" className="button button-outline"><FilePlus2 size={15}/> Invoice library</a>
         </div>
         <div className="merchant-tabs invoice-workspace-tabs" aria-label="Invoice workspace"><span aria-current="page">Create invoice</span><a href="#invoice-library">Invoice library</a><Link href="/live/">Payment activity <ArrowUpRight size={13}/></Link></div>
-        <div className="demo-notice"><span className="merchant-badge">Testnet</span><span>Fixed token units. Your wallet receives the principal; fees are added on top.</span></div>
+        <p className="small-note">Your wallet receives the full principal. Fees are added on top.</p>
         {error && (
           <p className="live-feedback error-text" role="alert">
             {error}
@@ -105,7 +110,7 @@ export function InvoiceWorkspace() {
 
             <h2>Business & payment account</h2>
             <label className="form-label">
-              Core API origin
+              Payment service origin
               <input
                 value={api}
                 disabled={busy}
@@ -122,7 +127,7 @@ export function InvoiceWorkspace() {
                   void run(async () => {
                     const p = parsePolicy(await jsonFile(e));
                     if (p.network !== "testnet" || !p.tokenId)
-                      throw new Error("Use a testnet FT shared group");
+                      throw new Error("Use a token settlement group on the configured network");
                     feeQuote(p);
                     setPolicy(p);
                   })
@@ -144,7 +149,7 @@ export function InvoiceWorkspace() {
               disabled={busy}
               onClick={() =>
                 void run(async () => {
-                  await (await nearConnector()).connect();
+                  await connectWallet();
                   const identity = await liveWallet.identity();
                   if (identity.accountId !== merchant) { setSigned(null); setLink(''); setLibraryInvoiceId(''); }
                   if (merchant && identity.accountId !== merchant) {

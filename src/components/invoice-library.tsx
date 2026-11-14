@@ -57,7 +57,7 @@ export function InvoiceLibraryPanel({ merchant, current, disabled, onOpen, onHid
   const filtered = entries.filter(e => `${e.signed.invoice.title} ${e.signed.invoice.reference}`.toLowerCase().includes(query.toLowerCase())), blocked = disabled || busy;
   return <section className="panel live-card invoice-library" id="invoice-library" aria-labelledby="invoice-library-title">
     <div className="invoice-library-heading"><div><h2 id="invoice-library-title">Your invoice library</h2><p>Keep signed requests encrypted in this browser, separate from the wallet operation journal.</p></div><FolderLock size={22}/></div>
-    {!merchant ? <p>Connect your merchant wallet to choose its local library.</p> : <p className="invoice-library-owner">Merchant <code>{merchant}</code> · NEAR testnet · {opened ? `${entries.length} of 100 saved` : 'Locked'}</p>}
+    {!merchant ? <p>Connect your merchant wallet to choose its local library.</p> : <p className="invoice-library-owner">Merchant <code>{merchant}</code> · {opened ? `${entries.length} of 100 saved` : 'Locked'}</p>}
     {error && <p role="alert" className="live-feedback error-text">{error}</p>}
     {notice && <p role="status" className="live-feedback">{notice}</p>}
     {!opened ? <div className="invoice-library-unlock">

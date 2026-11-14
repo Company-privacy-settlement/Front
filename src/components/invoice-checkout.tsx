@@ -45,7 +45,7 @@ export function InvoiceCheckout() {
   }, []);
   if (state.phase === "invalid")
     return (
-      <div className="merchant-ui checkout-empty"><header className="checkout-topbar"><Brand/><span className="merchant-mode">Testnet checkout</span></header><main className="checkout-error-card">
+      <div className="merchant-ui checkout-empty"><header className="checkout-topbar"><Brand/><span className="merchant-mode">Secure checkout</span></header><main className="checkout-error-card">
         <span className="checkout-error-icon"><ShieldAlert size={26}/></span><h1>Invoice could not be verified</h1>
         <p role="alert" className="error-text">
           {state.error}
@@ -57,7 +57,7 @@ export function InvoiceCheckout() {
     );
   if (state.phase === "loading")
     return (
-      <div className="merchant-ui checkout-empty"><header className="checkout-topbar"><Brand/><span className="merchant-mode">Testnet checkout</span></header><main className="checkout-error-card"><LoaderCircle className="spin" size={24}/><p role="status">Verifying signed payment request…</p></main></div>
+      <div className="merchant-ui checkout-empty"><header className="checkout-topbar"><Brand/><span className="merchant-mode">Secure checkout</span></header><main className="checkout-error-card"><LoaderCircle className="spin" size={24}/><p role="status">Verifying signed payment request…</p></main></div>
     );
   return <LiveWorkspace key={state.hash} invoice={state.signed} />;
 }

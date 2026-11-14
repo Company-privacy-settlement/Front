@@ -26,7 +26,7 @@ async function setup(page:Page,options:{lost?:boolean;immediate?:boolean}={}){
  await page.goto('/relay/');
  const upload=(label:string,data:unknown)=>page.getByLabel(label,{exact:true}).setInputFiles({name:'public.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(data))});
  await upload('Trusted group policy JSON',policy);await page.getByLabel('Relay origin',{exact:true}).fill('https://relay.example');await upload('Public proof file',request);
- if(options.immediate)await page.getByRole('combobox',{name:'Delivery timing',exact:true}).selectOption('immediate');
+ await page.getByRole('combobox',{name:'Delivery timing',exact:true}).selectOption(options.immediate?'immediate':'short');
  await page.getByRole('button',{name:'Review delivery',exact:true}).click();await expect(page.getByText('sponsor.testnet',{exact:true})).toBeVisible();
  const downloadEvent=page.waitForEvent('download');await page.getByRole('button',{name:'Save recovery receipt'}).click();const download=await downloadEvent,path=await download.path();
  return {upload,receiptPath:path!,posts:()=>posts,controls,read:()=>current,set:(v:any)=>current=v,id};

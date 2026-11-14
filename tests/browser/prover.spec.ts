@@ -82,7 +82,7 @@ test('a failed or changed public snapshot clears the previous proving context',a
   await upload('Or import public group snapshot JSON','too-large.json',Buffer.alloc(32001,32));
   await expect(page.locator('.prover-snapshot')).toHaveCount(0);
   await expect(page.getByRole('button',{name:'Generate local proof',exact:true})).toBeDisabled();
-  await page.getByLabel('Core API origin',{exact:true}).fill('https://core-api.example');
+  await page.getByLabel('Payment service origin',{exact:true}).fill('https://core-api.example');
   await page.route('https://core-api.example/v1/config',route=>route.fulfill({json:{policy:context.policy}}));
   await page.route('https://core-api.example/v1/proofs/context',route=>route.fulfill({json:{...context,vault:`v${'b'.repeat(32)}.${context.policy.registry}`}}));
   await expect(page.locator('.prover-snapshot')).toHaveCount(0);

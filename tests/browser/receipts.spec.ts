@@ -134,7 +134,7 @@ test('deposit preparation receives only the imported receipt root and clears it 
   await page.getByLabel('Backup passphrase', { exact: true }).fill(password); await jsonInput(page, 'Verify or open encrypted note backup', encrypted);
   await expect(page.getByRole('status')).toContainText('Encrypted backup verified');
   await jsonInput(page, 'Import receipt root from disclosure JSON', disclosed); await expect(page.getByLabel('Disclosure root', { exact: true })).toHaveValue(receipt.root);
-  await page.getByLabel('Core API origin').fill('https://core-api.example'); await page.getByRole('button', { name: 'Prepare public deposit plan', exact: true }).click();
+  await page.getByLabel('Payment service origin').fill('https://core-api.example'); await page.getByRole('button', { name: 'Prepare public deposit plan', exact: true }).click();
   await expect(page.locator('.note-plan-result')).toBeVisible(); expect(requests).toEqual([{ commitment: note.commitment, disclosureRoot: receipt.root }]);
   await jsonInput(page, 'Import receipt root from disclosure JSON', { ...disclosed, openings: [] });
   await expect(page.getByRole('main').getByRole('alert')).toBeVisible(); await expect(page.getByLabel('Disclosure root', { exact: true })).toHaveValue('');

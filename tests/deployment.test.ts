@@ -1,0 +1,10 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
+import {canonical,sha256} from '../src/vendor/core-client/index.js';
+import {verifyDeployment,configuredOrigin} from '../src/lib/deployment.js';
+const policy={network:'testnet',registry:'forest.testnet',tokenId:'asset.testnet',denomination:'1000000',feeRecipient:'treasury.testnet',registryWasmSha256:'aa'.repeat(32),vaultWasmSha256:'bb'.repeat(32),verifierSha256:'cc'.repeat(32)};
+test('unconfigured frontend does not invent payment readiness or default to a local server',async()=>{assert.deepEqual(await verifyDeployment({}),{apiOrigin:'',organizationOrigin:'',relayOrigin:'',policy:null});});
+test('a release policy requires an independent digest and exact HTTPS origin',async()=>{const profile={apiOrigin:'https://payments.example',policyJson:JSON.stringify(policy),policySha256:await sha256(canonical(policy))};assert.deepEqual((await verifyDeployment(profile)).policy,policy);for(const edit of [{policySha256:'00'.repeat(32)},{policySha256:''},{apiOrigin:''},{policyJson:JSON.stringify({...policy,tokenId:'attacker.testnet'})}])await assert.rejects(verifyDeployment({...profile,...edit}));});
+test('service origins reject credentials, paths, queries and insecure transports',()=>{for(const url of ['http://localhost:3001','https://name:password@example.com','https://api.example/path','https://api.example?key=x','https://api.example#token'])assert.throws(()=>configuredOrigin(url));assert.equal(configuredOrigin('https://api.example'),'https://api.example');});
+test('the release gate refuses an incomplete service deployment',()=>{const env={...process.env,MONEY_STATION_REQUIRE_DEPLOYMENT:'1'};for(const name of Object.keys(env))if(name.startsWith('NEXT_PUBLIC_MONEY_STATION_'))delete (env as Record<string,string|undefined>)[name];const result=spawnSync(process.execPath,['scripts/verify-deployment.mjs'],{env,encoding:'utf8'});assert.notEqual(result.status,0);assert.match(result.stderr,/Release requires/);});

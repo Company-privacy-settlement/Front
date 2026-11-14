@@ -229,7 +229,7 @@ export async function fixture(page: Page, options: {policy?: Policy; delayed?: b
 const exportedPolicy = policy;
 export async function issue(page: Page, selectedPolicy: Policy = policy) {
   await page.goto("/invoices/");
-  await page.getByLabel("Core API origin").fill("https://core-api.example");
+  await page.getByLabel("Payment service origin").fill("https://core-api.example");
   await page
     .getByLabel("Trusted FT policy JSON")
     .setInputFiles({

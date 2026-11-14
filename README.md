@@ -1,6 +1,10 @@
-# Core Front — invoices, proofs and business workflows
+# Money Station — private business payments
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md)
+
+Money Station is the customer interface for the Core settlement protocol. The English-first landing, application and Docs use a shared black-and-green design. The wallet connects to the configured test network while repeated network badges are omitted from product chrome. [Service configuration and release gates](docs/MONEY_STATION_DEPLOYMENT.md).
+
+Money Station frontend validation: **12 unit tests** and the full **280 desktop/mobile browser tests** passed. The recorded video below shows the earlier Core interface; its original wallet/API qualification limits still apply.
 
 Private business settlement on NEAR: independent vaults hold principal, shared zero-knowledge notes authorize payouts, and selective evidence supports reconciliation.
 

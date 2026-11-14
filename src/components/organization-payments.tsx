@@ -1,4 +1,5 @@
 "use client";
+import {defaultApiOrigin} from '@/lib/deployment';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { CorporatePaymentExecution } from './corporate-payment-execution';
 import { liveWallet } from '@/lib/wallet';
@@ -9,7 +10,7 @@ type Run = (action:(client:OrganizationClient,signal:AbortSignal,check:()=>void)
 async function file(event:ChangeEvent<HTMLInputElement>){const selected=event.target.files?.[0];event.target.value='';if(!selected||selected.size>8192)throw new Error('Choose a public JSON file no larger than 8 KB');return JSON.parse(await selected.text());}
 export function OrganizationPayments({organization,client,accountId,disabled,run}:{organization:Organization;client:OrganizationClient;accountId:string;disabled:boolean;run:Run}){
   const [items,setItems]=useState<CorporatePayment[]>([]),[selected,setSelected]=useState<CorporatePayment|null>(null);
-  const [api,setApi]=useState('http://localhost:3001'),[policy,setPolicy]=useState<Policy|null>(null),[plan,setPlan]=useState<Call|null>(null),[title,setTitle]=useState('Supplier payment');
+  const [api,setApi]=useState(defaultApiOrigin),[policy,setPolicy]=useState<Policy|null>(null),[plan,setPlan]=useState<Call|null>(null),[title,setTitle]=useState('Supplier payment');
   const loaded=useRef(false);
   const [ready,setReady]=useState(false);const blocked=disabled||!ready;
   const can=(p:Organization['permissions'][number])=>organization.permissions.includes(p),base=`/v1/organizations/${organization.id}/payments`;
@@ -36,7 +37,7 @@ export function OrganizationPayments({organization,client,accountId,disabled,run
     <h2>Corporate payments</h2><p>Prepare a payment, have a different owner or admin approve it, then sign the exact reviewed calls with the creator’s wallet.</p>
     {!ready&&<p role="status">Loading payment requests…</p>}
     <label className="form-label">Core settlement API origin<input value={api} disabled={blocked} onChange={e=>setApi(e.target.value)}/></label>
-    <label className="form-label">Trusted corporate policy JSON<input type="file" accept="application/json,.json" disabled={blocked} onChange={e=>{setPolicy(null);setPlan(null);void run(async(_c,_s,check)=>{const contents=await file(e);check();const p=parsePolicy(contents);if(p.network!=='testnet'||!p.tokenId)throw new Error('Choose a testnet FT policy');setPolicy(p);});}}/></label>
+    <label className="form-label">Trusted corporate policy JSON<input type="file" accept="application/json,.json" disabled={blocked} onChange={e=>{setPolicy(null);setPlan(null);void run(async(_c,_s,check)=>{const contents=await file(e);check();const p=parsePolicy(contents);if(p.network!=='testnet'||!p.tokenId)throw new Error('Choose a token settlement policy');setPolicy(p);});}}/></label>
     {can('payments.create')&&<details className="corporate-create"><summary>Prepare a new payment</summary><p>Generate its proof in Local proofs or the Core CLI first. Import only the public withdrawal plan.</p>
       <label className="form-label">Corporate payment title<input value={title} maxLength={120} disabled={blocked} onChange={e=>setTitle(e.target.value)}/></label>
       <label className="form-label">Public corporate withdrawal plan<input type="file" accept="application/json,.json" disabled={blocked||!policy} onChange={e=>{setPlan(null);void run(async(_c,_s,check)=>{const input=await file(e);check();const p=await preparedPayment(input,policy!,accountId);check();if(p.reference.kind!=='withdrawal')throw new Error('Choose a withdrawal plan');setPlan(p.payment);});}}/></label>

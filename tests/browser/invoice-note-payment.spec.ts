@@ -25,10 +25,10 @@ async function setup(page:Page,options:{delayed?:boolean;lostResponse?:boolean;h
   const contexts:unknown[]=[];
   await page.route('https://core-api.example/v1/proofs/context',async route=>{const body=route.request().postDataJSON();contexts.push(body);await route.fulfill({json:{version:1,policy:data.policy,vault,root:level[0],commitments:notes.map(n=>n.commitment),checkedAtBlock:{hash:'B'.repeat(44),height:200}}});});
   await page.evaluate(()=>localStorage.setItem('fixtureInvoiceAccount','payer.testnet'));await page.goto(created.link);
-  await page.getByLabel('Core API origin',{exact:true}).fill('https://core-api.example');
+  await page.getByLabel('Payment service origin',{exact:true}).fill('https://core-api.example');
   await page.getByLabel('Trusted policy JSON',{exact:true}).setInputFiles({name:'policy.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(data.policy))});
   await page.getByRole('button',{name:'Verify API policy',exact:true}).click();
-  await page.getByRole('button',{name:'Connect testnet wallet',exact:true}).click();await page.getByText('Invoice Fixture Wallet',{exact:true}).click();
+  await page.getByRole('button',{name:'Connect payment wallet',exact:true}).click();await page.getByText('Invoice Fixture Wallet',{exact:true}).click();
   await page.getByLabel('Journal passphrase',{exact:true}).fill(journalPassword);await page.getByRole('button',{name:'Create journal',exact:true}).click();
   const form=page.getByLabel('Invoice note payment',{exact:true});await expect(form).toBeVisible();
   await form.getByText('Trusted proving files',{exact:true}).click();

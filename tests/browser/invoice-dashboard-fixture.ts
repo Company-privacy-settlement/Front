@@ -46,7 +46,7 @@ export async function setupDashboard(page:Page,options:{role?:OrganizationRole;c
     }
     await route.fulfill({status,json,headers:{'access-control-allow-origin':request.headers().origin??'*'}}).catch(()=>{});
   });
-  await page.goto('/organization/');await page.getByLabel('Organization API origin').fill(api);await page.getByRole('button',{name:'Sign in with testnet wallet'}).click();await page.getByText('Dashboard Fixture Wallet',{exact:true}).click();await page.getByRole('combobox',{name:'Active organization',exact:true}).selectOption(org);await expect(page.locator('.organization-current h2')).toHaveText('Example organization');await page.getByRole('button',{name:'Invoice payments',exact:true}).click();
+  await page.goto('/organization/');await page.getByLabel('Organization API origin').fill(api);await page.getByRole('button',{name:'Sign in with wallet'}).click();await page.getByText('Dashboard Fixture Wallet',{exact:true}).click();await page.getByRole('combobox',{name:'Active organization',exact:true}).selectOption(org);await expect(page.locator('.organization-current h2')).toHaveText('Example organization');await page.getByRole('button',{name:'Invoice payments',exact:true}).click();
   if(state.role!=='viewer')await expect(page.getByRole('button',{name:'Refresh invoices',exact:true})).toBeEnabled();
   return state;
 }

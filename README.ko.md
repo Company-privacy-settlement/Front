@@ -1,6 +1,10 @@
-# Core Front — invoices, proofs and business workflows
+# Money Station — 기업용 프라이버시 송금
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md)
+
+Money Station은 Core 정산 프로토콜의 고객용 서비스입니다. 랜딩·앱·Docs에 검정·초록 디자인을 적용하고, 영문을 기본으로 유지합니다. 지갑은 설정된 테스트 네트워크를 사용하며 제품 화면의 반복 네트워크 배지를 제거했습니다. [서비스 연결과 릴리스 검증](docs/MONEY_STATION_DEPLOYMENT.md).
+
+Money Station 프론트 검증: **단위 테스트 12개**, **데스크톱·모바일 전체 브라우저 테스트 280개**를 통과했습니다. 아래 영상은 이전 Core UI 기록이며, 당시의 지갑·API 실증 범위를 유지합니다.
 
 NEAR 기반 기업 프라이빗 정산: 독립 볼트가 원금을 보관하고, 공유 영지식 노트가 지급을 승인하며, 선택 공개 증빙으로 정산을 확인합니다.
 

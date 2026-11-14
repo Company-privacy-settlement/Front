@@ -23,7 +23,7 @@ export function GroupSelector({ disabled, onSelect, onInvalidate }: { disabled: 
     try {
       if (file.size > 32768) throw new Error('Directory must be at most 32 KiB');
       const approved = parseApprovedGroups(JSON.parse(await file.text()));
-      if (approved.groups.some(g => g.policy.network !== 'testnet' || !g.policy.tokenId)) throw new Error('This workspace supports testnet FT groups');
+      if (approved.groups.some(g => g.policy.network !== 'testnet' || !g.policy.tokenId)) throw new Error('Choose a token settlement group on the configured network');
       if (current !== generation.current || blocked.current) return;
       setDirectory(approved); setRows(Object.fromEntries(approved.groups.map(g => [g.id, { origin: '' }])));
     } catch (e) { if (current === generation.current) setError(e instanceof Error ? e.message : 'Invalid approved directory'); }
