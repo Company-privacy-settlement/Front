@@ -18,6 +18,8 @@ An opt-in [cover-traffic experiment](https://github.com/Company-privacy-settleme
 
 [Payment security review](https://github.com/Company-privacy-settlement/Core/blob/main/docs/REVIEW-2026-11-14-PAYMENT-SECURITY.md): fixed same-note reservation aliases across policy metadata, including legacy conflicts. Validation covers double spends, competing liquidity, failure accounting, immutable approval and revocation: **582 Core tests** and **63 contract tests**. Corporate approval remains an API/SDK control; public valid-proof execution is permissionless.
 
+[Actual-provider qualification](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PROVIDER_QUALIFICATION.md) now has read-only Sumsub state checks and source/signed-review gates. Four of six official source hashes matched in the dated run. Live credentials, authorized cases and external signed reviews were absent, so actual KYB/tax-provider acceptance remains **blocked**. Deactivation and beneficiary-structure event handling were corrected.
+
 ## The idea
 
 Businesses need to pay suppliers, employees and contractors without putting invoice terms and business records on-chain. Core combines signed payment requests, local proofs and reviewable evidence while keeping custody distributed across vaults.

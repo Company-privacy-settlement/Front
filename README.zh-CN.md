@@ -18,6 +18,8 @@ Front 仓库提供 Next.js 落地页、文档及应用。
 
 [支付安全检查](https://github.com/Company-privacy-settlement/Core/blob/main/docs/REVIEW-2026-11-14-PAYMENT-SECURITY.md)修复了通过策略元数据重复预留同一票据的问题，并处理历史冲突。双花、流动性竞争、失败记账、审批内容变更和权限撤销覆盖 **582 项 Core 测试**与 **63 项合约测试**。企业审批由 API/SDK 执行；有效证明的链上执行仍无需许可。
 
+[真实服务商验证](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PROVIDER_QUALIFICATION.md)新增只读 Sumsub 状态检查及来源、独立签名审查门控。六个官方来源中四个哈希匹配。缺少真实账户、授权案例和外部签署审查，KYB/税务服务商实证仍为 **blocked**。已修复停用与受益人结构变更处理。
+
 ## 项目简介
 
 企业需要向供应商、员工和承包商付款，同时避免将发票条款及业务文档公开上链。Core 结合收款人签名请求、本地证明和可审核证据，并将本金分布在独立金库中。
