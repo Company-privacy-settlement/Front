@@ -6,6 +6,8 @@ Core 的落地页、文档与钱包工具，使用 Next.js 构建。Core 是支�
 
 [服务概览](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md) · [网页 Docs](https://core-private-settlement-0574c4.jiheon6768.chatgpt.site/docs/) · [开发路线图](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)
 
+同步 SDK 的 `OrganizationInvoiceClient` 支持按组织加密保存和查询发票及幂等创建。权限表与英文 Docs 已说明发票权限和密钥配置。现有本地发票表单与库不会自动同步到此 API。[Core API 指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_INVOICES.md)。
+
 ## 工作区
 
 | 路径 | 当前功能 |

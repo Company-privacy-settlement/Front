@@ -320,13 +320,13 @@ function validateRecovery(input, policy, ref) {
 
 // sdk/client/organizations.ts
 var ORGANIZATION_ROLES = Object.freeze(["owner", "admin", "operator", "viewer", "auditor"]);
-var ORGANIZATION_PERMISSIONS = Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "ownership.transfer", "payments.read", "payments.create", "payments.approve", "payments.execute"]);
+var ORGANIZATION_PERMISSIONS = Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "ownership.transfer", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create"]);
 var ORGANIZATION_ROLE_PERMISSIONS = Object.freeze({
   owner: ORGANIZATION_PERMISSIONS,
-  admin: Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "payments.read", "payments.create", "payments.approve", "payments.execute"]),
-  operator: Object.freeze(["organization.read", "members.read", "payments.read", "payments.create", "payments.execute"]),
+  admin: Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create"]),
+  operator: Object.freeze(["organization.read", "members.read", "payments.read", "payments.create", "payments.execute", "invoices.read", "invoices.create"]),
   viewer: Object.freeze(["organization.read"]),
-  auditor: Object.freeze(["organization.read", "members.read", "audit.read", "payments.read"])
+  auditor: Object.freeze(["organization.read", "members.read", "audit.read", "payments.read", "invoices.read"])
 });
 function organizationOrigin(value2) {
   const u = new URL(value2);
@@ -370,7 +370,7 @@ var OrganizationClient = class {
   origin;
   async request(path, method = "GET", body, signal) {
     const url = new URL(path, this.origin);
-    if (!path.startsWith("/") || url.origin !== this.origin || !/^\/(?:v1\/(?:auth|me|organizations)(?:\/[a-zA-Z0-9_.-]+)*|healthz)$/.test(url.pathname) || url.hash || url.search && !(url.pathname.endsWith("/audit") && /^\?before=[1-9][0-9]{0,15}$/.test(url.search))) throw new Error("Invalid organization API path");
+    if (!path.startsWith("/") || url.origin !== this.origin || !/^\/(?:v1\/(?:auth|me|organizations)(?:\/[a-zA-Z0-9_.-]+)*|healthz)$/.test(url.pathname) || url.hash || url.search && !(/\/(audit|invoices)$/.test(url.pathname) && /^\?before=[1-9][0-9]{0,15}$/.test(url.search))) throw new Error("Invalid organization API path");
     const response = await fetch(this.origin + path, { method, credentials: "omit", redirect: "error", cache: "no-store", headers: {
       ...body !== void 0 ? { "content-type": "application/json" } : {},
       ...this.token ? { authorization: `Bearer ${this.token}` } : {}
@@ -1159,8 +1159,8 @@ var SettlementSession = class {
       return op;
     });
   }
-  operation(operations, id) {
-    const o = operations.find((o2) => o2.id === id);
+  operation(operations, id2) {
+    const o = operations.find((o2) => o2.id === id2);
     if (!o || canonical(o.policy) !== canonical(this.policy))
       throw new Error("Operation not found in this trusted group");
     return o;
@@ -1299,14 +1299,14 @@ var SettlementSession = class {
       o.payment
     );
   }
-  async review(id) {
+  async review(id2) {
     return this.journal.update(
-      async (operations, persist) => this.next(this.operation(operations, id), persist)
+      async (operations, persist) => this.next(this.operation(operations, id2), persist)
     );
   }
-  async submitReviewed(id, reviewedCallHash) {
+  async submitReviewed(id2, reviewedCallHash) {
     return this.journal.update(async (operations, persist, check) => {
-      const o = this.operation(operations, id);
+      const o = this.operation(operations, id2);
       await this.identity(o.payer);
       const review = await this.next(o, persist);
       if (review.action !== "sign" || !review.call || !review.kind || review.callHash !== reviewedCallHash)
@@ -1340,7 +1340,7 @@ var SettlementSession = class {
       try {
         let dispatched = false;
         const tx = await this.wallet.sign(a.call, {
-          operationId: id,
+          operationId: id2,
           attempt: o.attempts.length - 1,
           identity: { network: this.policy.network, accountId: o.payer },
           authorize: () => {
@@ -1373,9 +1373,9 @@ var SettlementSession = class {
       return { state: a.state, transaction: a.transaction };
     });
   }
-  async reconcile(id, transaction) {
+  async reconcile(id2, transaction) {
     return this.journal.update(async (operations, persist) => {
-      const o = this.operation(operations, id), a = o.attempts.at(-1), tx = transactionRef(transaction);
+      const o = this.operation(operations, id2), a = o.attempts.at(-1), tx = transactionRef(transaction);
       await this.trusted();
       if (!a || !["signing", "submitted", "uncertain"].includes(a.state) || tx.signer !== o.payer)
         throw new Error("No matching uncertain attempt");
@@ -2120,7 +2120,7 @@ var BrowserProver = class {
         reject(new Error("This browser could not start a local prover worker."));
         return;
       }
-      const id = crypto.randomUUID();
+      const id2 = crypto.randomUUID();
       let settled = false;
       const finish = (error, result) => {
         if (settled) return;
@@ -2138,7 +2138,7 @@ var BrowserProver = class {
       const failed = () => finish(new Error("The local prover worker stopped unexpectedly."));
       const receive = (event) => {
         const data = event.data;
-        if (settled || !data || data.id !== id) return;
+        if (settled || !data || data.id !== id2) return;
         if (data.type === "progress" && stages.includes(data.stage)) {
           try {
             options.onProgress?.(data.stage);
@@ -2177,7 +2177,7 @@ var BrowserProver = class {
         return;
       }
       try {
-        worker.postMessage({ id, ...message, policy });
+        worker.postMessage({ id: id2, ...message, policy });
       } catch {
         failed();
       }
@@ -2790,6 +2790,34 @@ async function openReceiptBackup(envelope, password) {
   if (payload.version !== 1) throw new Error("Unsupported private receipt version");
   return full(payload.receipt);
 }
+
+// sdk/client/organization-invoices.ts
+function id(value2) {
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value2)) throw new Error("Invalid organization invoice identifier");
+  return value2;
+}
+var OrganizationInvoiceClient = class {
+  constructor(client, organizationId) {
+    this.client = client;
+    this.organizationId = organizationId;
+    id(organizationId);
+  }
+  client;
+  organizationId;
+  path() {
+    return `/v1/organizations/${this.organizationId}/invoices`;
+  }
+  save(requestId, invoice, signal) {
+    return this.client.request(this.path(), "POST", { requestId: id(requestId), invoice }, signal);
+  }
+  get(invoiceId, signal) {
+    return this.client.request(`${this.path()}/${id(invoiceId)}`, "GET", void 0, signal);
+  }
+  list(before, signal) {
+    if (before !== void 0 && (!Number.isSafeInteger(before) || before < 1)) throw new Error("Invalid invoice cursor");
+    return this.client.request(this.path() + (before === void 0 ? "" : `?before=${before}`), "GET", void 0, signal);
+  }
+};
 export {
   BrowserProver,
   CoreApiError,
@@ -2802,6 +2830,7 @@ export {
   OperationJournal,
   OrganizationApiError,
   OrganizationClient,
+  OrganizationInvoiceClient,
   RECEIPT_FIELDS,
   SettlementSession,
   activityKinds,

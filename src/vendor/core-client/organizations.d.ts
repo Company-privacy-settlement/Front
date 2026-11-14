@@ -1,6 +1,6 @@
 export declare const ORGANIZATION_ROLES: readonly ["owner", "admin", "operator", "viewer", "auditor"];
 export type OrganizationRole = typeof ORGANIZATION_ROLES[number];
-export declare const ORGANIZATION_PERMISSIONS: readonly ["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "ownership.transfer", "payments.read", "payments.create", "payments.approve", "payments.execute"];
+export declare const ORGANIZATION_PERMISSIONS: readonly ["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "ownership.transfer", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create"];
 export type OrganizationPermission = typeof ORGANIZATION_PERMISSIONS[number];
 export declare const ORGANIZATION_ROLE_PERMISSIONS: Readonly<Record<OrganizationRole, readonly OrganizationPermission[]>>;
 export type Organization = {

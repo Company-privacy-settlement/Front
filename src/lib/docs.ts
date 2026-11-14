@@ -394,7 +394,7 @@ export const docs: Doc[] = [
         "title": "Sharing, retention, and recovery",
         "paragraphs": [
           "Terms remain client-held. Link/JSON holders can read the business terms and derive its references. A fragment is omitted from the initial page URL request; page code, extensions, and link holders can still read it. Hosting access controls apply to shared checkout links.",
-          "Save the signed invoice before leaving. The API does not store an invoice inbox or send webhooks. Expiry is an application rule; contracts may settle late. Recovery keeps the original payout destination after expiry."
+          "Save the signed invoice before leaving. The public settlement API does not store invoice terms or send webhooks. The separate Organization API can store signed invoices with organization access controls, idempotency and encryption at rest; the local form does not automatically sync to it. Expiry is an application rule; contracts may settle late. Recovery keeps the original payout destination after expiry."
         ]
       },
       {
@@ -902,6 +902,17 @@ export const docs: Doc[] = [
           "label": "TypeScript · Front browser module",
           "text": "import { OrganizationClient, type Organization } from \"@/vendor/core-client/index.js\";\n\n// session comes from the verified NEP-413 login flow.\nconst client = new OrganizationClient(organizationApiOrigin, session.token);\nconst path = `/v1/organizations/${selectedOrganizationId}`;\nconst organization = await client.request<Organization>(path);\nawait client.request(path, \"PATCH\", {\n  name: \"Example workspace\",\n  version: organization.version,\n});"
         }
+      },
+      {
+        "id": "organization-invoices",
+        "title": "Use the private invoice API",
+        "code": {
+          "label": "Browser SDK",
+          "text": "const invoices = new OrganizationInvoiceClient(\n  new OrganizationClient(apiOrigin, session.token), organizationId\n);\nconst saved = await invoices.save(stableRequestId, signedInvoice, signal);\nconst page = await invoices.list(undefined, signal);\nconst original = await invoices.get(saved.invoice.id, signal);"
+        },
+        "paragraphs": [
+          "The SDK transports signed terms with an explicit in-memory organization session. It does not persist plaintext invoice terms or tokens. A saved record is an archive, not a payment confirmation; checkout still verifies the current merchant key, independently trusted policy, fees and finalized settlement."
+        ]
       }
     ]
   },
@@ -1190,6 +1201,20 @@ export const docs: Doc[] = [
         "code": {
           "label": "Terminal · Core operator, build once and set the Organization API audience/database",
           "text": "npm run build:service\n# CORE_ORGANIZATION_DB points to the live database.\nnpm run organizations:backup -- /private-backups/new.sqlite\n# Select a NEW quarantine path in CORE_ORGANIZATION_DB.\nnpm run organizations:restore -- /private-backups/new.sqlite TRUSTED_BACKUP_SHA256\nnpm run organizations:review-template -- /private-reviews/access.json\n# Independently review current authority, then select a NEW active database path.\nnpm run organizations:activate -- /private-recovery/quarantined.sqlite /private-reviews/access.json APPROVED_REVIEW_SHA256"
+        }
+      },
+      {
+        "id": "invoice-api",
+        "title": "Organization invoice API",
+        "paragraphs": [
+          "The separate Organization API accepts immutable merchant-signed invoices at POST /v1/organizations/:org/invoices. Use a stable requestId for retries. Exact repeats return the existing record; changed terms under an existing request or merchant invoice ID return a conflict. GET the collection with its before cursor or retrieve a record by storage ID.",
+          "Owners, Admins and Operators can save and read; Auditors can read; Viewers cannot access invoices. New invoices require the authenticated merchant’s current FullAccess key and a valid NEP-413 signature. Invoice storage does not grant wallet authority or mark a payment complete.",
+          "Operators must provision CORE_ORGANIZATION_INVOICE_KEYS_FILE separately from the database and backups. Signed terms use AES-256-GCM encryption, with keyed tenant-bound indexes for duplicate detection. Without keys, invoice storage is disabled. Organization IDs, timestamps/counts and existing membership/audit metadata remain visible to the database operator. Authorized readers and the live service can access plaintext.",
+          "Keep every data key needed by retained backups and the stable index key. Reviewed organization recovery restores ciphertext and retry indexes, drops sessions and requires current access approval before activation. The current browser invoice form/library remains independent; persistent dashboard search/export and webhooks are future work."
+        ],
+        "code": {
+          "label": "Core operator setup",
+          "text": "npm run organizations:invoice-keys -- /absolute/private/service.invoice-keys.json initial\nexport CORE_ORGANIZATION_INVOICE_KEYS_FILE=/absolute/private/service.invoice-keys.json\nnpm run serve:organizations"
         }
       }
     ]

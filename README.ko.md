@@ -6,6 +6,8 @@ Core의 랜딩, 문서와 지갑 도구입니다. 기업 간·기업과 근로�
 
 [서비스 개요](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md) · [웹 Docs](https://core-private-settlement-0574c4.jiheon6768.chatgpt.site/docs/) · [개발 로드맵](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)
 
+동기화된 SDK의 `OrganizationInvoiceClient`는 조직별 암호화 인보이스 저장·조회와 중복 방지를 지원합니다. 권한 표와 영문 Docs에 인보이스 접근·키 설정을 반영했습니다. 기존 로컬 인보이스 폼·라이브러리는 API에 자동 동기화되지 않습니다. [Core API 가이드](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_INVOICES.md).
+
 ## 워크스페이스
 
 | 경로 | 현재 기능 |

@@ -6,6 +6,8 @@ English-first landing, documentation and wallet tools for Core, a development pr
 
 [Service overview](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md) · [Web Docs](https://core-private-settlement-0574c4.jiheon6768.chatgpt.site/docs/) · [Development roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)
 
+The synchronized SDK exposes `OrganizationInvoiceClient` for organization-scoped encrypted invoice storage and idempotent save/list/get requests. The roles table and English Docs describe invoice access and key provisioning. The current local invoice form/library does not automatically sync to this API. [Core API guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_INVOICES.md).
+
 ## Workspaces
 
 | Route | Current behavior |
