@@ -121,3 +121,5 @@ KYB/KYC 集成验证（**2026-11-14**）：**428 项 Core 测试**和 **224 项�
 [AI 税务与程序草稿](https://github.com/Company-privacy-settlement/Core/blob/main/docs/TAX_DRAFTS.md)位于 Organization → Tax drafts：验证规则计算与选定收据值的精确绑定、带来源草稿、组织加密存储、独立审核、不可变修订、撤销及 JSON/Markdown 导出。AI 仅排列已验证语句 ID，不接收金额或证据；确定性提纲明确区分。真实 AI 启用需要私有提供商密钥与模型，有效审核需要运营方固定的签名规则策略。不附带专业规则批准、自主法律建议、法定申报或付款授权。
 
 草稿专项验证（**2026-11-14**）通过：**488 项 Core 测试**（新增草稿 29 项）、**256 项桌面/移动浏览器用例**（草稿 16 项）、3 项 Front 单元、类型检查、Node/浏览器 SDK 与静态构建、编译服务/备份/恢复及文档/来源清单检查。AI 传输与审核签名使用受控测试环境，未执行真实模型调用、专业规则批准或法定申报。
+
+[原生 NEAR 真实 testnet 钱包验证](https://github.com/Company-privacy-settlement/Core/blob/main/docs/TESTNET_WALLET.md)（**2026-11-14**）确认 **14 笔真实交易均为 FINAL**：无密钥注册表/金库、两笔 0.1 NEAR 入金、跨金库付款及收款账户不存在后的原 nullifier/目的地恢复，重试无额外协议费。重新查询公开签名、规范快照、本金与合计 0.0006 NEAR 费用；**513 项 Core 测试**、SDK/类型/编译运行时及恢复检查通过。范围为本地密钥原生软件钱包开发验证，未验证浏览器钱包、USDC、外部 HTTPS、远程 Actions 成功或有效匿名性。当前无 cover traffic 调度，单一公开付款人的关联仍存在。指南提供公开策略、交易链接和只读验证命令，不包含私钥或票据 witness。
