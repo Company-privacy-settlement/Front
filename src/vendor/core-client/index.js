@@ -320,13 +320,13 @@ function validateRecovery(input, policy, ref) {
 
 // sdk/client/organizations.ts
 var ORGANIZATION_ROLES = Object.freeze(["owner", "admin", "operator", "viewer", "auditor"]);
-var ORGANIZATION_PERMISSIONS = Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "ownership.transfer", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create"]);
+var ORGANIZATION_PERMISSIONS = Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "ownership.transfer", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create", "webhooks.read", "webhooks.manage"]);
 var ORGANIZATION_ROLE_PERMISSIONS = Object.freeze({
   owner: ORGANIZATION_PERMISSIONS,
-  admin: Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create"]),
-  operator: Object.freeze(["organization.read", "members.read", "payments.read", "payments.create", "payments.execute", "invoices.read", "invoices.create"]),
+  admin: Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create", "webhooks.read", "webhooks.manage"]),
+  operator: Object.freeze(["organization.read", "members.read", "payments.read", "payments.create", "payments.execute", "invoices.read", "invoices.create", "webhooks.read"]),
   viewer: Object.freeze(["organization.read"]),
-  auditor: Object.freeze(["organization.read", "members.read", "audit.read", "payments.read", "invoices.read"])
+  auditor: Object.freeze(["organization.read", "members.read", "audit.read", "payments.read", "invoices.read", "webhooks.read"])
 });
 function organizationOrigin(value2) {
   const u = new URL(value2);
@@ -370,7 +370,7 @@ var OrganizationClient = class {
   origin;
   async request(path, method = "GET", body, signal) {
     const url = new URL(path, this.origin);
-    if (!path.startsWith("/") || url.origin !== this.origin || !/^\/(?:v1\/(?:auth|me|organizations)(?:\/[a-zA-Z0-9_.-]+)*|healthz)$/.test(url.pathname) || url.hash || url.search && !(/\/(audit|invoices)$/.test(url.pathname) && /^\?before=[1-9][0-9]{0,15}$/.test(url.search))) throw new Error("Invalid organization API path");
+    if (!path.startsWith("/") || url.origin !== this.origin || !/^\/(?:v1\/(?:auth|me|organizations)(?:\/[a-zA-Z0-9_.-]+)*|healthz)$/.test(url.pathname) || url.hash || url.search && !(/\/(audit|invoices|deliveries)$/.test(url.pathname) && /^\?before=[1-9][0-9]{0,15}$/.test(url.search))) throw new Error("Invalid organization API path");
     const response = await fetch(this.origin + path, { method, credentials: "omit", redirect: "error", cache: "no-store", headers: {
       ...body !== void 0 ? { "content-type": "application/json" } : {},
       ...this.token ? { authorization: `Bearer ${this.token}` } : {}
@@ -1159,8 +1159,8 @@ var SettlementSession = class {
       return op;
     });
   }
-  operation(operations, id2) {
-    const o = operations.find((o2) => o2.id === id2);
+  operation(operations, id3) {
+    const o = operations.find((o2) => o2.id === id3);
     if (!o || canonical(o.policy) !== canonical(this.policy))
       throw new Error("Operation not found in this trusted group");
     return o;
@@ -1299,14 +1299,14 @@ var SettlementSession = class {
       o.payment
     );
   }
-  async review(id2) {
+  async review(id3) {
     return this.journal.update(
-      async (operations, persist) => this.next(this.operation(operations, id2), persist)
+      async (operations, persist) => this.next(this.operation(operations, id3), persist)
     );
   }
-  async submitReviewed(id2, reviewedCallHash) {
+  async submitReviewed(id3, reviewedCallHash) {
     return this.journal.update(async (operations, persist, check) => {
-      const o = this.operation(operations, id2);
+      const o = this.operation(operations, id3);
       await this.identity(o.payer);
       const review = await this.next(o, persist);
       if (review.action !== "sign" || !review.call || !review.kind || review.callHash !== reviewedCallHash)
@@ -1340,7 +1340,7 @@ var SettlementSession = class {
       try {
         let dispatched = false;
         const tx = await this.wallet.sign(a.call, {
-          operationId: id2,
+          operationId: id3,
           attempt: o.attempts.length - 1,
           identity: { network: this.policy.network, accountId: o.payer },
           authorize: () => {
@@ -1373,9 +1373,9 @@ var SettlementSession = class {
       return { state: a.state, transaction: a.transaction };
     });
   }
-  async reconcile(id2, transaction) {
+  async reconcile(id3, transaction) {
     return this.journal.update(async (operations, persist) => {
-      const o = this.operation(operations, id2), a = o.attempts.at(-1), tx = transactionRef(transaction);
+      const o = this.operation(operations, id3), a = o.attempts.at(-1), tx = transactionRef(transaction);
       await this.trusted();
       if (!a || !["signing", "submitted", "uncertain"].includes(a.state) || tx.signer !== o.payer)
         throw new Error("No matching uncertain attempt");
@@ -2120,7 +2120,7 @@ var BrowserProver = class {
         reject(new Error("This browser could not start a local prover worker."));
         return;
       }
-      const id2 = crypto.randomUUID();
+      const id3 = crypto.randomUUID();
       let settled = false;
       const finish = (error, result) => {
         if (settled) return;
@@ -2138,7 +2138,7 @@ var BrowserProver = class {
       const failed = () => finish(new Error("The local prover worker stopped unexpectedly."));
       const receive = (event) => {
         const data = event.data;
-        if (settled || !data || data.id !== id2) return;
+        if (settled || !data || data.id !== id3) return;
         if (data.type === "progress" && stages.includes(data.stage)) {
           try {
             options.onProgress?.(data.stage);
@@ -2177,7 +2177,7 @@ var BrowserProver = class {
         return;
       }
       try {
-        worker.postMessage({ id: id2, ...message, policy });
+        worker.postMessage({ id: id3, ...message, policy });
       } catch {
         failed();
       }
@@ -2907,6 +2907,78 @@ function exportInvoiceDashboard(rows, format, now = Date.now()) {
   };
   return "\uFEFF" + [columns.map(cell).join(","), ...data.map((row) => columns.map((c) => cell(row[c])).join(","))].join("\r\n") + "\r\n";
 }
+
+// sdk/client/webhooks.ts
+function createWebhookSecret() {
+  return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+}
+function webhookSecret(value2) {
+  if (!/^[A-Za-z0-9_-]{43}$/.test(value2)) throw new Error("Use a 32-byte base64url webhook signing secret");
+  const bytes2 = Uint8Array.from(atob(value2.replaceAll("-", "+").replaceAll("_", "/") + "="), (c) => c.charCodeAt(0));
+  if (btoa(String.fromCharCode(...bytes2)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "") !== value2) throw new Error("Noncanonical webhook secret");
+  return bytes2;
+}
+async function webhookKeyId(secret) {
+  return "whk_" + Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", webhookSecret(secret))), (b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+}
+function webhookSigningMessage(eventId, timestamp, keyId, body) {
+  return `core:webhook:v1
+${timestamp}
+${eventId}
+${keyId}
+${body}`;
+}
+var uuid2 = (v) => typeof v === "string" && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(v);
+async function verifyPaymentWebhook(body, headers, secrets, options = {}) {
+  const now = options.now ?? Date.now(), time2 = headers["core-webhook-timestamp"], id3 = headers["core-event-id"], keyId = headers["core-webhook-key-id"], signature = headers["core-webhook-signature"];
+  if (new TextEncoder().encode(body).length > 16384 || !uuid2(id3) || !/^\d{10}$/.test(time2) || Math.abs(Math.floor(now / 1e3) - Number(time2)) > 300 || !/^whk_[a-f0-9]{16}$/.test(keyId) || !/^v1=[a-f0-9]{64}$/.test(signature) || secrets.length < 1 || secrets.length > 16) throw new Error("Invalid webhook authentication");
+  let valid = false;
+  for (const secret of secrets) {
+    if (await webhookKeyId(secret) !== keyId) continue;
+    const key2 = await crypto.subtle.importKey("raw", webhookSecret(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
+    valid = await crypto.subtle.verify("HMAC", key2, Uint8Array.from(signature.slice(3).match(/../g), (b) => parseInt(b, 16)), new TextEncoder().encode(webhookSigningMessage(id3, time2, keyId, body)));
+    if (valid) break;
+  }
+  if (!valid) throw new Error("Invalid webhook authentication");
+  const e = JSON.parse(body), d = e.data;
+  if (e.version !== 1 || e.id !== id3 || e.type !== "invoice.payment_confirmed" || !uuid2(e.organizationId) || options.organizationId && e.organizationId !== options.organizationId || typeof e.createdAt !== "string" || !Number.isFinite(Date.parse(e.createdAt)) || organizationOrigin(e.producer) !== e.producer || !d || !uuid2(d.invoiceRecordId) || !uuid2(d.invoiceId) || !/^[a-f0-9]{64}$/.test(d.invoiceHash) || d.network !== "testnet" || !/^\d{1,42}$/.test(d.amountTokens) || BigInt(d.amountTokens) <= 0n || !/^\d{1,77}$/.test(d.nullifier) || !Number.isSafeInteger(d.recordIndex) || d.recordIndex < 0 || !Number.isSafeInteger(d.blockHeight) || d.blockHeight < 0 || !d.transaction || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(d.transaction.hash)) throw new Error("Invalid authenticated payment event");
+  const exact10 = (value2, keys) => Object.keys(value2).sort().join("|") === [...keys].sort().join("|");
+  if (!exact10(e, ["version", "id", "type", "organizationId", "createdAt", "producer", "data"]) || !exact10(d, ["invoiceRecordId", "invoiceId", "invoiceHash", "network", "registry", "asset", "recipient", "amountTokens", "nullifier", "recordIndex", "blockHeight", "transaction", "index"]) || !exact10(d.transaction, ["hash", "signer"]) || !d.index || !exact10(d.index, ["hash", "height", "updatedAt"]) || !/^[1-9][0-9]{0,41}$/.test(d.amountTokens) || !/^(0|[1-9][0-9]{0,76})$/.test(d.nullifier) || account(d.registry) !== d.registry || account(d.recipient) !== d.recipient || account(d.transaction.signer) !== d.transaction.signer || d.asset !== "NEAR" && account(d.asset) !== d.asset || new Date(e.createdAt).toISOString() !== e.createdAt || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(d.index.hash) || !Number.isSafeInteger(d.index.height) || d.index.height < d.blockHeight || typeof d.index.updatedAt !== "string" || !Number.isFinite(Date.parse(d.index.updatedAt)) || new Date(d.index.updatedAt).toISOString() !== d.index.updatedAt) throw new Error("Invalid authenticated payment event");
+  return e;
+}
+function id2(value2) {
+  if (!uuid2(value2)) throw new Error("Invalid webhook identifier");
+  return value2;
+}
+var OrganizationWebhookClient = class {
+  constructor(client, org) {
+    this.client = client;
+    this.base = `/v1/organizations/${id2(org)}/webhooks`;
+  }
+  client;
+  base;
+  endpoints(signal) {
+    return this.client.request(this.base, "GET", void 0, signal);
+  }
+  create(requestId, url, secret, signal) {
+    webhookSecret(secret);
+    return this.client.request(this.base, "POST", { requestId: id2(requestId), url, secret }, signal);
+  }
+  update(endpointId, action, version, secret, signal) {
+    if (action === "rotate") webhookSecret(secret ?? "");
+    return this.client.request(`${this.base}/${id2(endpointId)}/${action}`, "POST", { version, ...secret ? { secret } : {} }, signal);
+  }
+  deliveries(before, signal) {
+    if (before !== void 0 && (!Number.isSafeInteger(before) || before < 1)) throw new Error("Invalid webhook cursor");
+    return this.client.request(`${this.base}/deliveries${before === void 0 ? "" : `?before=${before}`}`, "GET", void 0, signal);
+  }
+  delivery(deliveryId, signal) {
+    return this.client.request(`${this.base}/deliveries/${id2(deliveryId)}`, "GET", void 0, signal);
+  }
+  retry(deliveryId, version, signal) {
+    return this.client.request(`${this.base}/deliveries/${id2(deliveryId)}/retry`, "POST", { version }, signal);
+  }
+};
 export {
   BrowserProver,
   CoreApiError,
@@ -2920,6 +2992,7 @@ export {
   OrganizationApiError,
   OrganizationClient,
   OrganizationInvoiceClient,
+  OrganizationWebhookClient,
   RECEIPT_FIELDS,
   SettlementSession,
   activityKinds,
@@ -2934,6 +3007,7 @@ export {
   createInvoice,
   createPrivateNote,
   createReceipt,
+  createWebhookSecret,
   discloseReceipt,
   encryptNoteBackup,
   encryptReceiptBackup,
@@ -2985,7 +3059,11 @@ export {
   sha256,
   validatePrivateNote,
   verifyCorporatePayment,
+  verifyPaymentWebhook,
   verifyProvingAssets,
   verifyReceiptDisclosure,
-  verifySignedInvoice
+  verifySignedInvoice,
+  webhookKeyId,
+  webhookSecret,
+  webhookSigningMessage
 };

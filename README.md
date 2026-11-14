@@ -10,6 +10,8 @@ The synchronized SDK exposes `OrganizationInvoiceClient` for organization-scoped
 
 Organization → Invoice payments now provides complete-snapshot invoice search, state/asset/group/date filters, CSV/JSON export, explicit signed-JSON import and finalized-index reconciliation. Trusted policy/API selection is required; unchecked, unavailable, stale and incomplete observations stay explicit. [Dashboard guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PAYMENT_DASHBOARD.md).
 
+Organization → Webhooks manages signed finalized-payment callbacks, secret rotation, delivery attempts, failures and versioned dead-letter/recovery retries. Owners/Admins manage; Operators/Auditors read; Viewers cannot load webhook data. Secrets remain transient in the browser. [Worker and receiver configuration](https://github.com/Company-privacy-settlement/Core/blob/main/docs/WEBHOOKS.md).
+
 ## Workspaces
 
 | Route | Current behavior |
@@ -101,3 +103,5 @@ Independent vaults hold principal; shared notes authorize a direct payout from o
 There are no external analytics or remote-font requests. Wallet connection loads NEAR Connect’s manifest/provider interfaces on demand.
 
 Payment dashboard validation on **2026-11-14**: **355 Core tests** and **182 desktop/mobile browser cases** passed, including 13 new Core and 18 browser dashboard cases; type checks, Node/browser SDK builds and the static Front build passed. Browser service/wallet fixtures do not establish a live public-network deployment.
+
+Signed webhook validation on **2026-11-14**: **379 Core tests** and **194 desktop/mobile browser cases** passed, including 24 new Core and 12 browser webhook cases. Node/browser SDK, static build and compiled service/recovery checks passed. Tests use local index/wallet/transport fixtures; no real merchant callback or public backend deployment was performed.

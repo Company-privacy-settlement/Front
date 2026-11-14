@@ -932,6 +932,18 @@ export const docs: Doc[] = [
         "paragraphs": [
           "invoiceHistory verifies archived terms and the API policy without requiring the historic merchant key to remain current. It never authorizes payment. Existing invoiceStatus and checkout retain the current-key requirement. The dashboard validates exact root/policy/amount bindings and marks uncertainty explicitly. CSV protects formula-like business fields; JSON retains exact atomic amount strings and nullable unknown values."
         ]
+      },
+      {
+        "id": "payment-webhooks",
+        "title": "Verify and deduplicate payment events",
+        "code": {
+          "label": "Receiver SDK",
+          "text": "const event = await verifyPaymentWebhook(rawUtf8Body, headers, [secret], { organizationId });\n// Node SDK: combine receipt uniqueness and business SQL in one transaction.\nconst inbox = new PaymentWebhookInbox('/private/receiver.sqlite', organizationId);\nconst result = await inbox.accept(rawUtf8Body, headers, [secret], (db, event) => {\n  db.prepare('INSERT INTO received_payments(event_id,amount_tokens) VALUES(?,?)')\n    .run(event.id, event.data.amountTokens);\n});\n// Acknowledge 2xx only after commit, including exact duplicate receipts."
+        },
+        "paragraphs": [
+          "Use the original raw request body; do not parse and re-serialize it before HMAC verification. Signature headers are Core-Event-Id, Core-Webhook-Timestamp, Core-Webhook-Key-Id and Core-Webhook-Signature. Retain deliberate previous keys during rotation. The authenticated event identifies one finalized payment, not a mutable aggregate invoice-paid flag.",
+          "OrganizationWebhookClient manages callbacks, delivery pagination, attempt details and versioned retry/rotation. PaymentWebhookInbox is in the Node SDK; its synchronous SQL handler must not perform asynchronous external fulfillment. External work needs a separate transactional outbox/idempotency key. HMAC authenticates the integration; it is not independent light-client or legal/tax verification."
+        ]
       }
     ]
   },
@@ -1229,7 +1241,7 @@ export const docs: Doc[] = [
           "The separate Organization API accepts immutable merchant-signed invoices at POST /v1/organizations/:org/invoices. Use a stable requestId for retries. Exact repeats return the existing record; changed terms under an existing request or merchant invoice ID return a conflict. GET the collection with its before cursor or retrieve a record by storage ID.",
           "Owners, Admins and Operators can save and read; Auditors can read; Viewers cannot access invoices. New invoices require the authenticated merchant’s current FullAccess key and a valid NEP-413 signature. Invoice storage does not grant wallet authority or mark a payment complete.",
           "Operators must provision CORE_ORGANIZATION_INVOICE_KEYS_FILE separately from the database and backups. Signed terms use AES-256-GCM encryption, with keyed tenant-bound indexes for duplicate detection. Without keys, invoice storage is disabled. Organization IDs, timestamps/counts and existing membership/audit metadata remain visible to the database operator. Authorized readers and the live service can access plaintext.",
-          "Keep every data key needed by retained backups and the stable index key. Reviewed organization recovery restores ciphertext and retry indexes, drops sessions and requires current access approval before activation. The current browser invoice form/library remains independent; the organization payment dashboard now provides search/filter/export; webhooks remain future work."
+          "Keep every data key needed by retained backups and the stable index key. Reviewed organization recovery restores ciphertext and retry indexes, drops sessions and requires current access approval before activation. The current browser invoice form/library remains independent; the organization payment dashboard now provides search/filter/export; signed payment webhooks are now available through the optional Organization delivery worker."
         ],
         "code": {
           "label": "Core operator setup",
@@ -1245,6 +1257,18 @@ export const docs: Doc[] = [
           "Under Settlement source, independently import the trusted policy and enter its matching Core API. Check payments reads every loaded invoice matching that exact policy, at most one per second. Large collections take longer and can be cancelled. Source changes discard previous observations; other groups stay unchecked. Current private read access is checked before publishing each result or exporting.",
           "Only matching finalized successful withdrawals count. Wallet callbacks and redirects never mark paid. Unknown/error observations stay Unchecked or Unavailable; index/browser observations older than five minutes become Stale index. Incomplete coverage and reused v2 unit references need review. Every result retains its observed height/time and chainFreshnessChecked: false.",
           "Historical signed invoice records can be reconciled after a merchant key rotation; checkout still requires a current merchant signing key. Organization switching, page-hide and revoked access clear cached private data and reject late responses. No plaintext browser invoice/status cache is created."
+        ]
+      },
+      {
+        "id": "payment-webhooks",
+        "title": "Manage signed payment webhooks",
+        "paragraphs": [
+          "Open Organization → Webhooks. Owners and Admins can create approved HTTPS callbacks, pause/resume, rotate a signing secret and retry failed or recovery-held deliveries. Operators and Auditors can read callback/delivery history; Viewers cannot load it. Prepare and securely save a random 32-byte base64url signing secret in your receiver first; the API never returns it.",
+          "Operators enable the worker with a separately protected organization key ring, a local verified finalized SQLite index, its exact reviewed testnet policy and independent SHA-256, and exact approved HTTPS callback origins. Callback URLs cannot contain credentials, queries, fragments, IP literals or alternate ports. Every send checks public DNS addresses, pins the socket, verifies hostname TLS and refuses redirects.",
+          "Each matching finalized successful withdrawal with linked transaction provenance creates one immutable invoice.payment_confirmed event. Incomplete/stale coverage, failed attempts and unlinked records do not issue confirmations. Events and per-endpoint delivery uniqueness are committed atomically. Historical payments can catch up; new endpoints can receive an existing event without resending successful old deliveries.",
+          "Every attempt carries an HMAC-SHA-256 signature over the exact raw body, stable event ID, key ID and fresh Unix timestamp. The receiver must enforce the five-minute timestamp window and atomically deduplicate event IDs. A sender can retry after a lost acknowledgement even when the receiver already committed; acknowledge 2xx only after idempotent business work commits.",
+          "Network/transient HTTP failures retry with bounded backoff up to eight attempts per cycle. Redirects and permanent errors become dead letters. Inspect attempt outcomes, safe error/status codes and next due time; a current Owner/Admin can explicitly redrive a dead/held delivery up to three cycles with the same event ID. Delivered jobs cannot be manually resent.",
+          "Encrypted backups retain events and attempt/dedup history but pause restored callbacks and hold pending/in-flight sends. Current access review, explicit resume and held-job retry are required. Webhook metadata and protected database state remain visible to the service; signing secrets, callback paths and event bodies are encrypted at rest."
         ]
       }
     ]

@@ -10,6 +10,8 @@ Core의 랜딩, 문서와 지갑 도구입니다. 기업 간·기업과 근로�
 
 Organization → Invoice payments에서 전체 조직 인보이스 검색, 상태·자산·그룹·발행일 필터, CSV·JSON 내보내기, 서명 JSON 저장과 확정 인덱스 기반 조회를 지원합니다. 신뢰한 정책·API를 별도 선택하며 미조회·실패·오래된 인덱스·불완전한 결과를 명시합니다. [대시보드 가이드](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PAYMENT_DASHBOARD.md).
 
+Organization → Webhooks에서 확정 결제 콜백, 서명 키 교체, 전송 시도·실패 내역과 버전 기반 재시도를 관리합니다. Owner/Admin은 관리, Operator/Auditor는 조회하며 Viewer는 접근할 수 없습니다. 브라우저에 서명 비밀키를 영속 저장하지 않습니다. [워커·수신 측 설정](https://github.com/Company-privacy-settlement/Core/blob/main/docs/WEBHOOKS.md).
+
 ## 워크스페이스
 
 | 경로 | 현재 기능 |
@@ -101,3 +103,5 @@ KYB는 미국·아부다비 본토·ADGM의 샘플 입력입니다. 초안은 �
 외부 분석·원격 폰트 요청은 없습니다. 지갑 연결 시 NEAR Connect 매니페스트·제공자 인터페이스를 불러옵니다.
 
 **2026-11-14 결제 대시보드 검증:** 신규 Core 13개·브라우저 18개를 포함한 **Core 355개 테스트**, **데스크톱·모바일 브라우저 182개 케이스**와 타입·Node/브라우저 SDK·정적 빌드를 통과했습니다. 브라우저의 서비스·지갑 픽스처 검증은 공개망 실배포를 의미하지 않습니다.
+
+**2026-11-14 결제 웹훅 검증:** 신규 Core 24개·브라우저 12개를 포함한 **Core 379개 테스트**, **데스크톱·모바일 브라우저 194개 케이스**와 Node/브라우저 SDK·정적 빌드·컴파일된 서비스 복구 검증을 통과했습니다. 로컬 인덱스·지갑·전송 픽스처 검증이며 실제 수신처 전송·공개 백엔드 배포는 수행하지 않았습니다.
