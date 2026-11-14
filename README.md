@@ -4,7 +4,7 @@
 
 Money Station is a private business payment service built on NEAR. The English-first landing, application and Docs use a shared black-and-green design. The wallet connects to the configured test network while repeated network badges are omitted from product chrome. [Service configuration and release gates](docs/MONEY_STATION_DEPLOYMENT.md).
 
-Ubuntu hosting for `moneystation.site`: [isolated service, release verification and pre-DNS routing](docs/UBUNTU_HOSTING.md). DNS and HTTPS activation are explicit follow-up steps.
+Ubuntu hosting for `moneystation.site`: [isolated service, release verification and pre-DNS routing](docs/UBUNTU_HOSTING.md). Settlement/indexer and Organization APIs are running on loopback; shared HTTPS routing passed local validation. Root gateway activation and public DNS/HTTPS remain pending.
 
 Money Station frontend validation: **12 unit tests** and the full **280 desktop/mobile browser tests** passed. The English demo below uses Money Station’s black-and-green visual system, with labelled wallet/API fixtures and local proof generation.
 

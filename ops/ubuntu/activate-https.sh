@@ -58,6 +58,7 @@ install -m 0644 "$script_dir/moneystation.site.https.conf" "$target"
 /usr/sbin/nginx -t
 systemctl reload nginx
 python3 "$script_dir/verify.py" --origin https://moneystation.site
-curl --noproxy '*' --silent --show-error --max-time 15 -o /dev/null https://api.moneystation.site/healthz
+curl --noproxy '*' --fail --silent --show-error --max-time 20 -o /dev/null https://api.moneystation.site/readyz
+curl --noproxy '*' --fail --silent --show-error --max-time 20 -o /dev/null https://api.moneystation.site/readyz/organizations
 echo 'Both domain certificates and the frontend HTTPS route are active.'
-echo 'The API route targets 127.0.0.1:3331; an absent backend returns 503 and is not qualified by this installation.'
+echo 'Settlement/indexer and organization readiness passed over HTTPS. Payment wallets and external providers require separate qualification.'

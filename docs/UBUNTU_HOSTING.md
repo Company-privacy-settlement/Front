@@ -1,6 +1,6 @@
 # Isolated Ubuntu hosting: moneystation.site
 
-This deployment serves the Money Station landing, Docs and application as a static frontend. Core, the indexer, Organization API and relay remain separate services with their existing qualification requirements. The existing Sites preview and its sharing settings are unchanged.
+This deployment serves the Money Station landing, Docs and application as a static frontend. Settlement/indexer and Organization APIs run as separate isolated loopback services with persistent private state. The relay retains its separate qualification requirements. The existing Sites preview and its sharing settings are unchanged.
 
 ```text
 moneystation.site :80 → existing host Nginx → 127.0.0.1:3330
@@ -30,6 +30,8 @@ On this Ubuntu host, the manual check starts actual Nginx processes in unprivile
 
 ```bash
 python3 tests/manual/ubuntu-hosting.py /tmp/money-station-ubuntu.tar.gz <archive-sha256>
+# When the real loopback backends are running:
+python3 tests/manual/ubuntu-hosting.py --live-backends /tmp/money-station-ubuntu.tar.gz <archive-sha256>
 bash -n ops/ubuntu/install.sh
 systemd-analyze verify ops/ubuntu/money-station.service
 ```
@@ -79,13 +81,15 @@ sudo bash ops/ubuntu/activate-https.sh
 
 The script requires the managed HTTP installation first. It verifies that a fresh public challenge file is reachable through both domain names before requesting a certificate. Certbot uses only the dedicated webroot and a certificate named `moneystation.site`; unrelated certificates and sites are unchanged. Both domains are included in its SANs. Renewal checks/reloads Nginx through a certificate-specific deploy hook. No operator email is invented.
 
-The HTTPS template sends the frontend to `127.0.0.1:3330` and reserves `api.moneystation.site` for a separately deployed settlement API at `127.0.0.1:3331`. An absent upstream produces HTTP 503 with `API_UPSTREAM_UNAVAILABLE`; this is not a deployed/healthy API. The API is not proxied over plaintext HTTP. HTTP requests redirect to HTTPS only after certificate installation. A later frontend release preserves the already managed HTTPS virtual host.
+The HTTPS template sends the frontend to `127.0.0.1:3330`. The shared `api.moneystation.site` origin routes settlement/index queries to `127.0.0.1:3331` and `/v1/auth/*`, `/v1/me`, `/v1/organizations` and their child routes to the Organization API at `127.0.0.1:3332`. The organization probe aliases are `/healthz/organizations` and `/readyz/organizations`. The provider callback routes to the Organization API but needs separate protected provider configuration. Draft creation/revision allows 131,072 bytes, the provider callback 65,536 bytes and other API requests 8,192 bytes. Untrusted peer headers are stripped; upstream authentication and permission checks still apply.
 
-Frontend acceptance uses normal HTTPS verification. API transport acceptance does not establish index readiness, backend persistence, browser-wallet USDC, an Organization API or a funded payment journey. Configure the separately deployed settlement API with exact CORS for `https://moneystation.site`, a reviewed deployed policy and its independent digest. Organization services retain their own audience, encryption keys and deployment requirements. The native reference policy is not a browser FT policy.
+Both runtimes use the exact browser origin `https://moneystation.site`; organization signatures use the shared API audience `https://api.moneystation.site`. An absent upstream produces HTTP 503 with `API_UPSTREAM_UNAVAILABLE`. The API is not proxied over plaintext HTTP. HTTP requests redirect to HTTPS only after certificate installation. A later frontend release preserves the already managed HTTPS virtual host.
+
+Activation now requires normal HTTPS checks for the frontend and both API readiness routes. Actual backend operations, owner autostart, isolated private storage and restart verification are documented in [Core's Ubuntu backend guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/UBUNTU_BACKEND.md). The frontend installer does not launch or replace those processes. Infrastructure readiness does not qualify real wallet sessions, browser USDC, external providers or a funded payment journey. The native reference policy is not a browser FT policy.
 
 ## Current activation status — 2026-11-14
 
-The chosen Ubuntu IPv4 is `64.227.151.164`. The operator reported direct Hostinger DNS setup. At the dated check, the `.site` authoritative nameserver and public resolvers still returned NXDOMAIN for `moneystation.site`; the runtime account also required a sudo password. Root Nginx/service installation, public certificate issuance and actual API deployment were therefore not performed. Local namespace tests use a temporary explicitly trusted test certificate; they do not establish a public certificate or live HTTPS acceptance.
+The chosen Ubuntu IPv4 is `64.227.151.164`. The operator reported direct Hostinger DNS setup. At the dated check, the `.site` authoritative nameserver and public resolvers still returned NXDOMAIN for `moneystation.site`; the runtime account also required a sudo password. Settlement/indexer and Organization APIs are now running on loopback and passed actual-RPC readiness, index advancement and controlled worker restart with retained databases/keys. Root frontend/Nginx installation and public certificate issuance remain pending. The live-backend namespace test also passed the shared API TLS routes, missing-session denial and bad-origin rejection. Local namespace tests use a temporary explicitly trusted test certificate; they do not establish a public certificate or live HTTPS acceptance.
 
 ## Roll back a release
 

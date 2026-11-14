@@ -38,7 +38,7 @@ def rejects(action):
     raise AssertionError('An invalid release was accepted')
 
 
-def main(archive, sha):
+def main(archive, sha, live_backends=False):
     info = release.verify(archive, sha)
     processes = []
     with tempfile.TemporaryDirectory(prefix='money-station-qa-') as work:
@@ -103,7 +103,8 @@ http {
         tls_config=(ROOT/'ops/ubuntu/moneystation.site.https.conf').read_text()
         tls_config=tls_config.replace('listen 80;',f'listen 127.0.0.1:{redirect};').replace('listen [::]:80;','')
         tls_config=tls_config.replace('listen 443 ssl;',f'listen 127.0.0.1:{tls} ssl;').replace('listen [::]:443 ssl;','')
-        tls_config=tls_config.replace(':3330',f':{up}').replace(':3331',f':{missing_api}')
+        tls_config=tls_config.replace(':3330',f':{up}')
+        if not live_backends:tls_config=tls_config.replace(':3331',f':{missing_api}').replace(':3332',f':{missing_api}')
         tls_config=tls_config.replace('/etc/letsencrypt/live/moneystation.site/fullchain.pem','/etc/money-station/test-cert.pem').replace('/etc/letsencrypt/live/moneystation.site/privkey.pem','/etc/money-station/test-key.pem')
         for label in ['money-station.access.log','money-station.error.log','money-station-api.error.log']:
             tls_config=tls_config.replace('/var/log/nginx/'+label,'/dev/stderr')
@@ -167,13 +168,20 @@ http {
             req=urllib.request.Request(f'http://127.0.0.1:{edge}/.well-known/acme-challenge/local-probe',headers={'Host':'api.moneystation.site'})
             with opener.open(req,timeout=3) as response:assert response.read()==b'money-station-acme-probe'
             trust=ssl.create_default_context(cafile=str(work/'test-cert.pem'))
-            def secure_get(domain):
+            def secure_get(domain,path='/healthz',origin=None):
                 with socket.create_connection(('127.0.0.1',tls),timeout=3) as tcp:
                     with trust.wrap_socket(tcp,server_hostname=domain) as stream:
-                        stream.sendall(('GET /healthz HTTP/1.1\r\nHost: '+domain+'\r\nConnection: close\r\n\r\n').encode())
+                        stream.sendall(('GET '+path+' HTTP/1.1\r\nHost: '+domain+('\r\nOrigin: '+origin if origin else '')+'\r\nConnection: close\r\n\r\n').encode())
                         response=http.client.HTTPResponse(stream);response.begin();return response.status,json.loads(response.read())
             assert secure_get('moneystation.site')==(200,{'service':'money-station-front','status':'ok'})
-            assert secure_get('api.moneystation.site')==(503,{'error':'API_UPSTREAM_UNAVAILABLE'})
+            if live_backends:
+                status,body=secure_get('api.moneystation.site','/readyz');assert status==200 and body['deploymentVerified'] and body['index']['enabled']
+                status,body=secure_get('api.moneystation.site','/readyz/organizations');assert status==200 and body['service']=='core-organizations'
+                status,body=secure_get('api.moneystation.site','/v1/organizations','https://moneystation.site');assert status==401 and body['error']=='SESSION_REQUIRED'
+                status,body=secure_get('api.moneystation.site','/v1/me','https://unrelated.invalid');assert status==403 and body['error']=='ORIGIN_DENIED'
+            else:
+                assert secure_get('api.moneystation.site')==(503,{'error':'API_UPSTREAM_UNAVAILABLE'})
+                assert secure_get('api.moneystation.site','/readyz/organizations')==(503,{'error':'API_UPSTREAM_UNAVAILABLE'})
             class NoRedirect(urllib.request.HTTPRedirectHandler):
                 def redirect_request(self,*args,**kwargs):return None
             no_redirect=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect())
@@ -184,7 +192,7 @@ http {
                 else:raise AssertionError('HTTP did not redirect to HTTPS')
             print(json.dumps({'status': 'passed', 'namespaceIsolation': True, 'readOnlyExport': True,
                               'invalidBundlesRejected': 4, 'acmeWebroot': True, 'servers': results,
-                              'systemServiceInstalled': False, 'dnsModified': False, 'localTlsGateway': True, 'publicCertificateIssued': False, 'apiBackendRunning': False}))
+                              'systemServiceInstalled': False, 'dnsModified': False, 'localTlsGateway': True, 'publicCertificateIssued': False, 'apiBackendRunning': live_backends}))
         except Exception:
             for log in logs:
                 log.flush()
@@ -208,5 +216,6 @@ if __name__ == '__main__':
     cli = argparse.ArgumentParser(description=__doc__)
     cli.add_argument('archive', type=Path)
     cli.add_argument('sha256')
+    cli.add_argument('--live-backends',action='store_true')
     args = cli.parse_args()
-    main(args.archive.resolve(strict=True), args.sha256)
+    main(args.archive.resolve(strict=True), args.sha256,args.live_backends)
