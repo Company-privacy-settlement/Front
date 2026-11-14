@@ -92,7 +92,7 @@ Organization에서 독립 운영하는 Organization API 주소를 입력하고 N
 
 ## 기업 검증과 한계
 
-KYB는 미국·아부다비 본토·ADGM의 샘플 입력입니다. 초안은 메모리에만 있고 새로고침·KYB 화면 이탈 시 삭제됩니다. 파일 내용은 읽거나 업로드하지 않습니다. 준비 결과는 `verified: false`, `credentialIssued: false`, `providerSubmission: not_sent`입니다. 실제 제공자 심사·결제 자격 발급은 없습니다. 미국 주/연방·ADGM/본토 세무·법무 준비, 결정적 규칙 계산과 AI 초안은 향후 연동입니다.
+KYB는 미국·아부다비 본토·ADGM의 샘플 입력입니다. 초안은 메모리에만 있고 새로고침·KYB 화면 이탈 시 삭제됩니다. 파일 내용은 읽거나 업로드하지 않습니다. 준비 결과는 `verified: false`, `credentialIssued: false`, `providerSubmission: not_sent`입니다. 실제 제공자 심사·결제 자격 발급은 없습니다. Rules와 Tax drafts에서 이 샘플 KYB 입력과 별도로 제한된 출처 기반 준비를 지원하며 전체 법률 자문과 신고는 별도입니다.
 
 원금은 개별 볼트에 보관하고 공유 노트로 자금이 있는 한 볼트에서 직접 지급합니다. 여러 볼트를 순차 경유하지 않습니다. 공개 서명자·수취인·금액·시간·볼트·참조로 연관 분석할 수 있으며 볼트 수만으로 익명성을 보장하지 않습니다. 프로토콜과 단일 머신 개발 셋업은 프로덕션 감사를 받지 않았습니다. [프라이버시](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PRIVACY.md) · [서비스 한계](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md#current-boundaries).
 
@@ -117,3 +117,7 @@ KYB/KYC 연동 검증(**2026-11-14**): 신규 Core 27개·브라우저 14개를 
 [미국·아부다비 규칙 엔진](https://github.com/Company-privacy-settlement/Core/blob/main/docs/RULES.md)은 관할·근로자/계약자/B2B 형태·적용일에 따라 7개 출처 확인 후보를 선택하고 정확한 계산식과 공식 출처를 남깁니다. 브라우저·CLI 로컬 실행과 독립적으로 신뢰한 Ed25519 검토 서명을 지원합니다. 전문 검토 승인·전체 세액·자동 원천징수·신고는 포함하지 않습니다.
 
 규칙 엔진 검증(**2026-11-14**): 신규 Core 31개·Rules 브라우저 16개를 포함한 **Core 459개 테스트**, **데스크톱·모바일 브라우저 240개 케이스**를 통과했습니다. 타입·Node/브라우저 SDK·정적 Front 빌드, 컴파일 CLI 내보내기/재검증, 서버 재시작·백업·복구와 출처/문서 검사도 통과했습니다. 검토 키는 테스트용이며 전문 세무·법무 규칙 승인, 실제 납세자 평가·자동 원천징수·신고는 수행하지 않았습니다.
+
+[AI 세무·절차 초안](https://github.com/Company-privacy-settlement/Core/blob/main/docs/TAX_DRAFTS.md)을 Organization → Tax drafts에서 지원합니다. 검증된 규칙 계산과 선택 공개 영수증의 정확한 값 연결, 출처 포함 초안, 조직별 암호화 저장, 독립 검토, 불변 리비전, 승인 철회와 JSON/Markdown 내보내기를 제공합니다. AI는 금액·증빙을 받지 않고 검증된 문장 ID만 배열하며 결정적 개요는 별도로 표시합니다. 실제 AI 활성화는 비공개 제공자 키·모델, 유효한 검토는 운영자가 고정한 서명 규칙 정책이 필요합니다. 전문가 규칙 승인·자율 법률 자문·법정 신고·결제 권한을 제공하지 않습니다.
+
+초안 기능 검증(**2026-11-14**): **Core 488개**(신규 초안 29개), **데스크톱·모바일 초안 브라우저 16개**, Front 단위 3개, 타입 검사, Node·브라우저 SDK·정적 빌드, 컴파일 서비스·백업·복구 및 문서·소스 목록 검사가 통과했습니다. AI 전송과 검토 서명은 제어된 테스트 환경이며 실제 모델 요청·전문가 규칙 승인·법정 신고는 수행하지 않았습니다.

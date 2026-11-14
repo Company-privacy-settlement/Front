@@ -320,13 +320,13 @@ function validateRecovery(input, policy, ref) {
 
 // sdk/client/organizations.ts
 var ORGANIZATION_ROLES = Object.freeze(["owner", "admin", "operator", "viewer", "auditor"]);
-var ORGANIZATION_PERMISSIONS = Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "ownership.transfer", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create", "webhooks.read", "webhooks.manage", "verification.read", "verification.manage"]);
+var ORGANIZATION_PERMISSIONS = Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "ownership.transfer", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create", "webhooks.read", "webhooks.manage", "verification.read", "verification.manage", "drafts.read", "drafts.create", "drafts.review"]);
 var ORGANIZATION_ROLE_PERMISSIONS = Object.freeze({
   owner: ORGANIZATION_PERMISSIONS,
-  admin: Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create", "webhooks.read", "webhooks.manage", "verification.read", "verification.manage"]),
-  operator: Object.freeze(["organization.read", "members.read", "payments.read", "payments.create", "payments.execute", "invoices.read", "invoices.create", "webhooks.read"]),
+  admin: Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create", "webhooks.read", "webhooks.manage", "verification.read", "verification.manage", "drafts.read", "drafts.create", "drafts.review"]),
+  operator: Object.freeze(["organization.read", "members.read", "payments.read", "payments.create", "payments.execute", "invoices.read", "invoices.create", "webhooks.read", "drafts.read", "drafts.create"]),
   viewer: Object.freeze(["organization.read"]),
-  auditor: Object.freeze(["organization.read", "members.read", "audit.read", "payments.read", "invoices.read", "webhooks.read", "verification.read"])
+  auditor: Object.freeze(["organization.read", "members.read", "audit.read", "payments.read", "invoices.read", "webhooks.read", "verification.read", "drafts.read"])
 });
 function organizationOrigin(value2) {
   const u = new URL(value2);
@@ -759,8 +759,8 @@ async function invoiceRootsFromHash(hash5, nonces) {
   return Promise.all(parsePaymentNonces(nonces).map((nonce) => sha256(`core:invoice:payment:v2|${hash5}|${nonce}`)));
 }
 async function invoicePaymentRoots(invoice) {
-  const i = parseInvoice(invoice), digest4 = await invoiceHash(i);
-  return i.version === 1 ? [await sha256("core:invoice:settlement:v1|" + digest4)] : invoiceRootsFromHash(digest4, i.paymentNonces);
+  const i = parseInvoice(invoice), digest5 = await invoiceHash(i);
+  return i.version === 1 ? [await sha256("core:invoice:settlement:v1|" + digest5)] : invoiceRootsFromHash(digest5, i.paymentNonces);
 }
 async function invoiceRoot(invoice, paymentIndex) {
   const roots = await invoicePaymentRoots(invoice);
@@ -2196,8 +2196,8 @@ function localAvailability(signed, root, nullifier, operations, except, reuseExa
   for (const operation of operations) {
     if (operation.id === except || canonical(operation.policy) !== canonical(signed.invoice.policy) || operation.reference.kind !== "withdrawal") continue;
     const old = operation.reference;
-    const exact12 = old.nullifier === nullifier && old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root;
-    if (exact12 && reuseExact) continue;
+    const exact13 = old.nullifier === nullifier && old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root;
+    if (exact13 && reuseExact) continue;
     if (old.nullifier === nullifier) throw new Error("This note already has a local withdrawal. Reconcile the existing operation; do not spend it again.");
     if (old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root && (signed.invoice.version === 2 || operation.outcome === "open")) throw new Error("This invoice unit already has a local payment. Reconcile that operation before selecting another note.");
   }
@@ -2942,8 +2942,8 @@ async function verifyPaymentWebhook(body, headers, secrets, options = {}) {
   if (!valid) throw new Error("Invalid webhook authentication");
   const e = JSON.parse(body), d = e.data;
   if (e.version !== 1 || e.id !== id3 || e.type !== "invoice.payment_confirmed" || !uuid2(e.organizationId) || options.organizationId && e.organizationId !== options.organizationId || typeof e.createdAt !== "string" || !Number.isFinite(Date.parse(e.createdAt)) || organizationOrigin(e.producer) !== e.producer || !d || !uuid2(d.invoiceRecordId) || !uuid2(d.invoiceId) || !/^[a-f0-9]{64}$/.test(d.invoiceHash) || d.network !== "testnet" || !/^\d{1,42}$/.test(d.amountTokens) || BigInt(d.amountTokens) <= 0n || !/^\d{1,77}$/.test(d.nullifier) || !Number.isSafeInteger(d.recordIndex) || d.recordIndex < 0 || !Number.isSafeInteger(d.blockHeight) || d.blockHeight < 0 || !d.transaction || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(d.transaction.hash)) throw new Error("Invalid authenticated payment event");
-  const exact12 = (value2, keys) => Object.keys(value2).sort().join("|") === [...keys].sort().join("|");
-  if (!exact12(e, ["version", "id", "type", "organizationId", "createdAt", "producer", "data"]) || !exact12(d, ["invoiceRecordId", "invoiceId", "invoiceHash", "network", "registry", "asset", "recipient", "amountTokens", "nullifier", "recordIndex", "blockHeight", "transaction", "index"]) || !exact12(d.transaction, ["hash", "signer"]) || !d.index || !exact12(d.index, ["hash", "height", "updatedAt"]) || !/^[1-9][0-9]{0,41}$/.test(d.amountTokens) || !/^(0|[1-9][0-9]{0,76})$/.test(d.nullifier) || account(d.registry) !== d.registry || account(d.recipient) !== d.recipient || account(d.transaction.signer) !== d.transaction.signer || d.asset !== "NEAR" && account(d.asset) !== d.asset || new Date(e.createdAt).toISOString() !== e.createdAt || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(d.index.hash) || !Number.isSafeInteger(d.index.height) || d.index.height < d.blockHeight || typeof d.index.updatedAt !== "string" || !Number.isFinite(Date.parse(d.index.updatedAt)) || new Date(d.index.updatedAt).toISOString() !== d.index.updatedAt) throw new Error("Invalid authenticated payment event");
+  const exact13 = (value2, keys) => Object.keys(value2).sort().join("|") === [...keys].sort().join("|");
+  if (!exact13(e, ["version", "id", "type", "organizationId", "createdAt", "producer", "data"]) || !exact13(d, ["invoiceRecordId", "invoiceId", "invoiceHash", "network", "registry", "asset", "recipient", "amountTokens", "nullifier", "recordIndex", "blockHeight", "transaction", "index"]) || !exact13(d.transaction, ["hash", "signer"]) || !d.index || !exact13(d.index, ["hash", "height", "updatedAt"]) || !/^[1-9][0-9]{0,41}$/.test(d.amountTokens) || !/^(0|[1-9][0-9]{0,76})$/.test(d.nullifier) || account(d.registry) !== d.registry || account(d.recipient) !== d.recipient || account(d.transaction.signer) !== d.transaction.signer || d.asset !== "NEAR" && account(d.asset) !== d.asset || new Date(e.createdAt).toISOString() !== e.createdAt || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(d.index.hash) || !Number.isSafeInteger(d.index.height) || d.index.height < d.blockHeight || typeof d.index.updatedAt !== "string" || !Number.isFinite(Date.parse(d.index.updatedAt)) || new Date(d.index.updatedAt).toISOString() !== d.index.updatedAt) throw new Error("Invalid authenticated payment event");
   return e;
 }
 function id2(value2) {
@@ -3683,9 +3683,172 @@ function ruleInputExample(jurisdiction, relationship) {
   const facts = jurisdiction === "US-FEDERAL" ? relationship === "employee" ? { usState: "CA", taxYear: "2026", standardCoveredWages: true, sameEmployerYtd: true, socialSecurityWagesMinor: "100000", medicareWagesMinor: "100000", ytdSocialSecurityWagesMinor: "0", ytdMedicareWagesMinor: "0" } : { taxYear: "2026", reportableDirectServices: true, usNoncorporatePayee: true, priorReportablePaymentsMinor: "150000", currentReportablePaymentsMinor: "50000", backupWithholdingOccurred: false } : relationship !== "employee" ? { registeredSupplier: true, domesticStandardRatedSupply: true, taxExclusive: true, taxableBaseMinor: "100000" } : jurisdiction === "AE-MAINLAND" ? { statutoryGratuityPath: true, fullTimeForeignPrivateWorker: true, creditableServiceReviewed: true, completedServiceYears: "3", fractionNumerator: "0", fractionDenominator: "1", monthlyBasicWageMinor: "1000000", monthlyTotalWageMinor: "2000000" } : { statutoryGratuityPath: true, fullTimeNonUaeGccEmployee: true, creditableServiceReviewed: true, completedServiceYears: "3", fractionNumerator: "0", fractionDenominator: "1", annualBasicWageMinor: "12000000", annualWageMinor: "24000000" };
   return { ...common, facts };
 }
+
+// sdk/client/tax-drafts.ts
+var DRAFT_KINDS = ["summary", "calculation", "evidence", "procedure", "open_items"];
+function object2(v) {
+  if (!v || typeof v !== "object" || Array.isArray(v) || Object.getPrototypeOf(v) !== Object.prototype) throw new Error("Expected a plain draft document");
+  return v;
+}
+function exact12(v, keys) {
+  if (Object.keys(v).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unknown or missing draft fields");
+}
+function digest4(v) {
+  if (typeof v !== "string" || !/^[a-f0-9]{64}$/.test(v)) throw new Error("Expected a lowercase SHA-256");
+  return v;
+}
+function draftText(v, min2 = 2, max2 = 120) {
+  if (typeof v !== "string" || v.trim() !== v || v.length < min2 || v.length > max2 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(v)) throw new Error("Invalid draft text");
+  return v;
+}
+async function draftBasis(input, options = {}) {
+  const v = object2(JSON.parse(canonical(input)));
+  exact12(v, ["report", "evidence"]);
+  const checked = await verifyRuleResult(v.report, options), report = v.report;
+  options.signal?.throwIfAborted();
+  if (!Array.isArray(v.evidence) || v.evidence.length < 1 || v.evidence.length > 4) throw new Error("Attach 1\u20134 selectively disclosed evidence receipts");
+  const evidence = [], ids = /* @__PURE__ */ new Set(), bound = /* @__PURE__ */ new Set();
+  let amountBound = false;
+  for (const raw of v.evidence) {
+    const e = object2(raw);
+    exact12(e, ["id", "label", "expectedRoot", "disclosure", "bindings"]);
+    const id3 = corporateId(e.id);
+    if (ids.has(id3)) throw new Error("Duplicate evidence reference");
+    ids.add(id3);
+    const label = draftText(e.label), expectedRoot = digest4(e.expectedRoot), disclosure = await verifyReceiptDisclosure(e.disclosure, expectedRoot);
+    if (disclosure.openings.some((o) => o.value.length > 512)) throw new Error("Disclose bounded evidence fields, not full documents");
+    if (!Array.isArray(e.bindings) || !e.bindings.length || e.bindings.length > 8) throw new Error("Bind disclosed fields to rule inputs");
+    const bindings = [], seen = /* @__PURE__ */ new Set();
+    for (const rawBinding of e.bindings) {
+      const b = object2(rawBinding);
+      exact12(b, ["field", "fact"]);
+      const opening = disclosure.openings.find((o) => o.field === b.field);
+      if (!opening || typeof b.fact !== "string" || seen.has(b.fact)) throw new Error("Invalid evidence binding");
+      let expected;
+      if (b.field === "asset" && b.fact === "currency") expected = report.input.currency;
+      else if (b.field === "occurredAt" && b.fact === "effectiveDate") expected = report.input.effectiveDate;
+      else if (b.field === "amount" && b.fact.endsWith("Minor")) {
+        expected = report.input.facts[b.fact];
+        const asset = disclosure.openings.find((o) => o.field === "asset");
+        if (asset?.value !== report.input.currency) throw new Error("Evidence amount needs the same declared fiat currency; no token/FX inference");
+        amountBound = true;
+      } else throw new Error("Only exact amount/currency/date bindings are supported");
+      if (typeof expected !== "string" || opening.value !== expected) throw new Error("Evidence does not match the rule input");
+      seen.add(b.fact);
+      bound.add(b.fact);
+      bindings.push({ field: b.field, fact: b.fact });
+    }
+    evidence.push({ id: id3, label, expectedRoot, disclosure, bindings });
+  }
+  if (!amountBound) throw new Error("At least one evidence amount must bind an exact rule input");
+  const reportHash = await sha256(canonical(report)), statements = [], citations = [{ id: "rule-report", kind: "rule_report", title: "Verified rule calculation snapshot", reference: report.ruleId ?? "unsupported-scope", hash: reportHash, assurance: "Calculation integrity only; declared inputs are not independently true." }, { id: "workflow", kind: "internal_workflow", title: "Core internal preparation workflow v1", reference: "core-tax-draft-workflow-v1", hash: null, assurance: "Internal preparation steps, not statutory filing instructions." }], add = (id3, kind, text3, refs, required = true) => statements.push({ id: id3, kind, text: text3, citations: refs, required });
+  const official = report.sources.map((s) => "official:" + s.id);
+  for (const s of report.sources) citations.push({ id: "official:" + s.id, kind: "official_source", title: s.title, reference: s.url + " | " + s.locator, hash: s.documentSha256, assurance: "Captured/source-checked " + s.checkedAt + "; current law still needs qualified review." });
+  add("scope", "summary", `Declared scope: ${report.input.jurisdiction}, ${report.input.relationship}, applicable date ${report.input.effectiveDate}. Figures use ${report.input.currency} minor units.`, ["rule-report"]);
+  add("status", "summary", checked.reviewCurrentlyValid ? "The supplied operator policy currently accepts the signed component-rule review. This is not approval of this draft or of a filing." : "The component rule is not currently accepted under the supplied operator policy. This draft remains preparation material and cannot receive internal approval.", ["rule-report", "workflow"]);
+  for (const [i, s] of report.steps.entries()) add("calculation-" + i, "calculation", `${s.label}: ${s.amountMinor} ${report.input.currency} minor units. Exact arithmetic ${s.numerator} / ${s.denominator}, with final ${s.rounding} rounding. Basis: ${canonical(s.basis)}.`, ["rule-report", ...official]);
+  if (Object.keys(report.decisions).length) add("decisions", "calculation", "Component decision basis: " + canonical(report.decisions) + ".", ["rule-report", ...official]);
+  for (const [i, e] of evidence.entries()) {
+    const ref = "evidence:" + e.id;
+    citations.push({ id: ref, kind: "receipt_declaration", title: e.label, reference: e.expectedRoot, hash: await sha256(canonical(e)), assurance: "Selected-field integrity against a caller-supplied root; no independent anchor, factual-truth or payment-finality claim." });
+    add("evidence-" + i, "evidence", `Evidence ${i + 1} has valid selected-field integrity against the supplied root and exact declared-value bindings: ${e.bindings.map((b) => b.field + " \u2192 " + b.fact).join(", ")}. This does not prove the underlying declaration or payment finality.`, [ref, "rule-report"]);
+  }
+  const unboundFacts = Object.keys(report.input.facts).filter((k) => !bound.has(k)).sort();
+  add("unbound-facts", "open_items", "Facts still requiring documentary/applicability review: " + (unboundFacts.join(", ") || "no remaining literal input fields") + ". Receipt equality does not determine legal classification.", ["rule-report", "workflow"]);
+  report.limitations.forEach((s, i) => add("limitation-" + i, "open_items", s, ["rule-report", ...official]));
+  report.blockers.forEach((s, i) => add("blocker-" + i, "open_items", s, ["rule-report"]));
+  add("check-sources", "procedure", "Compare the cited current primary sources, jurisdiction and worker/transaction classification with a qualified reviewer before relying on this draft.", ["workflow", ...official]);
+  add("check-evidence", "procedure", "Independently confirm the evidence roots, unit conventions, actual facts and any payment finality; resolve uncovered obligations separately.", ["workflow"]);
+  add("separate-authorization", "procedure", "Prepare any subsequent filing, withholding or payment through a separate authorized process. Internal draft approval does not submit a return or authorize funds.", ["workflow"]);
+  options.signal?.throwIfAborted();
+  const policyHash = options.trust && options.trustedPolicyHash ? options.trustedPolicyHash : null, base = { format: "core-tax-draft-basis-v1", reportHash, ruleCurrentlyAccepted: checked.reviewCurrentlyValid, policyHash, statements, citations, unboundFacts }, groundingHash = await sha256(canonical(base));
+  return { input: { report, evidence }, basis: { ...base, groundingHash } };
+}
+function outlineDraftPlan(basis) {
+  return { sections: DRAFT_KINDS.map((kind) => ({ kind, statementIds: basis.statements.filter((s) => s.kind === kind).map((s) => s.id) })) };
+}
+function validateDraftPlan(input, basis) {
+  const p = object2(JSON.parse(canonical(input)));
+  exact12(p, ["sections"]);
+  if (!Array.isArray(p.sections) || p.sections.length !== DRAFT_KINDS.length) throw new Error("Return all grounded draft sections");
+  const kinds = /* @__PURE__ */ new Set(), seen = /* @__PURE__ */ new Set(), sections = [];
+  for (const raw of p.sections) {
+    const s = object2(raw);
+    exact12(s, ["kind", "statementIds"]);
+    if (!DRAFT_KINDS.includes(s.kind) || kinds.has(String(s.kind)) || !Array.isArray(s.statementIds) || s.statementIds.length > 40) throw new Error("Invalid grounded section");
+    kinds.add(String(s.kind));
+    for (const id3 of s.statementIds) {
+      const item = basis.statements.find((x) => x.id === id3);
+      if (typeof id3 !== "string" || seen.has(id3) || !item || item.kind !== s.kind) throw new Error("AI attempted unsupported, duplicate or misattributed content");
+      seen.add(id3);
+    }
+    sections.push({ kind: s.kind, statementIds: s.statementIds });
+  }
+  if (basis.statements.some((s) => s.required && !seen.has(s.id))) throw new Error("Required calculations, evidence or limitations were omitted");
+  return { sections };
+}
+function draftModelMaterial(basis, ruleId) {
+  return { ruleId, sections: [...DRAFT_KINDS], items: basis.statements.map((s) => ({ id: s.id, kind: s.kind, required: s.required })) };
+}
+function renderTaxDraft(payload) {
+  const plan = validateDraftPlan(payload.plan, payload.basis);
+  return plan.sections.map((s) => ({ kind: s.kind, paragraphs: s.statementIds.map((id3) => payload.basis.statements.find((v) => v.id === id3)) }));
+}
+async function verifyTaxDraft(input, organizationId) {
+  const d = object2(JSON.parse(canonical(input))), p = object2(d.payload);
+  if (p.format !== "core-tax-draft-v1" || organizationId && p.organizationId !== organizationId || d.contentHash !== await sha256(canonical(p))) throw new Error("Draft content binding mismatch");
+  corporateId(p.organizationId);
+  corporateId(p.id);
+  corporateId(p.familyId);
+  if (p.parentId !== null) corporateId(p.parentId);
+  draftText(p.title);
+  if (!Number.isSafeInteger(p.creatorMembershipVersion) || Number(p.creatorMembershipVersion) < 1 || !Number.isSafeInteger(d.version) || Number(d.version) < 1 || typeof d.approvalValid !== "boolean" || typeof d.isCurrent !== "boolean" || !Array.isArray(d.approvalBlockers) || !Array.isArray(d.reviews) || !["draft", "in_review", "changes_requested", "approved", "rejected", "withdrawn", "invalidated"].includes(String(d.state))) throw new Error("Invalid draft review metadata");
+  const basis = p.basis, base = { ...basis };
+  delete base.groundingHash;
+  if (basis.groundingHash !== await sha256(canonical(base))) throw new Error("Draft source bank changed");
+  validateDraftPlan(p.plan, basis);
+  if (d.approvalValid && (d.state !== "approved" || !d.isCurrent || !basis.ruleCurrentlyAccepted || d.approvedBy === p.creatorAccount || typeof d.approvedBy !== "string" || typeof d.approvalExpiresAt !== "string" || Date.parse(d.approvalExpiresAt) <= Date.now())) throw new Error("Invalid independent draft approval");
+  return d;
+}
+function exportTaxDraft(draft, format) {
+  if (format === "json") return JSON.stringify({ format: "core-tax-draft-export-v1", exportedAt: (/* @__PURE__ */ new Date()).toISOString(), draft, claims: { internalReviewOnly: true, filingAccepted: false, paymentAuthorized: false } }, null, 2) + "\n";
+  const escape = (s) => s.replace(/[\\`*_{}\[\]()<>#!|]/g, "\\$&").replace(/\r?\n/g, " "), p = draft.payload;
+  return ["# " + escape(p.title), "", `State: ${draft.state}; current internal approval: ${draft.approvalValid}. No filing or payment authorization.`, "", ...renderTaxDraft(p).flatMap((s) => ["## " + s.kind.replaceAll("_", " "), "", ...s.paragraphs.flatMap((v) => [escape(v.text) + " " + v.citations.map((c) => "[" + escape(c) + "]").join(" "), ""])]), "## Source register", "", ...p.basis.citations.map((c) => "- " + escape(c.id) + ": " + escape(c.title) + " \u2014 " + escape(c.reference) + "; " + escape(c.assurance)), ""].join("\n");
+}
+var OrganizationTaxDraftClient = class {
+  constructor(client, organizationId) {
+    this.client = client;
+    this.organizationId = organizationId;
+    this.base = `/v1/organizations/${corporateId(organizationId)}/tax-drafts`;
+  }
+  client;
+  organizationId;
+  base;
+  async list(signal) {
+    const v = await this.client.request(this.base, "GET", void 0, signal);
+    return { aiConfigured: v.aiConfigured, rulePolicyConfigured: v.rulePolicyConfigured, activeGeneration: v.activeGeneration, items: await Promise.all(v.items.map((x) => verifyTaxDraft(x, this.organizationId))) };
+  }
+  async get(id3, signal) {
+    return verifyTaxDraft(await this.client.request(this.base + "/" + corporateId(id3), "GET", void 0, signal), this.organizationId);
+  }
+  async create(value2, parent, signal) {
+    const path = parent ? this.base + "/" + corporateId(parent.id) + "/revise" : this.base;
+    return verifyTaxDraft(await this.client.request(path, "POST", parent ? { ...value2, version: parent.version, contentHash: parent.contentHash } : value2, signal), this.organizationId);
+  }
+  async decide(id3, action, value2, signal) {
+    return verifyTaxDraft(await this.client.request(this.base + "/" + corporateId(id3) + "/" + action, "POST", value2, signal), this.organizationId);
+  }
+  generation(requestId, signal) {
+    return this.client.request(this.base + "/requests/" + corporateId(requestId), "GET", void 0, signal);
+  }
+  abandon(requestId, version, signal) {
+    return this.client.request(this.base + "/requests/" + corporateId(requestId) + "/abandon", "POST", { version }, signal);
+  }
+};
 export {
   BrowserProver,
   CoreApiError,
+  DRAFT_KINDS,
   HttpGateway,
   INVOICE_SIGNING_RECIPIENT,
   InvoiceLibrary,
@@ -3696,6 +3859,7 @@ export {
   OrganizationApiError,
   OrganizationClient,
   OrganizationInvoiceClient,
+  OrganizationTaxDraftClient,
   OrganizationVerificationClient,
   OrganizationWebhookClient,
   PayoutBatchClient,
@@ -3716,12 +3880,16 @@ export {
   createReceipt,
   createWebhookSecret,
   discloseReceipt,
+  draftBasis,
+  draftModelMaterial,
+  draftText,
   encryptNoteBackup,
   encryptReceiptBackup,
   evaluateRules,
   exportInvoiceDashboard,
   exportPayoutSettlement,
   exportRuleResult,
+  exportTaxDraft,
   feeQuote,
   filterInvoiceDashboard,
   invoiceDashboardObservation,
@@ -3749,6 +3917,7 @@ export {
   organizationLoginMessage,
   organizationOrigin,
   organizationSigningDigest,
+  outlineDraftPlan,
   parseActivityPage,
   parseApprovedGroups,
   parseDepositPlan,
@@ -3772,12 +3941,14 @@ export {
   prepareInvoiceProof,
   preparedPayment,
   reconcilePayoutBatch,
+  renderTaxDraft,
   requireOpenInvoice,
   ruleCatalog,
   ruleCatalogHash,
   ruleInputExample,
   ruleReviewMessage,
   sha256,
+  validateDraftPlan,
   validatePrivateNote,
   verificationState,
   verifyCorporatePayment,
@@ -3788,6 +3959,7 @@ export {
   verifyRuleResult,
   verifyRuleReview,
   verifySignedInvoice,
+  verifyTaxDraft,
   webhookKeyId,
   webhookSecret,
   webhookSigningMessage

@@ -92,7 +92,7 @@ npm run test:e2e
 
 ## 企业验证与边界
 
-`/kyb/` 路由为美国、阿布扎比大陆或 ADGM 的示例资料流程。草稿仅在内存中，刷新或离开 KYB 布局即清除。不会读取或上传文件内容。准备结果明确标记 `verified: false`、`credentialIssued: false`、`providerSubmission: not_sent`。没有真实服务商审核或支付资格签发。美国州/联邦与 ADGM/大陆税务法律准备、确定性规则计算及 AI 草稿属于后续集成。
+`/kyb/` 路由为美国、阿布扎比大陆或 ADGM 的示例资料流程。草稿仅在内存中，刷新或离开 KYB 布局即清除。不会读取或上传文件内容。准备结果明确标记 `verified: false`、`credentialIssued: false`、`providerSubmission: not_sent`。没有真实服务商审核或支付资格签发。Rules 与 Tax drafts 已另行提供有限的来源绑定准备，完整法律建议与申报仍需独立集成。
 
 本金保存在独立金库，由共享票据授权一个有余额的金库直接支付，不会依次穿过多个金库。公开签名者、收款人、金额、时间、金库及引用仍可关联活动；增加金库本身不保证匿名性。协议与单机开发设置尚无生产安全审计。[隐私](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PRIVACY.md) · [服务边界](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md#current-boundaries)。
 
@@ -117,3 +117,7 @@ KYB/KYC 集成验证（**2026-11-14**）：**428 项 Core 测试**和 **224 项�
 [美国/阿布扎比规则引擎](https://github.com/Company-privacy-settlement/Core/blob/main/docs/RULES.md)按辖区、员工/承包商/B2B 关系及适用日期选择 7 项已核对来源的组件候选规则，保留精确算式与官方依据。浏览器/CLI 本地运行；审核模式需要独立可信的 Ed25519 审批。未附专业审核批准、完整税额、自动预扣或申报。
 
 规则引擎验证（**2026-11-14**）：**459 项 Core 测试**和 **240 项桌面/移动浏览器用例**通过，含新增 31 项 Core 和 16 项 Rules 浏览器用例。类型、Node/浏览器 SDK、静态 Front 构建、编译 CLI 导出/复核、服务重启/备份/恢复及来源/文档检查通过。审核密钥为测试数据；未进行专业税务/法律规则批准、真实纳税人评估、自动预扣或申报。
+
+[AI 税务与程序草稿](https://github.com/Company-privacy-settlement/Core/blob/main/docs/TAX_DRAFTS.md)位于 Organization → Tax drafts：验证规则计算与选定收据值的精确绑定、带来源草稿、组织加密存储、独立审核、不可变修订、撤销及 JSON/Markdown 导出。AI 仅排列已验证语句 ID，不接收金额或证据；确定性提纲明确区分。真实 AI 启用需要私有提供商密钥与模型，有效审核需要运营方固定的签名规则策略。不附带专业规则批准、自主法律建议、法定申报或付款授权。
+
+草稿专项验证（**2026-11-14**）通过：**488 项 Core 测试**（新增草稿 29 项）、**16 项桌面/移动草稿浏览器用例**、3 项 Front 单元、类型检查、Node/浏览器 SDK 与静态构建、编译服务/备份/恢复及文档/来源清单检查。AI 传输与审核签名使用受控测试环境，未执行真实模型调用、专业规则批准或法定申报。

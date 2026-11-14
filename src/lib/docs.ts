@@ -635,7 +635,7 @@ export const docs: Doc[] = [
           "Open Rules for date/jurisdiction/relationship-based component preparation. Seven source-checked candidates cover US federal FICA and potential NEC reporting for 2025/2026, explicitly classified UAE standard VAT, and distinct mainland/ADGM statutory gratuity candidates. Exact fiat minor-unit arithmetic and rational service fractions are exported with sources, assumptions, inputs and catalog hashes.",
           "Preview is explicitly unapproved. Reviewed evaluation requires an Ed25519 signature of the exact catalog/rule and an independently received reviewer-policy digest. Key/review dates and supplied revocations are checked. No professional reviewer or trusted key is bundled; current consolidated-source gaps require comparison before operational approval.",
           "Changing facts clears old results. Local report verification recomputes calculation integrity separately from current review acceptance; facts and reviewer qualification remain externally established. No salary/fiat conversion, payment authorization, full tax liability or statutory filing is inferred.",
-          "US state/local taxes, federal income withholding, special worker/payee classes, corporate tax and pension/savings substitutions need additional reviewed rules. ADGM is a separate employment regime; unsupported dates/classifications stay unresolved. Future AI preparation must consume reviewed rule evidence rather than invent rates."
+          "US state/local taxes, federal income withholding, special worker/payee classes, corporate tax and pension/savings substitutions need additional reviewed rules. ADGM is a separate employment regime; unsupported dates/classifications stay unresolved. Organization → Tax drafts now prepares cited documents from these reports and literal selected-receipt bindings. Its optional AI arranges verified IDs, while independent review still requires the operator-pinned current signed rule policy."
         ]
       }
     ]
@@ -958,6 +958,13 @@ export const docs: Doc[] = [
           "A public manifest contains 1–20 entries with stable intentId, declared worker/contractor category and immutable CorporateContent. Mixed payer/policies and duplicate notes are rejected. All amounts are exact atomic strings, with token fees added on top of note principal. Arbitrary salary amounts/FX/withholding are outside the current fixed-denomination protocol.",
           "PayoutBatchSession keeps a separate guarded operation for each recipient within one encrypted journal. It never batches invisible wallet signatures. Recovery binds the existing destination and shows additional storage. The same origin-bound current organization permissions and one-use corporate dispatch checks apply before each new payment."
         ]
+      },
+      {
+        "id": "tax-draft-sdk",
+        "title": "Source-bound draft SDK",
+        "paragraphs": [
+          "OrganizationTaxDraftClient supports scoped create/list/get, immutable revisions, review decisions and durable generation status/abandonment. draftBasis checks report arithmetic and exact disclosed-value bindings; validateDraftPlan rejects unsupported model content. renderTaxDraft and exportTaxDraft retain citations and preparation scope. verifyTaxDraft checks payload/source-bank hashes; current organization acceptance remains an authorized service decision."
+        ]
       }
     ]
   },
@@ -1043,7 +1050,7 @@ export const docs: Doc[] = [
         "title": "Current protocol limits",
         "paragraphs": [
           "Groups use fixed denominations and 256 total outputs, including private transfers. Withdrawal does not recycle capacity. Groups remain separate proof/privacy domains. Arbitrary-amount private payments, automatic private cross-group migration and a bundled funded public deployment remain outside the implementation.",
-          "Production use needs independent contract/circuit/SDK review and a reviewed trusted setup. The Sumsub connector is available through Organization → Verification; actual provider qualification, jurisdiction-specific AI preparation and statutory filing remain separate."
+          "Production use needs independent contract/circuit/SDK review and a reviewed trusted setup. The Sumsub connector is available through Organization → Verification; actual provider qualification, full jurisdiction legal advice and statutory filing remain separate. Source-bound Tax drafts provide limited internal preparation with independent review."
         ]
       }
     ]
@@ -1283,6 +1290,20 @@ export const docs: Doc[] = [
           "Every attempt carries an HMAC-SHA-256 signature over the exact raw body, stable event ID, key ID and fresh Unix timestamp. The receiver must enforce the five-minute timestamp window and atomically deduplicate event IDs. A sender can retry after a lost acknowledgement even when the receiver already committed; acknowledge 2xx only after idempotent business work commits.",
           "Network/transient HTTP failures retry with bounded backoff up to eight attempts per cycle. Redirects and permanent errors become dead letters. Inspect attempt outcomes, safe error/status codes and next due time; a current Owner/Admin can explicitly redrive a dead/held delivery up to three cycles with the same event ID. Delivered jobs cannot be manually resent.",
           "Encrypted backups retain events and attempt/dedup history but pause restored callbacks and hold pending/in-flight sends. Current access review, explicit resume and held-job retry are required. Webhook metadata and protected database state remain visible to the service; signing secrets, callback paths and event bodies are encrypted at rest."
+        ]
+      },
+      {
+        "id": "tax-drafts",
+        "title": "AI tax and procedure drafts",
+        "steps": [
+          "Open Tax drafts. Import a Rules report and a selected evidence receipt, enter its independently obtained root, label it, and bind the disclosed amount to the exact report fact. The declared fiat currency must match; no token/FX inference occurs.",
+          "Save a deterministic outline or, when configured by your operator, generate an AI-arranged draft. The model sees categorical IDs only. Exact calculations, source URLs/digests, receipt bindings, uncovered facts and limitations are rendered locally by the service.",
+          "Submit the immutable revision for a different Owner/Admin to review. Request changes creates a new revision; approvals require explicit basis/evidence/scope acknowledgements, current signed rules and unchanged author/reviewer memberships.",
+          "Export authorized current JSON or cited Markdown. Internal approval expires within 24 hours and can be withdrawn. Restore invalidates approvals. No filing or payment is authorized."
+        ],
+        "paragraphs": [
+          "Owner/Admin/Operator can create; Auditor can read/export; Viewer cannot read drafts. Failed or uncertain model requests are not replayed automatically: inspect the pending generation after reload and explicitly abandon it if needed. Abandonment blocks late persistence but does not guarantee provider cancellation.",
+          "The operator must configure protected encryption keys and optionally a private AI key/model. Accepted review requires an independently pinned reviewer policy; bundled rule candidates have no professional approval. Evidence integrity against your supplied root does not establish factual truth, independent anchoring or payment finality."
         ]
       },
       {
