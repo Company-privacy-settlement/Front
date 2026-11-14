@@ -6,6 +6,10 @@
 
 Front 仓库提供 Next.js 落地页、文档及应用。
 
+`/relay/` 支持可选延迟执行：持久化随机执行时间、每批最多八笔独立交易，以及等待、取消、过期和原请求恢复。[调度指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SCHEDULED_DELIVERY.md)。这不代表匿名性证明或已上线的公共中继。
+
+延迟执行验证：**565 项 Core 测试**、**8 项 Front 单元测试**、真实原生/FT WASM 与 Groth16 调度，以及桌面/移动端等待、恢复和证明 UX。公开 USDC 与外部 HTTPS 中继验证仍待完成。
+
 ## 项目简介
 
 企业需要向供应商、员工和承包商付款，同时避免将发票条款及业务文档公开上链。Core 结合收款人签名请求、本地证明和可审核证据，并将本金分布在独立金库中。

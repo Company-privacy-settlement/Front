@@ -240,7 +240,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
           {!invoice && <a href="#prepared-payment" className="button button-dark"><ArrowUpRight size={15}/> Review a payment</a>}
         </div>
         {invoice ? <div className="checkout-method"><span className="checkout-method-icon"><Wallet size={22}/></span><div><strong>Private token payment</strong><span>NEAR testnet · Your connected wallet</span></div><ShieldCheck size={19}/></div> : <>
-          <div className="merchant-tabs" aria-label="Settlement workspace"><span aria-current="page">Overview</span><a href="#prepared-payment">Local operations</a><Link href="/invoices/">Invoices <ArrowUpRight size={13}/></Link></div>
+          <div className="merchant-tabs" aria-label="Settlement workspace"><span aria-current="page">Overview</span><a href="#prepared-payment">Local operations</a><Link href="/invoices/">Invoices <ArrowUpRight size={13}/></Link><Link href="/relay/">Scheduled delivery <ArrowUpRight size={13}/></Link></div>
           <div className="settlement-readiness" aria-label="Settlement readiness">
             <a href="#settlement-group"><span>Payment group</span><strong>{verified ? "Verified" : policy ? "Ready to verify" : "Not configured"}</strong><small>{verified ? "API matches your trusted policy" : "Import an independently trusted policy"}</small></a>
             <a href="#settlement-wallet"><span>Wallet</span><strong>{payer ? "Connected" : "Not connected"}</strong><small>{payer || "Connect a NEAR testnet wallet"}</small></a>

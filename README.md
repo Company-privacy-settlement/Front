@@ -6,6 +6,10 @@ Private business settlement on NEAR: independent vaults hold principal, shared z
 
 Front is the Next.js landing, documentation and application repository.
 
+Optional delayed delivery is available at `/relay/`: persistently sampled execution windows, batches of up to eight separate transactions, waiting/cancellation/expiry and original-request recovery. [Scheduling guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SCHEDULED_DELIVERY.md). This does not establish anonymity or a live hosted relay.
+
+Scheduled-delivery validation: **565 Core tests**, **8 Front unit tests**, real native/FT WASM and Groth16 scheduling checks, and desktop/mobile delivery/recovery/proof UX regressions. Public USDC and a hosted HTTPS relay remain separately unqualified.
+
 ## The idea
 
 Businesses need to pay suppliers, employees and contractors without putting invoice terms and business records on-chain. Core combines signed payment requests, local proofs and reviewable evidence while keeping custody distributed across vaults.
@@ -75,7 +79,7 @@ The ZK statement hides which input note is spent. Signers, recipients, timing, f
 
 **Hackathon / development prototype.** The setup is `UNSAFE_LOCAL_DEVELOPMENT_ONLY`. Public-testnet qualification covers native NEAR with a local Ed25519 software wallet. Real browser-wallet/USDC execution, hosted API HTTPS acceptance, observed remote Actions success and production security review remain open.
 
-Next priorities: noncustodial relaying, optional randomized delay/batching, privacy measurements, then budgeted cover-traffic experiments. Live KYB/AI providers, professional rule approval and statutory filing require separate qualification.
+Next priorities: externally hosted relay qualification, further privacy measurements, then budgeted cover-traffic experiments. Live KYB/AI providers, professional rule approval and statutory filing require separate qualification.
 
 ## Explore the project
 

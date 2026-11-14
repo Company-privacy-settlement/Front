@@ -9,6 +9,7 @@ import { Brand, NearMark } from "./brand";
 const navigation = [
   { title: "Invoices", href: "/invoices/", icon: FileCheck2 },
   { title: "Settlements", href: "/live/", icon: ArrowLeftRight },
+  { title: "Scheduled delivery", href: "/relay/", icon: ArrowLeftRight },
   { title: "Private notes", href: "/notes/", icon: LockKeyhole },
   { title: "Local proofs", href: "/prove/", icon: ShieldCheck },
   { title: "Evidence", href: "/evidence/", icon: FileCheck2 },

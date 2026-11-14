@@ -40,6 +40,10 @@ export const docs: Doc[] = [
               "Settlements: configured testnet FT calls, encrypted recovery journal and indexed activity."
             ],
             [
+              "/relay/",
+              "Optional relay delivery: sampled windows, receipt-based recovery, waiting/cancellation/expiry and bounded batches. Requires a separately operated relay."
+            ],
+            [
               "/notes/",
               "Local FT notes, encrypted backups and public deposit preparation."
             ],
@@ -295,6 +299,23 @@ export const docs: Doc[] = [
           "Root import does not establish a completed payment or truthful declarations. Failed imports clear the previous root and prepared plan. Keep the full encrypted receipt so you can disclose additional fields later.",
           "Invoice checkout requires its signed-derived per-unit withdrawal reference. An arbitrary receipt root cannot replace that reference. Generic receipt-root actions and invoice-bound withdrawals are distinct; a combined invoice/business-evidence commitment needs a separately designed format."
         ]
+      },
+      {
+        "id": "scheduled-delivery",
+        "title": "Choose a delivery window",
+        "paragraphs": [
+          "Open Scheduled delivery at /relay/ after generating a public withdrawal proof. Import your independently trusted group policy, choose immediate delivery or a randomized window, and review the original recipient, principal and additive 0.15% fee. The configured sponsor pays gas, storage and this fee; principal goes directly from the vault to the recipient.",
+          "Save the recovery receipt before confirming. One execution time is persisted for each accepted request; batches contain at most eight separate transactions and never wait for more users. Timing dispersion does not create independent participants or guarantee anonymity. The hosted frontend has no bundled running relay."
+        ],
+        "steps": [
+          "Confirm once and track the waiting window. A visible tab refreshes status with read-only requests. Payment confirmation uses finalized contract state, not transaction acceptance.",
+          "Cancel only before execution starts. Expired or cancelled delivery can be explicitly rescheduled with the same request and proof; blocked preflight can be resumed within its original deadline. Cancellation does not revoke a proof already shared elsewhere.",
+          "After timeout or reload, import the same policy and recovery receipt, then check the original request. No automatic resend occurs. Reconcile uncertain original hashes before any explicit payout retry."
+        ],
+        "code": {
+          "label": "Core scheduling guide",
+          "text": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/SCHEDULED_DELIVERY.md"
+        }
       }
     ]
   },
