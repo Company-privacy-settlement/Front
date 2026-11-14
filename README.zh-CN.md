@@ -2,6 +2,8 @@
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md)
 
+黑客松 KYB 支持立即批准明确标记的示例企业。组织验证可使用同一演示模式，同时保留钱包登录和角色检查。[行为与开关](https://github.com/Company-privacy-settlement/Core/blob/main/docs/HACKATHON_KYB.md)。
+
 Money Station 是基于 NEAR 的企业隐私支付服务。落地页、应用和文档采用统一的黑绿设计，并以英语为默认语言。钱包使用配置的测试网络，产品界面不重复显示网络徽章。[服务配置与发布检查](docs/MONEY_STATION_DEPLOYMENT.md)。
 
 Ubuntu 已上线：[Money Station](https://moneystation.site) · [Docs](https://moneystation.site/docs/) · [API 状态](https://api.moneystation.site/readyz)。公共 HTTPS、浏览器 CORS、原生索引推进及服务隔离验收通过，独立证书自动续期已启用。[运维与证据](docs/UBUNTU_HOSTING.md)。

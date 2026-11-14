@@ -1,18 +1,22 @@
 "use client";
-import { createContext, useContext, useState, type ReactNode } from 'react';
-import { emptyKybDraft, kybPacket, type KybDraft } from '@/lib/kyb';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { approvedSampleKybDraft, emptyKybDraft, kybPacket, type KybDraft } from '@/lib/kyb';
+import { hackathonKybEnabled } from '@/lib/demo-kyb';
 
 type State = { draft: KybDraft; acknowledged: boolean; preparedAt: string | null };
 type KybContext = State & { edit: (fn: (d: KybDraft) => KybDraft) => void; acknowledge: (v: boolean) => void; prepare: () => void };
 const Context = createContext<KybContext | null>(null);
 export function KybProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>(() => ({ draft: emptyKybDraft(), acknowledged: false, preparedAt: null }));
+  useEffect(()=>{
+    if(hackathonKybEnabled)setState({draft:approvedSampleKybDraft(),acknowledged:false,preparedAt:new Date().toISOString()});
+  },[]);
   function edit(fn: (d: KybDraft) => KybDraft) { setState(s => ({ draft: fn(s.draft), acknowledged: false, preparedAt: null })); }
   function acknowledge(v: boolean) { setState(s => ({ ...s, acknowledged: v, preparedAt: v ? s.preparedAt : null })); }
   function prepare() {
     if (!state.acknowledged) throw new Error('Confirm your authority and review the draft first.');
     const preparedAt = new Date().toISOString();
-    kybPacket(state.draft, preparedAt);
+    kybPacket(state.draft, preparedAt, hackathonKybEnabled);
     setState(s => ({ ...s, preparedAt }));
   }
   return <Context.Provider value={{ ...state, edit, acknowledge, prepare }}>{children}</Context.Provider>;

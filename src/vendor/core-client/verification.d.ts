@@ -18,11 +18,18 @@ export type VerificationCase = {
     expiresAt: string | null;
     subjects: VerificationSubject[];
 };
+export type DemoKybApproval = {
+    mode: 'hackathon';
+    state: 'approved';
+    identityChecksPerformed: false;
+    credentialIssued: false;
+};
 export type OrganizationVerification = {
     configured: boolean;
     provider: 'sumsub';
     environment: 'sandbox' | 'production' | null;
     case: VerificationCase | null;
+    demo?: DemoKybApproval;
 };
 export declare function verificationState(c: VerificationCase, now?: number): VerificationState;
 /** Private, current organization access is required. No provider key or identity document is persisted here. */

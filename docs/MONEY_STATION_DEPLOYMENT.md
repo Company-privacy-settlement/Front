@@ -18,6 +18,12 @@ No signing key, note secret, password or provider API key belongs in these publi
 
 With a valid profile, the settlement workspace compares the live API policy with the independently pinned policy before marking the payment network configured. Manual configuration takes precedence over a late bootstrap response. Other workspaces reuse the published service origins. An unconfigured build leaves service fields empty and does not silently call a visitor's localhost or imply a funded service.
 
+## Hackathon KYB
+
+Set `NEXT_PUBLIC_MONEY_STATION_DEMO_KYB=1` for immediate, labelled sample approval on entering KYB. This switch defaults to 0; the full service release gate rejects it. Editing the intake invalidates approval, and reloading restores only the sample. Exported approval metadata retains false identity/credential claims.
+
+The Organization API's separate `CORE_ORGANIZATION_DEMO_KYB=true` flag returns a demo approval only for authorized organizations with no real provider case. It cannot be combined with Sumsub, does not override an existing case and grants no permissions or signing authority. [Server switches and rollback](https://github.com/Company-privacy-settlement/Core/blob/main/docs/HACKATHON_KYB.md).
+
 ## Wallet flow
 
 The landing and workspace use the same NEAR Connect instance and session. Connection opens a real wallet selector. Concurrent connection clicks share one pending connection, and immediate delivery is the default; delayed delivery remains opt-in. No customer signing key is imported, no access key is added by this app, and no payment transaction is signed by connecting. Sign-in and disconnect update the workspace; identity rechecks on window focus and before dispatch pick up account changes. A changed payer invalidates the reviewed payment and locks an open journal; execution still checks wallet identity immediately before dispatch.

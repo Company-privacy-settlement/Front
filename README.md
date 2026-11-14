@@ -6,6 +6,8 @@ Money Station is a private business payment service built on NEAR. The English-f
 
 Live Ubuntu deployment: [Money Station](https://moneystation.site) · [Docs](https://moneystation.site/docs/) · [API readiness](https://api.moneystation.site/readyz). Public HTTPS, browser CORS, advancing native index and isolated services passed acceptance; dedicated certificate renewal is enabled. [Operations and evidence](docs/UBUNTU_HOSTING.md).
 
+Hackathon KYB supports instant, explicitly labelled sample approval. Organization verification can use the same demo mode while retaining wallet login and roles. [Behavior and switches](https://github.com/Company-privacy-settlement/Core/blob/main/docs/HACKATHON_KYB.md).
+
 Money Station frontend validation: **12 unit tests** and the full **280 desktop/mobile browser tests** passed. The English demo below uses Money Station’s black-and-green visual system, with labelled wallet/API fixtures and local proof generation.
 
 Private business settlement on NEAR: independent vaults hold principal, shared zero-knowledge notes authorize payouts, and selective evidence supports reconciliation.

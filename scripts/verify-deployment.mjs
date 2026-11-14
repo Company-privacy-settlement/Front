@@ -1,6 +1,9 @@
 import {createHash} from 'node:crypto';
 import {parsePolicy,canonical} from '../src/vendor/core-client/index.js';
 const read=name=>process.env['NEXT_PUBLIC_MONEY_STATION_'+name]??'';
+const demoKyb=read('DEMO_KYB');
+if(!['','0','1'].includes(demoKyb))throw Error('DEMO_KYB must be 0 or 1');
+if(demoKyb==='1'&&process.env.MONEY_STATION_REQUIRE_DEPLOYMENT==='1')throw Error('Disable hackathon KYB before the full service release gate');
 const origins=['API_ORIGIN','ORGANIZATION_ORIGIN','RELAY_ORIGIN'];
 for(const key of origins){const value=read(key);if(!value)continue;const u=new URL(value);if(u.origin!==value||u.protocol!=='https:'||u.username||u.password||u.search||u.hash)throw Error(`${key} must be an exact HTTPS origin`);}
 const policyJson=read('POLICY_JSON'),digest=read('POLICY_SHA256'),api=read('API_ORIGIN');

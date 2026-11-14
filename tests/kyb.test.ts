@@ -1,7 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyKybDraft, sampleKybDraft, kybReadiness, kybPacket, peopleIssues, documentMetadata, documentTypes } from '../src/lib/kyb';
+import { approvedSampleKybDraft, emptyKybDraft, sampleKybDraft, kybReadiness, kybPacket, peopleIssues, documentMetadata, documentTypes } from '../src/lib/kyb';
 const sampleDocument = { name: 'sample.pdf', size: 120, type: 'application/pdf' };
+test('hackathon sample approval remains separate from provider verification and credential claims',()=>{
+  const draft=approvedSampleKybDraft();assert.deepEqual(Object.values(kybReadiness(draft)).flat(),[]);
+  const packet=kybPacket(draft,'2026-11-14T12:00:00.000Z',true);
+  assert.equal(packet.demoApproval?.state,'approved');assert.equal(packet.demoApproval?.mode,'hackathon');
+  assert.equal(packet.verified,false);assert.equal(packet.credentialIssued,false);assert.equal(packet.providerSubmission,'not_sent');assert.equal(packet.documentContentsIncluded,false);
+  assert.equal(kybPacket(draft,packet.preparedAt).demoApproval,undefined);
+  draft.documents={};assert.throws(()=>kybPacket(draft,packet.preparedAt,true),/Complete all intake/);
+});
 function completeDraft() { const d = sampleKybDraft(); for (const t of documentTypes.filter(t => t.required)) d.documents[t.id] = { ...sampleDocument }; return d; }
 test('KYB intake rejects incomplete evidence and exports only an explicitly unverified local request', () => {
   assert.equal(kybReadiness(emptyKybDraft()).documents.length, 4);

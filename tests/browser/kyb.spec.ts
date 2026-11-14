@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 const sampleFile = { name: 'sample-evidence.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\nSample only\n%%EOF') };
 const step = (page: Page, name: string) => page.getByRole('navigation', { name: 'KYB steps' }).getByRole('link', { name: new RegExp(name) });
+test.skip(process.env.NEXT_PUBLIC_MONEY_STATION_DEMO_KYB==='1','Regular intake tests run against the default build; demo approval has its own browser cases.');
 test('KYB pages preserve intake, validate evidence and prepare a request without claiming provider approval', async ({ page }, info) => {
   const errors: string[] = [], writes: string[] = [];
   page.on('pageerror', e => errors.push(e.message));

@@ -748,7 +748,7 @@ export const docs: Doc[] = [
   {
     "slug": "kyb",
     "title": "Business verification",
-    "description": "Prepare sample intake or connect company and beneficial-owner provider review through your organization.",
+    "description": "Use immediate hackathon demo approval or connect company and beneficial-owner provider review through your organization.",
     "source": "https://github.com/Company-privacy-settlement/Front/blob/main/src/lib/kyb.ts",
     "sections": [
       {
@@ -758,6 +758,15 @@ export const docs: Doc[] = [
           "Business verification is a six-page sample intake: overview, business, people/ownership, documents, review, and status. It distinguishes the US, Abu Dhabi mainland, and ADGM.",
           "The sample checklist is not a determination of legal requirements. Registry checks, identity review, screening, and provider decisions are not connected."
         ]
+      },
+      {
+        "id": "hackathon",
+        "title": "Instant hackathon approval",
+        "paragraphs": [
+          "With the explicit hackathon switch enabled, entering KYB immediately approves a clearly labelled sample business. You can continue to payments without a provider queue or document upload. Editing details clears the approval until review; reloading restores the sample rather than entered business data.",
+          "Organization Verification also shows immediate Demo approved when the server's demo switch is enabled and no real provider case exists. Wallet login, roles and revocation checks still apply. This result does not establish verified identity, issue a credential or replace an existing provider decision. Default builds keep demo approval disabled."
+        ],
+        "links": [{"label":"Hackathon KYB settings and behavior","href":"https://github.com/Company-privacy-settlement/Core/blob/main/docs/HACKATHON_KYB.md"}]
       },
       {
         "id": "prepare",
@@ -775,7 +784,7 @@ export const docs: Doc[] = [
         "title": "Data stays in this workspace session",
         "paragraphs": [
           "Drafts live in memory. Reloading or leaving KYB clears them. Inputs retain sample file name/type/size; document contents are not read or uploaded.",
-          "The sample export sets verified: false, credentialIssued: false, and providerSubmission: not_sent. Preparation does not unlock payments or issue an on-chain credential."
+          "The sample export sets verified: false, credentialIssued: false, and providerSubmission: not_sent. Hackathon exports include a separate demoApproval field. No on-chain credential or wallet authority is issued."
         ]
       },
       {
@@ -980,7 +989,7 @@ export const docs: Doc[] = [
         "title": "Run the Organization API",
         "paragraphs": [
           "Use a separate process and database for team access. The loopback default is port 3002, while the settlement API uses port 3001. Enter the independently configured Organization API origin in the Organization workspace. Do not point it at the read-only settlement API.",
-          "The server requires its own audience origin, owner-only database file, exact frontend Origin allowlist and HTTPS testnet RPC. localhost and 127.0.0.1 are different origins. A hosted frontend requires a reachable HTTPS backend; the current site does not include a deployed public Organization API."
+          "The server requires its own audience origin, owner-only database file, exact frontend Origin allowlist and HTTPS testnet RPC. localhost and 127.0.0.1 are different origins. The hosted profile uses https://api.moneystation.site for organization routes and https://moneystation.site as the allowed browser origin. The shared public API routes to a separate Organization API process; its readiness alias is /readyz/organizations."
         ],
         "code": {
           "label": "Terminal · from Core, in a separate process",

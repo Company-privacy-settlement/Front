@@ -9,3 +9,16 @@ test('missing provider configuration cannot offer a pretend verification or appr
 test('untrusted secure links are rejected before displaying an external action',async({page})=>{const f=await fixture(page);await f.start();f.state.unsafeLink=true;await page.getByRole('button',{name:'Create secure verification link'}).click();await expect(page.locator('.organization-workspace [role="alert"]')).toContainText('Invalid secure verification link');await expect(page.getByRole('link',{name:'Continue securely with Sumsub'})).toHaveCount(0);});
 test('page-hide discards a late private provider response and the active organization',async({page})=>{const f=await fixture(page);await f.start();f.state.hold=true;await page.getByRole('button',{name:'Refresh provider checks'}).click();await expect.poll(()=>f.state.calls.includes('POST refresh')).toBe(true);await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true})));f.state.release();await expect(page.getByLabel('Business and owner verification')).toHaveCount(0);await expect(page.locator('.organization-current')).toHaveCount(0);});
 test('revoked organization sessions clear previously loaded verification evidence',async({page})=>{const f=await fixture(page);await f.start();f.state.denied=true;await page.getByRole('button',{name:'Reload verification record'}).click();await expect(page.locator('.organization-current')).toHaveCount(0);await expect(page.getByLabel('Business and owner verification')).toHaveCount(0);});
+test('server-labelled hackathon approval is immediate and disappears when demo mode is disabled',async({page})=>{
+  const f=await fixture(page);f.state.value={configured:false,provider:'sumsub',environment:null,case:null,demo:{mode:'hackathon',state:'approved',identityChecksPerformed:false,credentialIssued:false}};
+  await page.getByRole('button',{name:'Reload verification record'}).click();
+  await expect(page.getByLabel('Organization demo KYB approval')).toContainText('Approved for hackathon demo');
+  await expect(page.getByRole('button',{name:'Start provider verification'})).toHaveCount(0);await expect(f.region).toContainText('does not establish verified business identity');
+  delete f.state.value.demo;await page.getByRole('button',{name:'Reload verification record'}).click();
+  await expect(page.getByLabel('Organization demo KYB approval')).toHaveCount(0);await expect(f.region).toContainText('Provider integration is not configured');
+});
+test('a stored provider case cannot be hidden by a demo presentation flag',async({page})=>{
+  const f=await fixture(page);await f.start();f.state.value.case!.state='revoked';f.state.value.demo={mode:'hackathon',state:'approved',identityChecksPerformed:false,credentialIssued:false};
+  await page.getByRole('button',{name:'Reload verification record'}).click();
+  await expect(page.getByLabel('Organization demo KYB approval')).toHaveCount(0);await expect(f.region).toContainText('This application is closed');
+});

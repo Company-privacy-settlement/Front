@@ -5,6 +5,7 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, Building2, Check, Clock3, Download, FileCheck2, FileText, LockKeyhole, Plus, ShieldCheck, Trash2, Users, Upload } from 'lucide-react';
 import { businessIssues, peopleIssues, documentIssues, documentMetadata, documentTypes, jurisdictions, kybReadiness, kybPacket, sampleKybDraft, type Jurisdiction, type Business, type Person } from '@/lib/kyb';
 import { useKyb } from './kyb-provider';
+import { hackathonKybEnabled } from '@/lib/demo-kyb';
 
 function Heading({ title, children }: { title: string; children: ReactNode }) { return <div className="kyb-page-heading"><h1>{title}</h1><p>{children}</p></div>; }
 function Field({ label, children }: { label: string; children: ReactNode }) { return <label className="form-label">{label}{children}</label>; }
@@ -12,11 +13,17 @@ function Issues({ items }: { items: string[] }) { return items.length ? <div cla
 function Actions({ back, next, children }: { back: string; next?: string; children?: ReactNode }) { return <div className="kyb-actions"><Link href={back} className="button button-outline"><ArrowLeft size={14}/> Back</Link>{next ? <button type="submit" className="button button-dark">{next}<ArrowRight size={14}/></button> : children}</div>; }
 function exportRequest(packet: ReturnType<typeof kybPacket>) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(packet, null, 2)], { type: 'application/json' }));
-  const a = document.createElement('a'); a.href = url; a.download = 'core-kyb-demo-request.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const a = document.createElement('a'); a.href = url; a.download = 'money-station-kyb-demo.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export function KybOverview() {
   const { draft, edit, preparedAt } = useKyb(), readiness = kybReadiness(draft);
+  if(hackathonKybEnabled&&preparedAt)return <>
+    <Heading title="Your business is ready for the demo">KYB is approved instantly for the hackathon sample workflow.</Heading>
+    <div className="kyb-overview-status"><span className="kyb-status-icon"><ShieldCheck size={24}/></span><div><strong>Approved for hackathon demo</strong><p>{draft.business.legalName} · Sample business</p></div><span className="kyb-badge ready">Demo approved</span></div>
+    <div className="kyb-actions"><Link href="/kyb/status/" className="button button-outline">View approval</Link><Link href="/invoices/" className="button button-dark">Continue to payments<ArrowRight size={14}/></Link></div>
+    <div className="kyb-reference"><FileText size={18}/><div><strong>Explore the business intake</strong><p>Review the sample company, ownership and evidence records. Editing details clears the current demo approval.</p><Link href="/kyb/business/">Review sample details<ArrowRight size={13}/></Link></div></div>
+  </>;
   const stages = [
     { title: 'Business details', text: 'Confirm the legal entity, its registration jurisdiction and how it plans to use payments.', href: '/kyb/business/', icon: Building2, ready: !readiness.business.length, caption: 'Entity information' },
     { title: 'People & ownership', text: 'Identify the representative, natural-person owners and people who control the business.', href: '/kyb/people/', icon: Users, ready: !readiness.people.length, caption: 'Ownership & authority' },
@@ -94,18 +101,24 @@ export function KybReview() {
   const allReady = Object.values(readiness).every(i => !i.length);
   const groups = [ { title: 'Business details', href: '/kyb/business/', issues: readiness.business }, { title: 'People & ownership', href: '/kyb/people/', issues: readiness.people }, { title: 'Supporting documents', href: '/kyb/documents/', issues: readiness.documents } ];
   return <>
-    <Heading title="Review before preparing">A prepared request is an intake package. It is not a provider submission, approval or on-chain credential.</Heading>
+    <Heading title={hackathonKybEnabled?'Review your demo business':'Review before preparing'}>{hackathonKybEnabled?'Submit the completed intake for immediate hackathon approval. No provider checks or verification credential are included.':'A prepared request is an intake package. It is not a provider submission, approval or on-chain credential.'}</Heading>
     <div className="kyb-review-checks">{groups.map(g => <Link href={g.href} key={g.href}><span className={`kyb-step-number ${!g.issues.length ? 'is-ready' : ''}`}>{!g.issues.length ? <Check size={14}/> : <Clock3 size={14}/>}</span><div><strong>{g.title}</strong><small>{g.issues.length ? `${g.issues.length} item${g.issues.length === 1 ? '' : 's'} need attention` : 'Intake information ready'}</small></div><span>{g.issues.length ? 'Complete' : 'Edit'}<ArrowRight size={13}/></span></Link>)}</div>
     {!allReady && <div className="kyb-review-missing"><strong>Finish the required sections to prepare a request.</strong><p>Each checklist row takes you to the information that is missing.</p></div>}
     <section className="panel live-card kyb-form-card"><div className="kyb-card-heading"><Building2 size={19}/><h3>Business summary</h3></div><dl className="kyb-review-summary"><div><dt>Legal entity</dt><dd>{draft.business.legalName || 'Not provided'}</dd></div><div><dt>Jurisdiction</dt><dd>{draft.business.jurisdiction ? jurisdictions[draft.business.jurisdiction].label : 'Not selected'}</dd></div><div><dt>Registration</dt><dd>{draft.business.registrationNumber || 'Not provided'}</dd></div><div><dt>Representative</dt><dd>{draft.representative.name || 'Not provided'}</dd></div><div><dt>Ownership & control</dt><dd>{draft.people.filter(p => p.name.trim()).length} people listed</dd></div><div><dt>Evidence records</dt><dd>{Object.keys(draft.documents).length} sample files selected · Contents excluded</dd></div></dl></section>
     <section className="panel live-card kyb-form-card"><h3>Authority & acknowledgement</h3><p>Check the sample request before preparing. Changes to any intake detail invalidate the prepared request and require a new acknowledgement.</p><label className="kyb-checkbox"><input type="checkbox" aria-label="Confirm review and authority" checked={acknowledged} onChange={e => acknowledge(e.target.checked)} disabled={!allReady}/><span>I am authorised to prepare this sample request and have checked the information. I understand no verification provider has reviewed or received it.</span></label></section>
     {error && <p className="kyb-errors" role="alert">{error}</p>}
-    <div className="kyb-actions"><Link href="/kyb/documents/" className="button button-outline"><ArrowLeft size={14}/> Back</Link><button className="button button-dark" disabled={!allReady || !acknowledged} onClick={() => { try { prepare(); router.push('/kyb/status/'); } catch(e) { setError(e instanceof Error ? e.message : 'Could not prepare request'); } }}>{preparedAt ? 'Prepare request again' : 'Prepare KYB request'}<ArrowRight size={14}/></button></div>
+    <div className="kyb-actions"><Link href="/kyb/documents/" className="button button-outline"><ArrowLeft size={14}/> Back</Link><button className="button button-dark" disabled={!allReady || !acknowledged} onClick={() => { try { prepare(); router.push('/kyb/status/'); } catch(e) { setError(e instanceof Error ? e.message : 'Could not prepare request'); } }}>{hackathonKybEnabled?'Approve for demo':preparedAt ? 'Prepare request again' : 'Prepare KYB request'}<ArrowRight size={14}/></button></div>
   </>;
 }
 
 export function KybStatus() {
   const { draft, preparedAt } = useKyb();
+  if(hackathonKybEnabled&&preparedAt)return <>
+    <Heading title="Business approved for demo">Your sample business can continue immediately. No provider queue or document upload is required.</Heading>
+    <section className="kyb-overview-status" aria-label="Demo KYB approval"><span className="kyb-status-icon"><ShieldCheck size={24}/></span><div><strong>Approved for hackathon demo</strong><p>{draft.business.legalName} · Sample business</p></div><span className="kyb-badge ready">Demo approved</span></section>
+    <section className="panel live-card kyb-form-card"><dl className="kyb-review-summary"><div><dt>KYB decision</dt><dd>Approved · Hackathon demo</dd></div><div><dt>Approved at</dt><dd>{preparedAt}</dd></div><div><dt>Identity checks</dt><dd>Not performed</dd></div><div><dt>Verification credential</dt><dd>Not issued</dd></div></dl></section>
+    <div className="kyb-actions"><button className="button button-outline" onClick={()=>exportRequest(kybPacket(draft,preparedAt,true))}><Download size={14}/>Export demo approval</button><Link href="/invoices/" className="button button-dark">Continue to payments<ArrowRight size={14}/></Link></div>
+  </>;
   const stages = [
     { title: 'Intake request', detail: preparedAt ? `Prepared locally at ${preparedAt}` : 'Complete the intake and review steps first.', state: preparedAt ? 'Prepared locally' : 'Not prepared', ready: !!preparedAt },
     { title: 'Provider receipt', detail: 'An external provider must receive the request and return a case reference.', state: 'Not sent', ready: false },

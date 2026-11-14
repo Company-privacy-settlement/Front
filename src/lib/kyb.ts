@@ -73,8 +73,14 @@ export function documentMetadata(file: Pick<File, 'name' | 'size' | 'type'>): Do
   if (file.size < 1 || file.size > 10 * 1024 * 1024) throw new Error('Choose a non-empty sample document up to 10 MB.');
   return { name: file.name.slice(0, 200), size: file.size, type: file.type };
 }
-export function kybPacket(draft: KybDraft, preparedAt: string) {
+export function approvedSampleKybDraft(): KybDraft {
+  const draft=sampleKybDraft();
+  for(const type of documentTypes.filter(t=>t.required))draft.documents[type.id]={name:`sample-${type.id}.pdf`,type:'application/pdf',size:1200};
+  return draft;
+}
+export function kybPacket(draft: KybDraft, preparedAt: string, demoApproval=false) {
   const issues = Object.values(kybReadiness(draft)).flat();
   if (issues.length) throw new Error('Complete all intake steps before preparing a request.');
-  return { format: 'core-kyb-demo-intake-v1', environment: 'local-demo', preparedAt, draft, documentContentsIncluded: false, providerSubmission: 'not_sent', checks: { registry: 'not_run', identity: 'not_run', sanctions: 'not_run', manualReview: 'not_started' }, verified: false, credentialIssued: false };
+  return { format: 'core-kyb-demo-intake-v1', environment: 'local-demo', preparedAt, draft, documentContentsIncluded: false, providerSubmission: 'not_sent', checks: { registry: 'not_run', identity: 'not_run', sanctions: 'not_run', manualReview: 'not_started' }, verified: false, credentialIssued: false,
+    ...(demoApproval?{demoApproval:{mode:'hackathon',state:'approved',approvedAt:preparedAt,identityChecksPerformed:false,credentialIssued:false}}:{}) };
 }

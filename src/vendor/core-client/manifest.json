@@ -29,7 +29,7 @@
     "session.d.ts": "ecbc0829e9441a55f1ac6dd43f7752722207708c3c21a047119216621bc62514",
     "tax-drafts.d.ts": "e92dbc092f7d36e6cc3bc90684bbc894ddf33faaf1ae824e625b60d12b1903e0",
     "types.d.ts": "3f54edc7118b5e3a41baeb29037d74643303d1dee8deb9ed9093e21b2dec9726",
-    "verification.d.ts": "cc54b5ea599d415688f301511d9ce3d71245d6f3f59b1a7e78ca5b8036db19ab",
+    "verification.d.ts": "581a6640cbf8e8e501c090608737c19827ae1fe3922b131bf93d13eb7cd088f4",
     "webhooks.d.ts": "6aa2792f22d5fe942cfeeebc3c0363e4a5fd2498ac446fbdf150fb505983af94"
   },
   "sources": {
@@ -59,7 +59,7 @@
     "session.ts": "ac3fd44ba45f3e01755885e95b080e180ec9d7910fa9a3e6d020a64971565a19",
     "tax-drafts.ts": "914a744c0cae38ba7d5fdd55de0e1d2aff014e4463ebc48f13b905f745be8b0b",
     "types.ts": "e473b32caaa5807f9ce9e54531d4c8e8e608bd5df65525a5af2cb5b8fd61f846",
-    "verification.ts": "afbd6d49f88ff886844e0968c59f7784860af8062cc2caa3188bf74653e94aa6",
+    "verification.ts": "825c25d20d9f9176335cac439d2fb4d2562b0cb110ce0dba5956ff62342ae88d",
     "webhooks.ts": "4a75d1008da40f55c1c7468bcf5c883f982a0a89718e83ac0c37b43b7797d34e"
   }
 }
