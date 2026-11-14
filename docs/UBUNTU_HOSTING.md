@@ -1,14 +1,14 @@
-# Isolated Ubuntu hosting: h2on.xyz
+# Isolated Ubuntu hosting: moneystation.site
 
 This deployment serves the Money Station landing, Docs and application as a static frontend. Core, the indexer, Organization API and relay remain separate services with their existing qualification requirements. The existing Sites preview and its sharing settings are unchanged.
 
 ```text
-h2on.xyz :80 → existing host Nginx → 127.0.0.1:3330
+moneystation.site :80 → existing host Nginx → 127.0.0.1:3330
                                     money-station.service
                                     /srv/money-station/current/public
 ```
 
-The DNS-independent HTTP stage routes only the exact `h2on.xyz` host. No DNS changes, certificate requests, default-server replacement or HTTP-to-HTTPS redirect happen during installation. The other Ubuntu virtual hosts keep their existing routes.
+The DNS-independent HTTP stage serves the exact `moneystation.site` frontend host. `api.moneystation.site` serves the ACME webroot but otherwise returns HTTP 426 until HTTPS activation. No DNS changes, certificate requests, default-server replacement or HTTP-to-HTTPS redirect happen during installation. The other Ubuntu virtual hosts keep their existing routes.
 
 ## Prepare a release as a normal user
 
@@ -50,7 +50,7 @@ The installer verifies a root-owned copy of the archive, checks every file befor
 | `/srv/money-station/current` | Atomically selected release |
 | `/etc/money-station/nginx.conf` | Loopback static Nginx instance |
 | `/etc/systemd/system/money-station.service` | Dynamic service user and filesystem/resource restrictions |
-| `/etc/nginx/sites-available/h2on.xyz.conf` | Exact-host route and its matching enabled symlink |
+| `/etc/nginx/sites-available/moneystation.site.conf` | Exact-host route and its matching enabled symlink |
 | `/var/www/money-station-acme/` | Dedicated future ACME webroot |
 | `/var/backups/money-station/` | Previous managed configurations and release target |
 
@@ -59,25 +59,33 @@ The installer verifies a root-owned copy of the archive, checks every file befor
 The installer checks the loopback service first, then reloads and checks the host route. Both checks exercise Docs, application routes, content types, policy hashes, cache controls, denied private paths and video byte ranges.
 
 ```bash
-curl --noproxy '*' --resolve h2on.xyz:80:127.0.0.1 http://h2on.xyz/healthz
+curl --noproxy '*' --resolve moneystation.site:80:127.0.0.1 http://moneystation.site/healthz
 python3 ops/ubuntu/verify.py --origin http://127.0.0.1
 systemctl status money-station.service --no-pager
 journalctl -u money-station.service --no-pager -n 30
 ```
 
-From another machine, `curl --resolve h2on.xyz:80:<server-public-ip> http://h2on.xyz/` tests the route without publishing DNS. The domain route is publicly reachable by Host header once the administrator installs it; it does not inherit the Sites preview's login gate. Organization records still require their separate authenticated API.
+From another machine, `curl --resolve moneystation.site:80:<server-public-ip> http://moneystation.site/` tests the route without publishing DNS. The domain route is publicly reachable by Host header once the administrator installs it; it does not inherit the Sites preview's login gate. Organization records still require their separate authenticated API.
 
 ## Connect DNS and HTTPS later
 
-Set the apex `A` record to the verified server IPv4 address. Do not add an `AAAA` record without working IPv6 routing. The installer never changes DNS or requests a certificate.
+Set the apex `A` record to the verified server IPv4 address. Do not add an `AAAA` record without working IPv6 routing. The static installer never changes DNS or requests a certificate. The API runtime and indexer are not started by this frontend installer.
 
-After DNS resolves to this server, an administrator can obtain a certificate using the dedicated webroot:
+After both DNS names resolve to this server, activate their shared certificate and separate HTTPS virtual hosts:
 
 ```bash
-sudo certbot certonly --webroot -w /var/www/money-station-acme -d h2on.xyz
+sudo bash ops/ubuntu/activate-https.sh
 ```
 
-Then add a separate HTTPS virtual host using that certificate and the same loopback upstream. Test Nginx before reloading it, verify normal HTTPS certificate validation externally, and only then change HTTP requests to HTTPS redirects. HTTP staging by domain/IP does not qualify browser wallet signing: a trusted HTTPS origin is required. Configure independently qualified API origins and exact CORS for `https://h2on.xyz` before qualifying real payments. No certificate or public HTTPS acceptance is implied by the pre-DNS checks.
+The script requires the managed HTTP installation first. It verifies that a fresh public challenge file is reachable through both domain names before requesting a certificate. Certbot uses only the dedicated webroot and a certificate named `moneystation.site`; unrelated certificates and sites are unchanged. Both domains are included in its SANs. Renewal checks/reloads Nginx through a certificate-specific deploy hook. No operator email is invented.
+
+The HTTPS template sends the frontend to `127.0.0.1:3330` and reserves `api.moneystation.site` for a separately deployed settlement API at `127.0.0.1:3331`. An absent upstream produces HTTP 503 with `API_UPSTREAM_UNAVAILABLE`; this is not a deployed/healthy API. The API is not proxied over plaintext HTTP. HTTP requests redirect to HTTPS only after certificate installation. A later frontend release preserves the already managed HTTPS virtual host.
+
+Frontend acceptance uses normal HTTPS verification. API transport acceptance does not establish index readiness, backend persistence, browser-wallet USDC, an Organization API or a funded payment journey. Configure the separately deployed settlement API with exact CORS for `https://moneystation.site`, a reviewed deployed policy and its independent digest. Organization services retain their own audience, encryption keys and deployment requirements. The native reference policy is not a browser FT policy.
+
+## Current activation status — 2026-11-14
+
+The chosen Ubuntu IPv4 is `64.227.151.164`. The operator reported direct Hostinger DNS setup. At the dated check, the `.site` authoritative nameserver and public resolvers still returned NXDOMAIN for `moneystation.site`; the runtime account also required a sudo password. Root Nginx/service installation, public certificate issuance and actual API deployment were therefore not performed. Local namespace tests use a temporary explicitly trusted test certificate; they do not establish a public certificate or live HTTPS acceptance.
 
 ## Roll back a release
 

@@ -20,7 +20,7 @@ def check(origin, release=None):
     def fetch(path, status=200, method='GET', extra=None):
         nonlocal checks
         req = urllib.request.Request(origin + path, method=method,
-                                     headers={'Host': 'h2on.xyz', **(extra or {})})
+                                     headers={'Host': 'moneystation.site', **(extra or {})})
         try:
             r = opener.open(req, timeout=10)
         except urllib.error.HTTPError as e:
@@ -67,7 +67,7 @@ def check(origin, release=None):
     fetch('/', status=405, method='POST')
     video, h = fetch('/media/core-hackathon-demo-en.mp4', status=206, extra={'Range': 'bytes=0-15'})
     assert len(video) == 16 and h['Content-Range'].startswith('bytes 0-15/')
-    return {'status': 'passed', 'checks': checks, 'origin': origin, 'host': 'h2on.xyz',
+    return {'status': 'passed', 'checks': checks, 'origin': origin, 'host': 'moneystation.site',
             'release': release, 'dnsRequired': False}
 
 

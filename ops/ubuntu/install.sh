@@ -18,8 +18,8 @@ test -x /usr/sbin/nginx
 systemctl is-active --quiet nginx
 /usr/sbin/nginx -t
 
-targets=(/etc/money-station/nginx.conf /etc/systemd/system/money-station.service /etc/nginx/sites-available/h2on.xyz.conf)
-enabled=/etc/nginx/sites-enabled/h2on.xyz.conf
+targets=(/etc/money-station/nginx.conf /etc/systemd/system/money-station.service /etc/nginx/sites-available/moneystation.site.conf)
+enabled=/etc/nginx/sites-enabled/moneystation.site.conf
 for target in "${targets[@]}"; do
   if [[ -e $target || -L $target ]]; then
     if [[ -L $target ]] || ! head -1 -- "$target" | grep -q '^# Managed by Money Station$'; then
@@ -27,18 +27,27 @@ for target in "${targets[@]}"; do
     fi
   fi
 done
+https_active=0
 if [[ -f ${targets[2]} ]] && grep -Eq 'listen[^;]*443|ssl_certificate|return[[:space:]]+30[1278][[:space:]]+https:' "${targets[2]}"; then
-  echo 'An HTTPS route already exists. This HTTP staging installer will not replace it.' >&2; exit 1
+  https_active=1
 fi
 if [[ -e $enabled || -L $enabled ]]; then
   if [[ ! -L $enabled || $(readlink -f -- "$enabled") != "${targets[2]}" ]]; then
     echo "Refusing to replace an unmanaged route: $enabled" >&2; exit 1
   fi
 fi
-host_count=$(/usr/sbin/nginx -T 2>/dev/null | python3 -c 'import sys,re; s=re.sub(r"#[^\n]*", "", sys.stdin.read()); print(sum("h2on.xyz" in m.split() for m in re.findall(r"\bserver_name\s+([^;]+);",s)))')
-if (( host_count > 0 )) && [[ ! -L $enabled || $host_count != 1 ]]; then
-  echo 'h2on.xyz is already handled by another route. No changes made.' >&2; exit 1
-fi
+python3 - "${targets[2]}" <<'PY_CHECK'
+from pathlib import Path
+import re,shlex,subprocess,sys
+expected=Path(sys.argv[1]).resolve()
+config=subprocess.check_output(['/usr/sbin/nginx','-T'],stderr=subprocess.DEVNULL,text=True)
+parts=re.split(r'^# configuration file (.+):$',config,flags=re.M)
+for i in range(1,len(parts),2):
+    body=re.sub(r'#[^\n]*','',parts[i+1])
+    for names in re.findall(r'\bserver_name\s+([^;]+);',body):
+        if {'moneystation.site','api.moneystation.site'} & set(shlex.split(names)) and Path(parts[i]).resolve()!=expected:
+            raise SystemExit('A Money Station domain is already handled by another route. No changes made.')
+PY_CHECK
 if [[ -n $(ss -H -ltn 'sport = :3330') ]] && ! systemctl is-active --quiet money-station.service; then
   echo 'Loopback port 3330 is already in use. No changes made.' >&2; exit 1
 fi
@@ -116,7 +125,7 @@ Path(sys.argv[2]).write_text(Path(sys.argv[1]).read_text().replace('@RELEASE_ID@
 PY
 install -m 0644 "$stage/nginx.conf" "${targets[0]}"
 install -m 0644 "$script_dir/money-station.service" "${targets[1]}"
-install -m 0644 "$script_dir/h2on.xyz.http.conf" "${targets[2]}"
+if (( ! https_active )); then install -m 0644 "$script_dir/moneystation.site.http.conf" "${targets[2]}"; fi
 ln -s -- "releases/$release" "$stage/current"
 mv -Tf -- "$stage/current" /srv/money-station/current
 ln -sfn -- "${targets[2]}" "$enabled"
@@ -126,12 +135,16 @@ systemctl enable money-station.service
 systemctl restart money-station.service
 ready=0
 for attempt in {1..20}; do
-  if curl --noproxy '*' --fail --silent --max-time 2 -H 'Host: h2on.xyz' http://127.0.0.1:3330/healthz >/dev/null; then ready=1; break; fi
+  if curl --noproxy '*' --fail --silent --max-time 2 -H 'Host: moneystation.site' http://127.0.0.1:3330/healthz >/dev/null; then ready=1; break; fi
   sleep 0.25
 done
 (( ready == 1 ))
 python3 "$script_dir/verify.py" --origin http://127.0.0.1:3330 --release "$release"
 systemctl reload nginx
-python3 "$script_dir/verify.py" --origin http://127.0.0.1 --release "$release"
-echo "Installed Money Station release $release for h2on.xyz. DNS was not modified."
+if (( https_active )); then
+  python3 "$script_dir/verify.py" --origin https://moneystation.site --release "$release"
+else
+  python3 "$script_dir/verify.py" --origin http://127.0.0.1 --release "$release"
+fi
+echo "Installed Money Station release $release for moneystation.site. DNS was not modified."
 echo "Configuration backup: $backup"

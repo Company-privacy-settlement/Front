@@ -40,4 +40,4 @@ Type checking, static export and 12 unit tests passed. The full 280-case desktop
 
 ## Ubuntu domain hosting
 
-[Isolated h2on.xyz deployment](UBUNTU_HOSTING.md) provides a separate static service, exact-host Nginx route, verified release archive and DNS-independent acceptance checks. It preserves the Sites preview permissions. Domain DNS and HTTPS activation are separate steps; it does not provision the backend services or qualify browser settlement.
+[Isolated moneystation.site deployment](UBUNTU_HOSTING.md) provides a separate static service, exact-host Nginx route, verified release archive and DNS-independent acceptance checks. It preserves the Sites preview permissions. Domain DNS and HTTPS activation are separate steps; it does not provision the backend services or qualify browser settlement.
