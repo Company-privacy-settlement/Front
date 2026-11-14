@@ -1,0 +1,47 @@
+{
+  "format": "money-station-frontend-acceptance-v1",
+  "status": "passed",
+  "checkedAt": "2026-11-14T20:51:53Z",
+  "releaseId": "3171217fba0c-ef9a87f5544d",
+  "sourceCommit": "3171217fba0cf0702ea46a204ec6a14e79ec849d",
+  "archiveSha256": "ef9a87f5544d04229ca84c6cc2a2e856eb2bfc921d2b6b1130ef2c42b30b9efa",
+  "controllerSha256": "2b1d753f4edaf92286ea6824352c228b45e14add5c3ad398ecbc30b919b192db",
+  "origin": "http://127.0.0.1:3330",
+  "host": "moneystation.site",
+  "checks": [
+    "live-static-export-28-checks",
+    "host-home-absent",
+    "static-export-read-only",
+    "unexpected-host-rejected",
+    "idempotent-start",
+    "duplicate-supervisor-denied",
+    "controlled-worker-restart",
+    "full-stop-start-and-port-handoff",
+    "worker-crash-recovered",
+    "routes-docs-media-policy-after-recovery"
+  ],
+  "before": {
+    "status": "passed",
+    "checks": 28,
+    "origin": "http://127.0.0.1:3330",
+    "host": "moneystation.site",
+    "release": "3171217fba0c-ef9a87f5544d",
+    "dnsRequired": false
+  },
+  "after": {
+    "status": "passed",
+    "checks": 28,
+    "origin": "http://127.0.0.1:3330",
+    "host": "moneystation.site",
+    "release": "3171217fba0c-ef9a87f5544d",
+    "dnsRequired": false
+  },
+  "scope": {
+    "ownerFrontendRunning": true,
+    "publicHttpsAccepted": false,
+    "hostSystemServiceInstalled": false,
+    "browserWalletUsdcAccepted": false
+  },
+  "ownerAutostartRegistered": true,
+  "hostRebootTested": false
+}
