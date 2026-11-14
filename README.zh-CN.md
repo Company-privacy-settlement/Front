@@ -113,3 +113,7 @@ npm run test:e2e
 Organization → Verification 新增 [Sumsub KYB/KYC 集成](https://github.com/Company-privacy-settlement/Core/blob/main/docs/VERIFICATION.md)，支持企业/实益所有人审核、安全补充资料、最小状态加密、签名回调及基于审核日期的到期/撤销。启用需要签约账户、审核级别和 HTTPS 回调；开发验证使用提供方测试环境模拟，未审核真实企业。独立 `/kyb/` 示例仍不提交。
 
 KYB/KYC 集成验证（**2026-11-14**）：**428 项 Core 测试**和 **224 项桌面/移动浏览器用例**通过，含新增 27 项 Core 和 14 项提供方流程浏览器用例。类型、Node/浏览器 SDK、静态 Front 构建、编译服务重启/备份/恢复、文档及 SDK 同步检查通过。使用本地提供方/RPC/钱包测试环境；未验证真实 Sumsub 账户、企业/个人审核、实际回调或公网后端。
+
+[美国/阿布扎比规则引擎](https://github.com/Company-privacy-settlement/Core/blob/main/docs/RULES.md)按辖区、员工/承包商/B2B 关系及适用日期选择 7 项已核对来源的组件候选规则，保留精确算式与官方依据。浏览器/CLI 本地运行；审核模式需要独立可信的 Ed25519 审批。未附专业审核批准、完整税额、自动预扣或申报。
+
+规则引擎验证（**2026-11-14**）：**459 项 Core 测试**和 **240 项桌面/移动浏览器用例**通过，含新增 31 项 Core 和 16 项 Rules 浏览器用例。类型、Node/浏览器 SDK、静态 Front 构建、编译 CLI 导出/复核、服务重启/备份/恢复及来源/文档检查通过。审核密钥为测试数据；未进行专业税务/法律规则批准、真实纳税人评估、自动预扣或申报。

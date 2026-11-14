@@ -31,13 +31,13 @@ function base64(bytes2) {
   for (const b of bytes2) s += String.fromCharCode(b);
   return btoa(s);
 }
-function bytes(value2, max) {
-  if (typeof value2 !== "string" || value2.length > max * 2 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
+function bytes(value2, max2) {
+  if (typeof value2 !== "string" || value2.length > max2 * 2 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
     value2
   ))
     throw new Error("Invalid encrypted journal encoding");
   const b = Uint8Array.from(atob(value2), (c) => c.charCodeAt(0));
-  if (b.length > max) throw new Error("Journal is too large");
+  if (b.length > max2) throw new Error("Journal is too large");
   return b;
 }
 var ITERATIONS = 25e4;
@@ -667,8 +667,8 @@ function hex2(value2) {
     throw new Error("Invalid invoice digest or nonce");
   return value2;
 }
-function text(value2, max) {
-  if (typeof value2 !== "string" || value2.length < 1 || value2.length > max || /[\u0000-\u001f\u007f]/.test(value2))
+function text(value2, max2) {
+  if (typeof value2 !== "string" || value2.length < 1 || value2.length > max2 || /[\u0000-\u001f\u007f]/.test(value2))
     throw new Error("Invalid invoice text");
   return value2;
 }
@@ -754,9 +754,9 @@ async function invoiceHash(invoice) {
   const i = parseInvoice(invoice);
   return sha256(`core:invoice:v${i.version}|` + canonical(i));
 }
-async function invoiceRootsFromHash(hash4, nonces) {
-  hex2(hash4);
-  return Promise.all(parsePaymentNonces(nonces).map((nonce) => sha256(`core:invoice:payment:v2|${hash4}|${nonce}`)));
+async function invoiceRootsFromHash(hash5, nonces) {
+  hex2(hash5);
+  return Promise.all(parsePaymentNonces(nonces).map((nonce) => sha256(`core:invoice:payment:v2|${hash5}|${nonce}`)));
 }
 async function invoicePaymentRoots(invoice) {
   const i = parseInvoice(invoice), digest4 = await invoiceHash(i);
@@ -787,10 +787,10 @@ async function assertInvoiceReferenceAvailable(invoice, root, status) {
   if (invoice.version === 2 && status.confirmations.some((c) => c.settlementRoot === root))
     throw new Error("This payment reference already has an indexed payment; choose an unused reference");
 }
-function invoiceMessage(hash4, network) {
+function invoiceMessage(hash5, network) {
   return `Core invoice v1
 Network: ${network}
-Digest: ${hex2(hash4)}`;
+Digest: ${hex2(hash5)}`;
 }
 function nonceBytes(nonce) {
   return Uint8Array.from(hex2(nonce).match(/../g), (v) => parseInt(v, 16));
@@ -814,7 +814,7 @@ function base58(input) {
   }
   return Uint8Array.from(out);
 }
-async function invoiceSigningDigest(hash4, network, nonce) {
+async function invoiceSigningDigest(hash5, network, nonce) {
   const str = (s) => {
     const b = new TextEncoder().encode(s), length = new Uint8Array(4);
     new DataView(length.buffer).setUint32(0, b.length, true);
@@ -823,7 +823,7 @@ async function invoiceSigningDigest(hash4, network, nonce) {
   new DataView(tag.buffer).setUint32(0, 2147484061, true);
   const data = Uint8Array.from([
     ...tag,
-    ...str(invoiceMessage(hash4, network)),
+    ...str(invoiceMessage(hash5, network)),
     ...nonceBytes(nonce),
     ...str(INVOICE_SIGNING_RECIPIENT),
     0
@@ -974,13 +974,13 @@ async function validate2(raw, owner) {
   for (const rawEntry of value2.invoices) {
     const entry = object(rawEntry);
     exact4(entry, ["hash", "signed", "savedAt"]);
-    const signed = await verifySignedInvoice(entry.signed), hash4 = digest(entry.hash);
-    if (signed.invoice.merchantAccount !== owner.accountId || signed.invoice.policy.network !== owner.network || await invoiceHash(signed.invoice) !== hash4 || ids.has(signed.invoice.id) || hashes.has(hash4))
+    const signed = await verifySignedInvoice(entry.signed), hash5 = digest(entry.hash);
+    if (signed.invoice.merchantAccount !== owner.accountId || signed.invoice.policy.network !== owner.network || await invoiceHash(signed.invoice) !== hash5 || ids.has(signed.invoice.id) || hashes.has(hash5))
       throw new Error("Invoice library identity, integrity or uniqueness mismatch");
     if (typeof entry.savedAt !== "string" || !Number.isFinite(Date.parse(entry.savedAt)) || new Date(entry.savedAt).toISOString() !== entry.savedAt) throw new Error("Invalid invoice save time");
     ids.add(signed.invoice.id);
-    hashes.add(hash4);
-    invoices.push({ hash: hash4, signed, savedAt: entry.savedAt });
+    hashes.add(hash5);
+    invoices.push({ hash: hash5, signed, savedAt: entry.savedAt });
   }
   return { version: 1, owner: identity(owner), invoices };
 }
@@ -1048,24 +1048,24 @@ var InvoiceLibrary = class {
   }
   add(raw) {
     return this.access(async (password, check) => {
-      const { data } = await this.read(password, check), signed = await verifySignedInvoice(raw), hash4 = await invoiceHash(signed.invoice);
+      const { data } = await this.read(password, check), signed = await verifySignedInvoice(raw), hash5 = await invoiceHash(signed.invoice);
       check();
       if (signed.invoice.merchantAccount !== this.owner.accountId || signed.invoice.policy.network !== this.owner.network) throw new Error("Invoice belongs to a different merchant or network");
-      const existing = data.invoices.find((e) => e.signed.invoice.id === signed.invoice.id || e.hash === hash4);
+      const existing = data.invoices.find((e) => e.signed.invoice.id === signed.invoice.id || e.hash === hash5);
       if (existing) {
-        if (existing.hash !== hash4 || canonical(existing.signed) !== canonical(signed)) throw new Error("Invoice ID already has different signed terms or signature");
+        if (existing.hash !== hash5 || canonical(existing.signed) !== canonical(signed)) throw new Error("Invoice ID already has different signed terms or signature");
         return existing;
       }
-      const entry = { hash: hash4, signed, savedAt: (/* @__PURE__ */ new Date()).toISOString() };
+      const entry = { hash: hash5, signed, savedAt: (/* @__PURE__ */ new Date()).toISOString() };
       data.invoices.push(entry);
       await this.write(data, password, check);
       return entry;
     });
   }
-  remove(hash4) {
+  remove(hash5) {
     return this.access(async (password, check) => {
-      digest(hash4);
-      const { data } = await this.read(password, check), remaining = data.invoices.filter((e) => e.hash !== hash4);
+      digest(hash5);
+      const { data } = await this.read(password, check), remaining = data.invoices.filter((e) => e.hash !== hash5);
       if (remaining.length === data.invoices.length) throw new Error("Invoice is not in this library");
       data.invoices = remaining;
       await this.write(data, password, check);
@@ -1275,9 +1275,9 @@ var SettlementSession = class {
       );
     const first = preflight.prerequisites[0];
     if (first) {
-      const call = validatePrerequisite(first, this.policy, o.payer, r), hash4 = await sha256(canonical(call));
+      const call = validatePrerequisite(first, this.policy, o.payer, r), hash5 = await sha256(canonical(call));
       if (o.attempts.some(
-        (a) => a.kind === "prerequisite" && a.state === "confirmed" && a.callHash === hash4
+        (a) => a.kind === "prerequisite" && a.state === "confirmed" && a.callHash === hash5
       ))
         return result(
           "wait",
@@ -2014,8 +2014,8 @@ async function withdrawalContext(policy, vault2, action) {
 async function digest2(bytes2) {
   return [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes2))].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
-async function read(blob, max) {
-  if (!(blob instanceof Blob) || blob.size < 1 || blob.size > max) throw new Error("Proving asset size is outside the supported limit");
+async function read(blob, max2) {
+  if (!(blob instanceof Blob) || blob.size < 1 || blob.size > max2) throw new Error("Proving asset size is outside the supported limit");
   return new Uint8Array(await blob.arrayBuffer());
 }
 async function verifyProvingAssets(assets, expected) {
@@ -2196,8 +2196,8 @@ function localAvailability(signed, root, nullifier, operations, except, reuseExa
   for (const operation of operations) {
     if (operation.id === except || canonical(operation.policy) !== canonical(signed.invoice.policy) || operation.reference.kind !== "withdrawal") continue;
     const old = operation.reference;
-    const exact11 = old.nullifier === nullifier && old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root;
-    if (exact11 && reuseExact) continue;
+    const exact12 = old.nullifier === nullifier && old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root;
+    if (exact12 && reuseExact) continue;
     if (old.nullifier === nullifier) throw new Error("This note already has a local withdrawal. Reconcile the existing operation; do not spend it again.");
     if (old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root && (signed.invoice.version === 2 || operation.outcome === "open")) throw new Error("This invoice unit already has a local payment. Reconcile that operation before selecting another note.");
   }
@@ -2662,8 +2662,8 @@ var HttpGateway = class {
     return this.readInvoiceHistory(signed, options);
   }
   async readInvoiceHistory(signed, options) {
-    const hash4 = await invoiceHash(signed.invoice), result = await this.request("/v1/invoices/status", await invoiceStatusRequest(signed.invoice), options.signal), roots = await invoicePaymentRoots(signed.invoice);
-    if (result.invoiceHash !== hash4 || (signed.invoice.version === 1 ? result.settlementRoot !== roots[0] : result.settlementRoot !== null || canonical(result.settlementRoots) !== canonical(roots)) || result.expectedTokens !== invoiceQuote(signed.invoice).principalTokens || ![
+    const hash5 = await invoiceHash(signed.invoice), result = await this.request("/v1/invoices/status", await invoiceStatusRequest(signed.invoice), options.signal), roots = await invoicePaymentRoots(signed.invoice);
+    if (result.invoiceHash !== hash5 || (signed.invoice.version === 1 ? result.settlementRoot !== roots[0] : result.settlementRoot !== null || canonical(result.settlementRoots) !== canonical(roots)) || result.expectedTokens !== invoiceQuote(signed.invoice).principalTokens || ![
       "awaiting_payment",
       "partial",
       "paid",
@@ -2742,12 +2742,12 @@ async function verifyReceiptDisclosure(raw, expectedRoot) {
   const expected = digest3(expectedRoot), receipt = parse(raw);
   if (receipt.root !== expected) throw new Error("Receipt differs from the expected root");
   await Promise.all(receipt.openings.map(async (opening) => {
-    let index = RECEIPT_FIELDS.indexOf(opening.field), hash4 = await leaf(opening.field, opening.value, opening.salt);
+    let index = RECEIPT_FIELDS.indexOf(opening.field), hash5 = await leaf(opening.field, opening.value, opening.salt);
     for (const sibling of opening.siblings) {
-      hash4 = index & 1 ? await branch(sibling, hash4) : await branch(hash4, sibling);
+      hash5 = index & 1 ? await branch(sibling, hash5) : await branch(hash5, sibling);
       index >>= 1;
     }
-    if (hash4 !== expected) throw new Error("Receipt field integrity check failed");
+    if (hash5 !== expected) throw new Error("Receipt field integrity check failed");
   }));
   return receipt;
 }
@@ -2876,8 +2876,8 @@ function filterInvoiceDashboard(rows, filter, now = Date.now()) {
   const from = day(filter.from), to = day(filter.to);
   if (from && to && from > to) throw new Error("Start date must precede end date");
   return rows.filter((row) => {
-    const r = row.record, i = r.invoice.invoice, date2 = i.createdAt.slice(0, 10);
-    return (!filter.state || filter.state === "all" || invoiceDashboardState(row, now) === filter.state) && (!filter.registry || i.policy.registry === filter.registry) && (!filter.asset || (i.policy.tokenId ?? "NEAR") === filter.asset) && (!from || date2 >= from) && (!to || date2 <= to) && (!query || [r.id, i.id, i.title, i.reference, i.recipient, i.merchantAccount, i.policy.registry, i.policy.tokenId ?? "NEAR"].some((s) => s.normalize("NFKC").toLocaleLowerCase("en-US").includes(query)));
+    const r = row.record, i = r.invoice.invoice, date3 = i.createdAt.slice(0, 10);
+    return (!filter.state || filter.state === "all" || invoiceDashboardState(row, now) === filter.state) && (!filter.registry || i.policy.registry === filter.registry) && (!filter.asset || (i.policy.tokenId ?? "NEAR") === filter.asset) && (!from || date3 >= from) && (!to || date3 <= to) && (!query || [r.id, i.id, i.title, i.reference, i.recipient, i.merchantAccount, i.policy.registry, i.policy.tokenId ?? "NEAR"].some((s) => s.normalize("NFKC").toLocaleLowerCase("en-US").includes(query)));
   });
 }
 async function invoiceDashboardObservation(record, trusted, apiOrigin, input, now = Date.now()) {
@@ -2942,8 +2942,8 @@ async function verifyPaymentWebhook(body, headers, secrets, options = {}) {
   if (!valid) throw new Error("Invalid webhook authentication");
   const e = JSON.parse(body), d = e.data;
   if (e.version !== 1 || e.id !== id3 || e.type !== "invoice.payment_confirmed" || !uuid2(e.organizationId) || options.organizationId && e.organizationId !== options.organizationId || typeof e.createdAt !== "string" || !Number.isFinite(Date.parse(e.createdAt)) || organizationOrigin(e.producer) !== e.producer || !d || !uuid2(d.invoiceRecordId) || !uuid2(d.invoiceId) || !/^[a-f0-9]{64}$/.test(d.invoiceHash) || d.network !== "testnet" || !/^\d{1,42}$/.test(d.amountTokens) || BigInt(d.amountTokens) <= 0n || !/^\d{1,77}$/.test(d.nullifier) || !Number.isSafeInteger(d.recordIndex) || d.recordIndex < 0 || !Number.isSafeInteger(d.blockHeight) || d.blockHeight < 0 || !d.transaction || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(d.transaction.hash)) throw new Error("Invalid authenticated payment event");
-  const exact11 = (value2, keys) => Object.keys(value2).sort().join("|") === [...keys].sort().join("|");
-  if (!exact11(e, ["version", "id", "type", "organizationId", "createdAt", "producer", "data"]) || !exact11(d, ["invoiceRecordId", "invoiceId", "invoiceHash", "network", "registry", "asset", "recipient", "amountTokens", "nullifier", "recordIndex", "blockHeight", "transaction", "index"]) || !exact11(d.transaction, ["hash", "signer"]) || !d.index || !exact11(d.index, ["hash", "height", "updatedAt"]) || !/^[1-9][0-9]{0,41}$/.test(d.amountTokens) || !/^(0|[1-9][0-9]{0,76})$/.test(d.nullifier) || account(d.registry) !== d.registry || account(d.recipient) !== d.recipient || account(d.transaction.signer) !== d.transaction.signer || d.asset !== "NEAR" && account(d.asset) !== d.asset || new Date(e.createdAt).toISOString() !== e.createdAt || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(d.index.hash) || !Number.isSafeInteger(d.index.height) || d.index.height < d.blockHeight || typeof d.index.updatedAt !== "string" || !Number.isFinite(Date.parse(d.index.updatedAt)) || new Date(d.index.updatedAt).toISOString() !== d.index.updatedAt) throw new Error("Invalid authenticated payment event");
+  const exact12 = (value2, keys) => Object.keys(value2).sort().join("|") === [...keys].sort().join("|");
+  if (!exact12(e, ["version", "id", "type", "organizationId", "createdAt", "producer", "data"]) || !exact12(d, ["invoiceRecordId", "invoiceId", "invoiceHash", "network", "registry", "asset", "recipient", "amountTokens", "nullifier", "recordIndex", "blockHeight", "transaction", "index"]) || !exact12(d.transaction, ["hash", "signer"]) || !d.index || !exact12(d.index, ["hash", "height", "updatedAt"]) || !/^[1-9][0-9]{0,41}$/.test(d.amountTokens) || !/^(0|[1-9][0-9]{0,76})$/.test(d.nullifier) || account(d.registry) !== d.registry || account(d.recipient) !== d.recipient || account(d.transaction.signer) !== d.transaction.signer || d.asset !== "NEAR" && account(d.asset) !== d.asset || new Date(e.createdAt).toISOString() !== e.createdAt || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(d.index.hash) || !Number.isSafeInteger(d.index.height) || d.index.height < d.blockHeight || typeof d.index.updatedAt !== "string" || !Number.isFinite(Date.parse(d.index.updatedAt)) || new Date(d.index.updatedAt).toISOString() !== d.index.updatedAt) throw new Error("Invalid authenticated payment event");
   return e;
 }
 function id2(value2) {
@@ -3213,6 +3213,476 @@ var OrganizationVerificationClient = class {
     return this.client.request(this.base + "/revoke", "POST", { version }, signal);
   }
 };
+
+// sdk/client/rule-catalog.ts
+var RULE_CATALOG = {
+  "format": "core-rule-catalog-v1",
+  "version": "2026.11.14.1",
+  "engineVersion": "core-rules-v1",
+  "sourceCheckedAt": "2026-11-14",
+  "rules": [
+    {
+      "id": "us-fica-2025-v1",
+      "kind": "us_fica",
+      "jurisdictions": [
+        "US-FEDERAL"
+      ],
+      "relationships": [
+        "employee"
+      ],
+      "effectiveFrom": "2025-01-01",
+      "effectiveThrough": "2025-12-31",
+      "parameters": {
+        "socialSecurityBaseMinor": "17610000",
+        "socialSecurityBps": 620,
+        "medicareBps": 145,
+        "additionalMedicareBps": 90,
+        "additionalMedicareThresholdMinor": "20000000"
+      },
+      "sources": [
+        {
+          "id": "irs-p15-2025",
+          "title": "IRS Publication 15 (2025)",
+          "url": "https://www.irs.gov/pub/irs-prior/p15--2025.pdf",
+          "locator": "Section 10 and nonemployee compensation reporting",
+          "checkedAt": "2026-11-14",
+          "documentSha256": "168837bd5f666d8c0a7cd59a1309512c0429974b5b7b982ae781a3b9f925b7a0"
+        }
+      ],
+      "limitations": [
+        "Federal covered-wage components only; federal income withholding, FUTA and state/local obligations are not calculated.",
+        "Only standard covered wages and one reviewed employer/YTD tax-year basis are supported; exemptions, tips, acquisitions, corrections and special worker classes require separate review."
+      ]
+    },
+    {
+      "id": "us-nec-2025-v1",
+      "kind": "us_nec",
+      "jurisdictions": [
+        "US-FEDERAL"
+      ],
+      "relationships": [
+        "contractor",
+        "business"
+      ],
+      "effectiveFrom": "2025-01-01",
+      "effectiveThrough": "2025-12-31",
+      "parameters": {
+        "reportingThresholdMinor": "60000"
+      },
+      "sources": [
+        {
+          "id": "irs-p15-2025",
+          "title": "IRS Publication 15 (2025)",
+          "url": "https://www.irs.gov/pub/irs-prior/p15--2025.pdf",
+          "locator": "Section 10 and nonemployee compensation reporting",
+          "checkedAt": "2026-11-14",
+          "documentSha256": "168837bd5f666d8c0a7cd59a1309512c0429974b5b7b982ae781a3b9f925b7a0"
+        }
+      ],
+      "limitations": [
+        "Reporting trigger preparation only; no income/self-employment/backup withholding tax calculation or filing.",
+        "Only reviewed reportable direct nonemployee-service payments to a US noncorporate payee; foreign payees, corporate exceptions, legal fees, platforms and payment cards require separate rules."
+      ]
+    },
+    {
+      "id": "us-fica-2026-v1",
+      "kind": "us_fica",
+      "jurisdictions": [
+        "US-FEDERAL"
+      ],
+      "relationships": [
+        "employee"
+      ],
+      "effectiveFrom": "2026-01-01",
+      "effectiveThrough": "2026-12-31",
+      "parameters": {
+        "socialSecurityBaseMinor": "18450000",
+        "socialSecurityBps": 620,
+        "medicareBps": 145,
+        "additionalMedicareBps": 90,
+        "additionalMedicareThresholdMinor": "20000000"
+      },
+      "sources": [
+        {
+          "id": "irs-p15-2026",
+          "title": "IRS Publication 15 (2026)",
+          "url": "https://www.irs.gov/pub/irs-pdf/p15.pdf",
+          "locator": "Sections 1 and 10; information-reporting threshold changes",
+          "checkedAt": "2026-11-14",
+          "documentSha256": "b46c3622439d8521e3a0faca4cd5b5ece3451b526f65f06a5e38d5c9f804c88b"
+        }
+      ],
+      "limitations": [
+        "Federal covered-wage components only; federal income withholding, FUTA and state/local obligations are not calculated.",
+        "Only standard covered wages and one reviewed employer/YTD tax-year basis are supported; exemptions, tips, acquisitions, corrections and special worker classes require separate review."
+      ]
+    },
+    {
+      "id": "us-nec-2026-v1",
+      "kind": "us_nec",
+      "jurisdictions": [
+        "US-FEDERAL"
+      ],
+      "relationships": [
+        "contractor",
+        "business"
+      ],
+      "effectiveFrom": "2026-01-01",
+      "effectiveThrough": "2026-12-31",
+      "parameters": {
+        "reportingThresholdMinor": "200000"
+      },
+      "sources": [
+        {
+          "id": "irs-p15-2026",
+          "title": "IRS Publication 15 (2026)",
+          "url": "https://www.irs.gov/pub/irs-pdf/p15.pdf",
+          "locator": "Sections 1 and 10; information-reporting threshold changes",
+          "checkedAt": "2026-11-14",
+          "documentSha256": "b46c3622439d8521e3a0faca4cd5b5ece3451b526f65f06a5e38d5c9f804c88b"
+        }
+      ],
+      "limitations": [
+        "Reporting trigger preparation only; no income/self-employment/backup withholding tax calculation or filing.",
+        "Only reviewed reportable direct nonemployee-service payments to a US noncorporate payee; foreign payees, corporate exceptions, legal fees, platforms and payment cards require separate rules."
+      ]
+    },
+    {
+      "id": "ae-vat-standard-v1",
+      "kind": "ae_vat",
+      "jurisdictions": [
+        "AE-MAINLAND",
+        "AE-ADGM"
+      ],
+      "relationships": [
+        "business",
+        "contractor"
+      ],
+      "effectiveFrom": "2018-01-01",
+      "effectiveThrough": "2026-12-31",
+      "parameters": {
+        "vatBps": 500
+      },
+      "sources": [
+        {
+          "id": "uae-vat",
+          "title": "UAE Federal Tax Authority VAT FAQ",
+          "url": "https://tax.gov.ae/en/faq.aspx?keyword=Does+VAT+apply+to+all+goods+and+services",
+          "locator": "Standard rate and exempt/zero-rated exclusions",
+          "checkedAt": "2026-11-14",
+          "documentSha256": "88919ac9a07df0fdf4ed9675aec58526b171a0f9ec3bc757ec0f67eadbb51e48"
+        },
+        {
+          "id": "uae-vat-introduction",
+          "title": "UAE Ministry of Finance tax overview",
+          "url": "https://mof.gov.ae/en/public-finance/tax/",
+          "locator": "VAT introduction on 1 January 2018",
+          "checkedAt": "2026-11-14",
+          "documentSha256": "2ce535e7206c335d01fe7c9fd5fc82e3fc9db5ef58f871e48e20f6a0e14b0159"
+        }
+      ],
+      "limitations": [
+        "Only an explicitly reviewed domestic standard-rated, tax-exclusive supply by a registered supplier. No zero-rating, exemptions, reverse charge, designated-zone analysis or FX.",
+        "ADGM employment rules do not make every ADGM supply VAT exempt. Corporate/personal taxes, registration thresholds and return obligations are not calculated."
+      ]
+    },
+    {
+      "id": "ae-mainland-gratuity-v1",
+      "kind": "ae_mainland_gratuity",
+      "jurisdictions": [
+        "AE-MAINLAND"
+      ],
+      "relationships": [
+        "employee"
+      ],
+      "effectiveFrom": "2022-02-02",
+      "effectiveThrough": "2026-12-31",
+      "parameters": {
+        "firstYears": 5,
+        "firstDaysPerYear": 21,
+        "laterDaysPerYear": 30,
+        "dailyDivisor": 30,
+        "capMonths": 24
+      },
+      "sources": [
+        {
+          "id": "uae-labour-current",
+          "title": "UAE Federal Decree-Law 33 of 2021",
+          "url": "https://www.uaelegislation.gov.ae/en/legislations/1541/download",
+          "locator": "Article 51: full-time foreign-worker end-of-service benefits",
+          "checkedAt": "2026-11-14",
+          "documentSha256": null
+        }
+      ],
+      "limitations": [
+        "Standard full-time foreign private-sector worker on the statutory gratuity path, with reviewed creditable service and no pension/savings substitution.",
+        "Current consolidated primary-law bytes could not be downloaded; the reviewer must verify the current Article 51 before operational approval. Allowances, outstanding salary/leave, deductions and contractual enhancements are outside this component."
+      ]
+    },
+    {
+      "id": "ae-adgm-gratuity-v2024",
+      "kind": "ae_adgm_gratuity",
+      "jurisdictions": [
+        "AE-ADGM"
+      ],
+      "relationships": [
+        "employee"
+      ],
+      "effectiveFrom": "2025-04-01",
+      "effectiveThrough": "2026-12-31",
+      "parameters": {
+        "firstYears": 5,
+        "firstDaysPerYear": 21,
+        "laterDaysPerYear": 30,
+        "dailyDivisor": 365,
+        "basicFloorBps": 5e3
+      },
+      "sources": [
+        {
+          "id": "adgm-employment",
+          "title": "ADGM EAO FAQ: Employment Regulations 2024",
+          "url": "https://assets.adgm.com/download/assets/ADGM%20EAO%20-%20FAQs%20-%20ER%202024%20%28Feb%202025%29.pdf/eed10768edbe11ef9eaee2d468ad6a26",
+          "locator": "February 2025 FAQ, sections B and M; pp. 21\u201323",
+          "checkedAt": "2026-11-14",
+          "documentSha256": "90fe70d6ec89b0365355c9b0c815c47370e4efadc01b88ffd18f87fcfddb8099"
+        }
+      ],
+      "limitations": [
+        "Standard full-time non-UAE/GCC employee on the statutory gratuity path. Use annual Basic Wage, with at least half of annual Wages for this calculation; do not reuse mainland monthly/30 assumptions.",
+        "The October 2025 consolidated text was not retrievable. Before signing an operational review, compare the FAQ with current regulations and pension/savings/contract exceptions. No mainland 24-month cap is imported."
+      ]
+    }
+  ],
+  "engineSourceSha256": "0d1244fca9160064dc613e3d2ad092b3e5e4c8bd074cfe96310d4d3294e41784"
+};
+
+// sdk/client/rules.ts
+function obj(v) {
+  if (!v || typeof v !== "object" || Array.isArray(v) || Object.getPrototypeOf(v) !== Object.prototype) throw new Error("Use a plain bounded rule document");
+  return v;
+}
+function exact11(v, keys) {
+  if (Object.keys(v).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unknown or missing rule fields");
+}
+function text2(v, min2 = 1, max2 = 128) {
+  if (typeof v !== "string" || v.trim() !== v || v.length < min2 || v.length > max2 || /[\u0000-\u001f\u007f]/.test(v)) throw new Error("Invalid rule text");
+  return v;
+}
+function date2(v) {
+  if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(v) || !Number.isFinite(Date.parse(v + "T00:00:00Z")) || (/* @__PURE__ */ new Date(v + "T00:00:00Z")).toISOString().slice(0, 10) !== v) throw new Error("Use a valid YYYY-MM-DD date");
+  return v;
+}
+function instant(v) {
+  if (typeof v !== "string" || !Number.isFinite(Date.parse(v)) || new Date(v).toISOString() !== v) throw new Error("Use a canonical UTC timestamp");
+  return v;
+}
+function hash4(v) {
+  if (typeof v !== "string" || !/^[a-f0-9]{64}$/.test(v)) throw new Error("Use an independently obtained SHA-256");
+  return v;
+}
+function base642(v, size) {
+  if (typeof v !== "string" || v.length > size * 2 || !/^[A-Za-z0-9+/]+={0,2}$/.test(v)) throw new Error("Invalid Ed25519 material");
+  const b = Uint8Array.from(atob(v), (c) => c.charCodeAt(0));
+  if (b.length !== size || btoa(String.fromCharCode(...b)) !== v) throw new Error("Invalid Ed25519 material");
+  return b;
+}
+function minor(v) {
+  if (typeof v !== "string" || !/^(0|[1-9][0-9]{0,17})$/.test(v)) throw new Error("Use bounded nonnegative integer fiat minor units");
+  return BigInt(v);
+}
+function ruleCatalog() {
+  return JSON.parse(JSON.stringify(RULE_CATALOG));
+}
+async function ruleCatalogHash() {
+  return sha256(canonical(RULE_CATALOG));
+}
+function parseRuleInput(value2) {
+  const v = obj(JSON.parse(canonical(value2)));
+  exact11(v, ["format", "jurisdiction", "relationship", "effectiveDate", "currency", "facts"]);
+  if (v.format !== "core-rule-input-v1" || !["US-FEDERAL", "AE-MAINLAND", "AE-ADGM"].includes(String(v.jurisdiction)) || !["employee", "contractor", "business"].includes(String(v.relationship)) || !["USD", "AED"].includes(String(v.currency))) throw new Error("Unsupported rule scope");
+  date2(v.effectiveDate);
+  const f = obj(v.facts);
+  if (Object.keys(f).length > 20) throw new Error("Too many rule facts");
+  for (const [k, x] of Object.entries(f)) if (!/^[a-zA-Z][a-zA-Z0-9]{0,63}$/.test(k) || !(typeof x === "boolean" || typeof x === "string" && x.length <= 120)) throw new Error("Rule facts must be bounded scalar inputs");
+  for (const [k, x] of Object.entries(f)) if (k.endsWith("Minor")) minor(x);
+  return v;
+}
+function parseRuleTrust(value2, now = Date.now()) {
+  const v = obj(JSON.parse(canonical(value2)));
+  exact11(v, ["format", "reviewers", "revokedReviewHashes"]);
+  if (v.format !== "core-rule-trust-v1" || !Array.isArray(v.reviewers) || v.reviewers.length < 1 || v.reviewers.length > 20 || !Array.isArray(v.revokedReviewHashes) || v.revokedReviewHashes.length > 1e3) throw new Error("Invalid reviewer trust policy");
+  const ids = /* @__PURE__ */ new Set(), keys = /* @__PURE__ */ new Set();
+  for (const r0 of v.reviewers) {
+    const r = obj(r0);
+    exact11(r, ["id", "publicKey", "validFrom", "validThrough"]);
+    const id3 = text2(r.id), key2 = text2(r.publicKey);
+    base642(key2, 32);
+    if (ids.has(id3) || keys.has(key2) || date2(r.validFrom) > date2(r.validThrough)) throw new Error("Conflicting reviewer trust");
+    ids.add(id3);
+    keys.add(key2);
+  }
+  for (const h of v.revokedReviewHashes) hash4(h);
+  return v;
+}
+function ruleReviewMessage(claims) {
+  return canonical(["core:rule-review:ed25519:v1", claims]);
+}
+async function verifyRuleReview(value2, trustValue, trustedPolicyHash, rule, now = Date.now()) {
+  const policy = parseRuleTrust(trustValue, now);
+  if (await sha256(canonical(policy)) !== hash4(trustedPolicyHash)) throw new Error("Reviewer trust policy hash mismatch");
+  const v = obj(JSON.parse(canonical(value2)));
+  exact11(v, ["claims", "signature"]);
+  const c = obj(v.claims);
+  exact11(c, ["format", "catalogHash", "reviewerId", "ruleIds", "reviewedAt", "validThrough", "scope", "rationale"]);
+  if (c.format !== "core-rule-review-v1" || c.scope !== "component-preparation" || c.catalogHash !== await ruleCatalogHash() || !Array.isArray(c.ruleIds) || !c.ruleIds.length || c.ruleIds.length > 20 || new Set(c.ruleIds).size !== c.ruleIds.length || c.ruleIds.some((id3) => !RULE_CATALOG.rules.some((r) => r.id === id3)) || !c.ruleIds.includes(rule.id)) throw new Error("Review does not bind this exact catalog and rule");
+  text2(c.rationale, 10, 1e3);
+  const reviewer = policy.reviewers.find((r) => r.id === text2(c.reviewerId));
+  const reviewedAt = instant(c.reviewedAt), validThrough = instant(c.validThrough), day = new Date(now).toISOString().slice(0, 10);
+  if (!reviewer || Date.parse(reviewedAt) > now || Date.parse(validThrough) <= now || Date.parse(validThrough) <= Date.parse(reviewedAt) || reviewedAt.slice(0, 10) < reviewer.validFrom || reviewedAt.slice(0, 10) > reviewer.validThrough || day < reviewer.validFrom || day > reviewer.validThrough || reviewedAt.slice(0, 10) < RULE_CATALOG.sourceCheckedAt) throw new Error("Review or reviewer is not currently valid");
+  const reviewHash = await sha256(canonical(v));
+  if (policy.revokedReviewHashes.includes(reviewHash)) throw new Error("Rule review revoked");
+  const key2 = await crypto.subtle.importKey("raw", base642(reviewer.publicKey, 32), { name: "Ed25519" }, false, ["verify"]);
+  if (!await crypto.subtle.verify({ name: "Ed25519" }, key2, base642(v.signature, 64), new TextEncoder().encode(ruleReviewMessage(c)))) throw new Error("Invalid rule review signature");
+  return { reviewerId: reviewer.id, reviewHash, validThrough, artifact: v };
+}
+var min = (a, b) => a < b ? a : b;
+var max = (a, b) => a > b ? a : b;
+function step(id3, label, basis, numerator, denominator) {
+  if (numerator < 0n || denominator <= 0n) throw new Error("Invalid rule arithmetic");
+  return { id: id3, label, basis, numerator: String(numerator), denominator: String(denominator), rounding: "half-up-minor-unit", amountMinor: String((numerator * 2n + denominator) / (denominator * 2n)) };
+}
+async function evaluateRules(value2, options) {
+  const now = options.now ?? Date.now();
+  if (!Number.isSafeInteger(now) || !["preview", "reviewed"].includes(options.mode)) throw new Error("Choose an explicit rule evaluation mode");
+  options.signal?.throwIfAborted();
+  const input = parseRuleInput(value2), catalogHash = await ruleCatalogHash(), inputHash = await sha256(canonical(input)), matches = RULE_CATALOG.rules.filter((r) => r.jurisdictions.includes(input.jurisdiction) && r.relationships.includes(input.relationship) && r.effectiveFrom <= input.effectiveDate && r.effectiveThrough >= input.effectiveDate);
+  if (matches.length > 1) throw new Error("Ambiguous rule coverage");
+  const rule = matches[0], result = { format: "core-rule-result-v1", engineVersion: "core-rules-v1", catalogVersion: RULE_CATALOG.version, catalogHash, inputHash, input, ruleId: rule?.id ?? null, mode: options.mode, status: "needs_review", review: null, steps: [], decisions: {}, sources: rule?.sources ?? [], limitations: rule?.limitations ?? [], blockers: [], calculatedAt: new Date(now).toISOString(), executionAuthorized: false, filingAccepted: false };
+  if (!rule) {
+    result.blockers.push("No supported rule for this jurisdiction, relationship and date.");
+    return result;
+  }
+  if (input.currency !== (input.jurisdiction === "US-FEDERAL" ? "USD" : "AED")) {
+    result.blockers.push("Fiat currency differs from the rule. No stablecoin/fiat parity or FX is assumed.");
+    return result;
+  }
+  if (options.mode === "reviewed") {
+    try {
+      result.review = await verifyRuleReview(options.review, options.trust, options.trustedPolicyHash ?? "", rule, now);
+    } catch (e) {
+      result.blockers.push(e instanceof Error ? e.message : "Rule review unavailable");
+      return result;
+    }
+  }
+  options.signal?.throwIfAborted();
+  const f = input.facts, p = rule.parameters;
+  try {
+    const fields = (names) => {
+      exact11(f, names);
+    }, yes = (key2) => {
+      if (f[key2] !== true) throw new Error("Review the applicability fact: " + key2);
+    }, num = (key2) => minor(f[key2]);
+    if (rule.kind === "us_fica") {
+      fields(["usState", "taxYear", "standardCoveredWages", "sameEmployerYtd", "socialSecurityWagesMinor", "medicareWagesMinor", "ytdSocialSecurityWagesMinor", "ytdMedicareWagesMinor"]);
+      if (typeof f.usState !== "string" || !["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"].includes(f.usState) || f.taxYear !== input.effectiveDate.slice(0, 4)) throw new Error("Confirm the US state and same-calendar-year YTD basis");
+      yes("standardCoveredWages");
+      yes("sameEmployerYtd");
+      const social = num("socialSecurityWagesMinor"), medicare = num("medicareWagesMinor"), priorSocial = num("ytdSocialSecurityWagesMinor"), priorMedicare = num("ytdMedicareWagesMinor"), socialBase = min(social, max(0n, BigInt(p.socialSecurityBaseMinor) - priorSocial)), additionalBase = max(0n, priorMedicare + medicare - BigInt(p.additionalMedicareThresholdMinor)) - max(0n, priorMedicare - BigInt(p.additionalMedicareThresholdMinor));
+      for (const party of ["employee", "employer"]) {
+        result.steps.push(step(party + "-social-security", party + " Social Security", { taxableBaseMinor: String(socialBase), wageBaseMinor: String(p.socialSecurityBaseMinor), rateBps: String(p.socialSecurityBps) }, socialBase * BigInt(p.socialSecurityBps), 10000n));
+        result.steps.push(step(party + "-medicare", party + " Medicare", { taxableBaseMinor: String(medicare), rateBps: String(p.medicareBps) }, medicare * BigInt(p.medicareBps), 10000n));
+      }
+      result.steps.push(step("employee-additional-medicare", "Employee Additional Medicare withholding", { taxableBaseMinor: String(additionalBase), employerYtdThresholdMinor: String(p.additionalMedicareThresholdMinor), rateBps: String(p.additionalMedicareBps) }, additionalBase * BigInt(p.additionalMedicareBps), 10000n));
+      result.decisions.usState = f.usState;
+      result.decisions.fullPayrollCalculated = false;
+    } else if (rule.kind === "us_nec") {
+      fields(["taxYear", "reportableDirectServices", "usNoncorporatePayee", "priorReportablePaymentsMinor", "currentReportablePaymentsMinor", "backupWithholdingOccurred"]);
+      if (f.taxYear !== input.effectiveDate.slice(0, 4)) throw new Error("Reporting amounts must belong to the applicable calendar year");
+      yes("reportableDirectServices");
+      yes("usNoncorporatePayee");
+      if (typeof f.backupWithholdingOccurred !== "boolean") throw new Error("Confirm whether backup withholding occurred");
+      const total = num("priorReportablePaymentsMinor") + num("currentReportablePaymentsMinor"), threshold = BigInt(p.reportingThresholdMinor);
+      result.decisions = { calendarYearReportablePaymentsMinor: String(total), reportingThresholdMinor: String(threshold), thresholdReached: total >= threshold, potential1099NecRequired: total >= threshold || f.backupWithholdingOccurred, backupWithholdingOccurred: f.backupWithholdingOccurred, taxDueCalculated: false };
+    } else if (rule.kind === "ae_vat") {
+      fields(["registeredSupplier", "domesticStandardRatedSupply", "taxExclusive", "taxableBaseMinor"]);
+      yes("registeredSupplier");
+      yes("domesticStandardRatedSupply");
+      yes("taxExclusive");
+      const base = num("taxableBaseMinor");
+      result.steps.push(step("standard-vat", "Standard-rate output VAT component", { taxableBaseMinor: String(base), rateBps: String(p.vatBps) }, base * BigInt(p.vatBps), 10000n));
+      result.decisions.corporateIncomeTaxCalculated = false;
+    } else {
+      fields(rule.kind === "ae_mainland_gratuity" ? ["statutoryGratuityPath", "fullTimeForeignPrivateWorker", "creditableServiceReviewed", "completedServiceYears", "fractionNumerator", "fractionDenominator", "monthlyBasicWageMinor", "monthlyTotalWageMinor"] : ["statutoryGratuityPath", "fullTimeNonUaeGccEmployee", "creditableServiceReviewed", "completedServiceYears", "fractionNumerator", "fractionDenominator", "annualBasicWageMinor", "annualWageMinor"]);
+      yes("statutoryGratuityPath");
+      yes(rule.kind === "ae_mainland_gratuity" ? "fullTimeForeignPrivateWorker" : "fullTimeNonUaeGccEmployee");
+      yes("creditableServiceReviewed");
+      const years = num("completedServiceYears"), n = num("fractionNumerator"), d = num("fractionDenominator");
+      if (years > 100n || d === 0n || d > 366n || n >= d) throw new Error("Use reviewed complete service years and a proper year fraction");
+      if (years < 1n) {
+        result.steps.push(step("gratuity", "No statutory component in this supported less-than-one-year case", { completedServiceYears: String(years) }, 0n, 1n));
+      } else {
+        const totalYears = years * d + n, first = min(totalYears, BigInt(p.firstYears) * d), later = max(0n, totalYears - BigInt(p.firstYears) * d), daysNumerator = first * BigInt(p.firstDaysPerYear) + later * BigInt(p.laterDaysPerYear);
+        if (rule.kind === "ae_mainland_gratuity") {
+          const basic = num("monthlyBasicWageMinor"), total = num("monthlyTotalWageMinor");
+          if (basic > total) throw new Error("Basic wage exceeds total wage");
+          const raw = basic * daysNumerator, den = BigInt(p.dailyDivisor) * d, cap = total * BigInt(p.capMonths);
+          result.steps.push(step("gratuity", "Mainland statutory gratuity component", { monthlyBasicWageMinor: String(basic), serviceYearNumerator: String(totalYears), serviceYearDenominator: String(d), gratuityDaysNumerator: String(daysNumerator), twoYearsWageCapMinor: String(cap) }, min(raw, cap * den), den));
+        } else {
+          const basic = num("annualBasicWageMinor"), total = num("annualWageMinor");
+          if (basic > total) throw new Error("Basic wage exceeds annual Wages");
+          const doubledBasis = max(basic * 2n, total);
+          result.steps.push(step("gratuity", "ADGM statutory gratuity component", { annualBasicWageMinor: String(basic), annualWageMinor: String(total), effectiveBasicWageNumerator: String(doubledBasis), effectiveBasicWageDenominator: "2", serviceYearNumerator: String(totalYears), serviceYearDenominator: String(d), gratuityDaysNumerator: String(daysNumerator), dailyDivisor: String(p.dailyDivisor) }, doubledBasis * daysNumerator, 2n * BigInt(p.dailyDivisor) * d));
+        }
+      }
+      result.decisions.fullFinalSettlementCalculated = false;
+    }
+    result.status = options.mode === "preview" ? "preview_unapproved" : "reviewed_component";
+  } catch (e) {
+    result.steps = [];
+    result.decisions = {};
+    result.blockers.push(e instanceof Error ? e.message : "Incomplete rule facts");
+  }
+  options.signal?.throwIfAborted();
+  return result;
+}
+function exportRuleResult(result) {
+  return JSON.stringify(result, null, 2) + "\n";
+}
+async function verifyRuleResult(value2, options = {}) {
+  const v = obj(JSON.parse(canonical(value2))), now = options.now ?? Date.now(), calculatedAt = instant(v.calculatedAt);
+  if (Date.parse(calculatedAt) > now) throw new Error("Report calculation time is in the future");
+  if (!["preview", "reviewed"].includes(String(v.mode))) throw new Error("Invalid report mode");
+  const rebuilt = await evaluateRules(v.input, { mode: "preview", now: Date.parse(calculatedAt), signal: options.signal });
+  if (v.mode === "reviewed") {
+    if (v.status !== "reviewed_component" || rebuilt.status !== "preview_unapproved" || !v.review) throw new Error("No completed reviewed component to verify");
+    const r = obj(v.review);
+    exact11(r, ["reviewerId", "reviewHash", "validThrough", "artifact"]);
+    if (await sha256(canonical(r.artifact)) !== hash4(r.reviewHash)) throw new Error("Rule report review hash mismatch");
+    const a = obj(r.artifact), claims = obj(a.claims);
+    if (r.reviewerId !== claims.reviewerId || r.validThrough !== claims.validThrough) throw new Error("Rule report review binding mismatch");
+    rebuilt.mode = "reviewed";
+    rebuilt.status = "reviewed_component";
+    rebuilt.review = r;
+  }
+  if (canonical(v) !== canonical(rebuilt)) throw new Error("Rule report integrity mismatch");
+  let reviewCurrentlyValid = false, reason = "Preview is not an approved rule calculation";
+  if (rebuilt.review && rebuilt.ruleId) {
+    try {
+      const accepted = await verifyRuleReview(rebuilt.review.artifact, options.trust, options.trustedPolicyHash ?? "", RULE_CATALOG.rules.find((r) => r.id === rebuilt.ruleId), now);
+      if (canonical(accepted) !== canonical(rebuilt.review)) throw new Error("Rule report review binding mismatch");
+      reviewCurrentlyValid = true;
+      reason = "Current reviewer policy accepts this component snapshot";
+    } catch (e) {
+      reason = e instanceof Error ? e.message : "Current review unavailable";
+    }
+  }
+  return { integrityValid: true, reviewCurrentlyValid, reason };
+}
+function ruleInputExample(jurisdiction, relationship) {
+  const common = { format: "core-rule-input-v1", jurisdiction, relationship, effectiveDate: "2026-11-14", currency: jurisdiction === "US-FEDERAL" ? "USD" : "AED" };
+  const facts = jurisdiction === "US-FEDERAL" ? relationship === "employee" ? { usState: "CA", taxYear: "2026", standardCoveredWages: true, sameEmployerYtd: true, socialSecurityWagesMinor: "100000", medicareWagesMinor: "100000", ytdSocialSecurityWagesMinor: "0", ytdMedicareWagesMinor: "0" } : { taxYear: "2026", reportableDirectServices: true, usNoncorporatePayee: true, priorReportablePaymentsMinor: "150000", currentReportablePaymentsMinor: "50000", backupWithholdingOccurred: false } : relationship !== "employee" ? { registeredSupplier: true, domesticStandardRatedSupply: true, taxExclusive: true, taxableBaseMinor: "100000" } : jurisdiction === "AE-MAINLAND" ? { statutoryGratuityPath: true, fullTimeForeignPrivateWorker: true, creditableServiceReviewed: true, completedServiceYears: "3", fractionNumerator: "0", fractionDenominator: "1", monthlyBasicWageMinor: "1000000", monthlyTotalWageMinor: "2000000" } : { statutoryGratuityPath: true, fullTimeNonUaeGccEmployee: true, creditableServiceReviewed: true, completedServiceYears: "3", fractionNumerator: "0", fractionDenominator: "1", annualBasicWageMinor: "12000000", annualWageMinor: "24000000" };
+  return { ...common, facts };
+}
 export {
   BrowserProver,
   CoreApiError,
@@ -3248,8 +3718,10 @@ export {
   discloseReceipt,
   encryptNoteBackup,
   encryptReceiptBackup,
+  evaluateRules,
   exportInvoiceDashboard,
   exportPayoutSettlement,
+  exportRuleResult,
   feeQuote,
   filterInvoiceDashboard,
   invoiceDashboardObservation,
@@ -3291,6 +3763,8 @@ export {
   parseProvingAction,
   parseProvingContext,
   parseRecipientReadiness,
+  parseRuleInput,
+  parseRuleTrust,
   parseSignedInvoice,
   payoutBatchQuote,
   payoutReconciliationState,
@@ -3299,6 +3773,10 @@ export {
   preparedPayment,
   reconcilePayoutBatch,
   requireOpenInvoice,
+  ruleCatalog,
+  ruleCatalogHash,
+  ruleInputExample,
+  ruleReviewMessage,
   sha256,
   validatePrivateNote,
   verificationState,
@@ -3307,6 +3785,8 @@ export {
   verifyPayoutBatch,
   verifyProvingAssets,
   verifyReceiptDisclosure,
+  verifyRuleResult,
+  verifyRuleReview,
   verifySignedInvoice,
   webhookKeyId,
   webhookSecret,

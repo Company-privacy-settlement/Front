@@ -630,10 +630,12 @@ export const docs: Doc[] = [
       },
       {
         "id": "tax-preparation",
-        "title": "US and Abu Dhabi preparation",
+        "title": "US and Abu Dhabi rule preparation",
         "paragraphs": [
-          "Future preparation must distinguish B2B, employee and contractor payments; establish the relevant US state/federal obligations or ADGM/mainland status; and select dated, versioned official rules.",
-          "The planned service calculates with reviewed deterministic rules and uses AI for cited, reviewable explanations and document drafts. Tax calculation, payroll withholding, treaty analysis, AI legal preparation, statutory filing and fiat conversion are not implemented. No tax rates or legal outcomes are inferred from the sample intake."
+          "Open Rules for date/jurisdiction/relationship-based component preparation. Seven source-checked candidates cover US federal FICA and potential NEC reporting for 2025/2026, explicitly classified UAE standard VAT, and distinct mainland/ADGM statutory gratuity candidates. Exact fiat minor-unit arithmetic and rational service fractions are exported with sources, assumptions, inputs and catalog hashes.",
+          "Preview is explicitly unapproved. Reviewed evaluation requires an Ed25519 signature of the exact catalog/rule and an independently received reviewer-policy digest. Key/review dates and supplied revocations are checked. No professional reviewer or trusted key is bundled; current consolidated-source gaps require comparison before operational approval.",
+          "Changing facts clears old results. Local report verification recomputes calculation integrity separately from current review acceptance; facts and reviewer qualification remain externally established. No salary/fiat conversion, payment authorization, full tax liability or statutory filing is inferred.",
+          "US state/local taxes, federal income withholding, special worker/payee classes, corporate tax and pension/savings substitutions need additional reviewed rules. ADGM is a separate employment regime; unsupported dates/classifications stay unresolved. Future AI preparation must consume reviewed rule evidence rather than invent rates."
         ]
       }
     ]

@@ -25,3 +25,4 @@ export * from "./invoice-dashboard.js";
 export * from "./webhooks.js";
 export * from "./payout-batches.js";
 export * from './verification.js';
+export * from "./rules.js";

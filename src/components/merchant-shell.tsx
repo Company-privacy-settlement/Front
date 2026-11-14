@@ -14,6 +14,7 @@ const navigation = [
   { title: "Evidence", href: "/evidence/", icon: FileCheck2 },
   { title: "Business verification", href: "/kyb/", icon: ShieldCheck },
   { title: "Organization", href: "/organization/", icon: Users },
+  { title: "Rules", href: "/rules/", icon: BookOpen },
   { title: "Documentation", href: "/docs/", icon: BookOpen },
 ];
 function WorkspaceLinks({ section }: { section: string }) {
