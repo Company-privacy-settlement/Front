@@ -4,9 +4,30 @@ import argparse
 import hashlib
 import json
 import re
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
+
+
+def wait_for_release(origin, release, seconds):
+    """A graceful Nginx reload can acknowledge before its new workers accept traffic."""
+    if not 0 < seconds <= 30:
+        raise ValueError('Readiness wait must be between zero and thirty seconds')
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        req = urllib.request.Request(origin.rstrip('/') + '/healthz', headers={'Host': 'moneystation.site'})
+        try:
+            with opener.open(req, timeout=min(2, max(.1, deadline-time.monotonic()))) as r:
+                if r.status == 200 and r.headers.get('X-Money-Station-Release') and (
+                        not release or r.headers['X-Money-Station-Release'] == release):
+                    if json.loads(r.read(256)) == {'service':'money-station-front','status':'ok'}:
+                        return
+        except (OSError, ValueError):
+            pass
+        time.sleep(.2)
+    raise ValueError('Gateway did not select the expected frontend release within the readiness deadline')
 
 
 def check(origin, release=None):
@@ -75,8 +96,11 @@ if __name__ == '__main__':
     cli = argparse.ArgumentParser(description=__doc__)
     cli.add_argument('--origin', default='http://127.0.0.1')
     cli.add_argument('--release')
+    cli.add_argument('--wait-seconds', type=float, default=0)
     args = cli.parse_args()
     try:
+        if args.wait_seconds:
+            wait_for_release(args.origin, args.release, args.wait_seconds)
         print(json.dumps(check(args.origin, args.release)))
     except (AssertionError, ValueError, OSError, urllib.error.URLError) as e:
         cli.exit(1, f'Hosting check failed: {e}\n')

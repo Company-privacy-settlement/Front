@@ -142,9 +142,9 @@ done
 python3 "$script_dir/verify.py" --origin http://127.0.0.1:3330 --release "$release"
 systemctl reload nginx
 if (( https_active )); then
-  python3 "$script_dir/verify.py" --origin https://moneystation.site --release "$release"
+  python3 "$script_dir/verify.py" --origin https://moneystation.site --release "$release" --wait-seconds 10
 else
-  python3 "$script_dir/verify.py" --origin http://127.0.0.1 --release "$release"
+  python3 "$script_dir/verify.py" --origin http://127.0.0.1 --release "$release" --wait-seconds 10
 fi
 echo "Installed Money Station release $release for moneystation.site. DNS was not modified."
 echo "Configuration backup: $backup"

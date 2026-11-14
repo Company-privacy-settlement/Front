@@ -57,7 +57,7 @@ changed=1
 install -m 0644 "$script_dir/moneystation.site.https.conf" "$target"
 /usr/sbin/nginx -t
 systemctl reload nginx
-python3 "$script_dir/verify.py" --origin https://moneystation.site
+python3 "$script_dir/verify.py" --origin https://moneystation.site --wait-seconds 10
 curl --noproxy '*' --fail --silent --show-error --max-time 20 -o /dev/null https://api.moneystation.site/readyz
 curl --noproxy '*' --fail --silent --show-error --max-time 20 -o /dev/null https://api.moneystation.site/readyz/organizations
 echo 'Both domain certificates and the frontend HTTPS route are active.'
