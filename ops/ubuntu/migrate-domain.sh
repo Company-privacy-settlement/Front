@@ -34,3 +34,14 @@ rm -- "$legacy_link" "$legacy"
 /bin/bash "$script_dir/install.sh" "$1" "$2"
 installed=1
 /bin/bash "$script_dir/activate-https.sh"
+# Preserve the previous certificate for rollback, while preventing the renewal
+# timer from requesting a hostname whose ACME route has now been retired.
+python3 - "$backup" <<'PY'
+from pathlib import Path
+import sys
+p=Path('/etc/letsencrypt/money-station/renewal/moneysation.site.conf')
+if p.exists():
+    if p.is_symlink() or p.stat().st_uid!=0 or p.stat().st_mode&0o022:
+        raise SystemExit('Refusing to archive an unprotected legacy renewal profile')
+    p.rename(Path(sys.argv[1])/p.name)
+PY

@@ -1,0 +1,125 @@
+{
+  "format": "money-station-domain-activation-v1",
+  "status": "passed",
+  "checkedAt": "2026-11-14T22:13:42Z",
+  "frontSourceCommit": "68526b94661f61ac7eaac315b25c3fb02fafc54d",
+  "releaseId": "68526b94661f-33896fafe7e9",
+  "archiveSha256": "33896fafe7e9577c007423ad84aa4bb0c9f2c78aa1b58a2c79d263dfe7455948",
+  "publicBuildConfig": {
+    "organizationOrigin": "https://api.moneystation.site",
+    "paymentPolicyConfigured": false
+  },
+  "https": {
+    "format": "money-station-shared-https-acceptance-v1",
+    "status": "passed",
+    "checkedAt": "2026-11-14T22:13:42Z",
+    "frontOrigin": "https://moneystation.site",
+    "apiOrigin": "https://api.moneystation.site",
+    "certificates": {
+      "moneystation.site": {
+        "dnsNames": [
+          "api.moneystation.site",
+          "moneystation.site"
+        ],
+        "expires": "Feb 12 21:13:35 2027 GMT"
+      },
+      "api.moneystation.site": {
+        "dnsNames": [
+          "api.moneystation.site",
+          "moneystation.site"
+        ],
+        "expires": "Feb 12 21:13:35 2027 GMT"
+      }
+    },
+    "apiReadiness": {
+      "ready": true,
+      "readOnly": true,
+      "checkedAtBlock": {
+        "hash": "9b7pRmEshUwbWeNbHgbawxyvdQdSZEVbh28xrH3fnxTR",
+        "height": 277717072
+      },
+      "deploymentVerified": true,
+      "checkedVaults": 1,
+      "index": {
+        "enabled": true,
+        "ageMs": 7992,
+        "lagBlocks": 14,
+        "indexedRecords": 16,
+        "provenanceChecked": false
+      },
+      "chainFreshnessChecked": false
+    },
+    "organizationReadiness": {
+      "ready": true,
+      "service": "core-organizations",
+      "network": "testnet",
+      "checkedAtBlock": {
+        "height": 277717076,
+        "hash": "Az9DAxpk6XTwmy5QmWexdUAGF2pfCs642BjvsiH1RvGv"
+      },
+      "databaseAvailable": true,
+      "checkedAt": "2026-11-14T22:13:32.204Z",
+      "identityClaimsVerified": false
+    },
+    "checks": [
+      "normal-dns-and-trusted-public-tls",
+      "exact-native-policy",
+      "actual-index-checkpoint-advanced",
+      "both-runtime-readiness",
+      "exact-cors-and-preflight",
+      "missing-session-denied",
+      "unrelated-and-previous-origins-denied",
+      "organization-challenge-binds-corrected-audience"
+    ],
+    "scope": {
+      "nativeNearTestnet": true,
+      "publicHttpsAcceptedFromDeploymentHost": true,
+      "independentRemoteHttpsProbe": false,
+      "realWalletSessionChecked": false,
+      "browserUsdcAccepted": false
+    }
+  },
+  "browser": {
+    "status": "passed",
+    "checkedAt": "2026-11-14T22:13:35.718Z",
+    "baseURL": "https://moneystation.site",
+    "cases": [
+      {
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "routes": 4,
+        "organizationOriginPreset": true,
+        "actualCrossOriginRequests": {
+          "core": 200,
+          "organization": 200,
+          "missingSession": 401
+        },
+        "pageErrors": 0
+      },
+      {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "routes": 4,
+        "organizationOriginPreset": true,
+        "actualCrossOriginRequests": {
+          "core": 200,
+          "organization": 200,
+          "missingSession": 401
+        },
+        "pageErrors": 0
+      }
+    ],
+    "realWalletSession": false
+  },
+  "certificateRenewal": {
+    "separateAcmeStore": true,
+    "timerEnabledAndActive": true,
+    "dryRunAndDeployHookPassed": true,
+    "retiredHostnameRenewalProfileArchived": true
+  },
+  "dnsChangedByAgent": false
+}

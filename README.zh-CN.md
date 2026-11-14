@@ -4,7 +4,7 @@
 
 Money Station 是基于 NEAR 的企业隐私支付服务。落地页、应用和文档采用统一的黑绿设计，并以英语为默认语言。钱包使用配置的测试网络，产品界面不重复显示网络徽章。[服务配置与发布检查](docs/MONEY_STATION_DEPLOYMENT.md)。
 
-Ubuntu 已上线：[Money Station](https://moneysation.site) · [Docs](https://moneysation.site/docs/) · [API 状态](https://api.moneysation.site/readyz)。公共 HTTPS、浏览器 CORS、原生索引推进及服务隔离验收通过，独立证书自动续期已启用。[运维与证据](docs/UBUNTU_HOSTING.md)。
+Ubuntu 已上线：[Money Station](https://moneystation.site) · [Docs](https://moneystation.site/docs/) · [API 状态](https://api.moneystation.site/readyz)。公共 HTTPS、浏览器 CORS、原生索引推进及服务隔离验收通过，独立证书自动续期已启用。[运维与证据](docs/UBUNTU_HOSTING.md)。
 
 Money Station 前端验证：**12 项单元测试**和完整的 **280 项桌面/移动浏览器测试**通过。下方英文视频采用 Money Station 的黑绿设计，并明确标注钱包/API 测试环境与本地证明范围。
 

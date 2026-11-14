@@ -4,7 +4,7 @@
 
 머니스테이션(Money Station)은 NEAR 기반 기업용 프라이버시 송금 서비스입니다. 랜딩·앱·Docs에 검정·초록 디자인을 적용하고, 영문을 기본으로 유지합니다. 지갑은 설정된 테스트 네트워크를 사용하며 제품 화면의 반복 네트워크 배지를 제거했습니다. [서비스 연결과 릴리스 검증](docs/MONEY_STATION_DEPLOYMENT.md).
 
-우분투 배포: [Money Station](https://moneysation.site) · [Docs](https://moneysation.site/docs/) · [API 상태](https://api.moneysation.site/readyz). 공개 HTTPS·브라우저 CORS·네이티브 인덱스 진행·격리 서비스를 검증했고 전용 인증서 자동 갱신을 등록했습니다. [운영과 검증 기록](docs/UBUNTU_HOSTING.md).
+우분투 배포: [Money Station](https://moneystation.site) · [Docs](https://moneystation.site/docs/) · [API 상태](https://api.moneystation.site/readyz). 공개 HTTPS·브라우저 CORS·네이티브 인덱스 진행·격리 서비스를 검증했고 전용 인증서 자동 갱신을 등록했습니다. [운영과 검증 기록](docs/UBUNTU_HOSTING.md).
 
 Money Station 프론트 검증: **단위 테스트 12개**, **데스크톱·모바일 전체 브라우저 테스트 280개**를 통과했습니다. 아래 영문 영상은 Money Station의 검정·초록 디자인으로 제작했으며, 지갑·API 테스트 환경과 로컬 증명 생성 범위를 표시합니다.
 
