@@ -2596,8 +2596,8 @@ var HttpGateway = class {
     }
     return r.json();
   }
-  async policy() {
-    return parsePolicy((await this.request("/v1/config")).policy);
+  async policy(options = {}) {
+    return parsePolicy((await this.request("/v1/config", void 0, options.signal)).policy);
   }
   preflight(request) {
     return this.request("/v1/ft/preflight", request);
@@ -2652,7 +2652,17 @@ var HttpGateway = class {
     return signed;
   }
   async invoiceStatus(input, options = {}) {
-    const signed = await this.verifyInvoice(input, options), hash4 = await invoiceHash(signed.invoice), result = await this.request("/v1/invoices/status", await invoiceStatusRequest(signed.invoice), options.signal), roots = await invoicePaymentRoots(signed.invoice);
+    const signed = await this.verifyInvoice(input, options);
+    return this.readInvoiceHistory(signed, options);
+  }
+  /** Archived signed terms: indexed final history only, without granting current merchant authority. */
+  async invoiceHistory(input, options = {}) {
+    const signed = await verifySignedInvoice(input);
+    await this.trusted(signed.invoice.policy, options.signal);
+    return this.readInvoiceHistory(signed, options);
+  }
+  async readInvoiceHistory(signed, options) {
+    const hash4 = await invoiceHash(signed.invoice), result = await this.request("/v1/invoices/status", await invoiceStatusRequest(signed.invoice), options.signal), roots = await invoicePaymentRoots(signed.invoice);
     if (result.invoiceHash !== hash4 || (signed.invoice.version === 1 ? result.settlementRoot !== roots[0] : result.settlementRoot !== null || canonical(result.settlementRoots) !== canonical(roots)) || result.expectedTokens !== invoiceQuote(signed.invoice).principalTokens || ![
       "awaiting_payment",
       "partial",
@@ -2818,6 +2828,85 @@ var OrganizationInvoiceClient = class {
     return this.client.request(this.path() + (before === void 0 ? "" : `?before=${before}`), "GET", void 0, signal);
   }
 };
+
+// sdk/client/invoice-dashboard.ts
+var uuid = (s) => typeof s === "string" && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(s);
+var utc = (s) => typeof s === "string" && Number.isFinite(Date.parse(s)) && new Date(s).toISOString() === s;
+async function loadOrganizationInvoices(client, org, signal) {
+  if (!uuid(org)) throw new Error("Invalid organization");
+  const result = [], ids = /* @__PURE__ */ new Set();
+  let before;
+  for (let page = 0; page < 20; page++) {
+    signal.throwIfAborted();
+    const value2 = await client.list(before, signal);
+    signal.throwIfAborted();
+    if (!value2 || !Array.isArray(value2.items) || value2.items.length > 50) throw new Error("Invalid organization invoice page");
+    let previous = before ?? Number.MAX_SAFE_INTEGER;
+    for (const raw of value2.items) {
+      const r = object(raw);
+      if (Object.keys(r).sort().join("|") !== "createdAt|createdBy|id|invoice|organizationId|sequence" || !uuid(r.id) || r.organizationId !== org || typeof r.sequence !== "number" || !Number.isSafeInteger(r.sequence) || r.sequence < 1 || r.sequence >= previous || ids.has(String(r.id)) || !utc(r.createdAt)) throw new Error("Organization invoice snapshot binding mismatch");
+      const signed = await verifySignedInvoice(r.invoice);
+      signal.throwIfAborted();
+      if (account(r.createdBy) !== signed.invoice.merchantAccount || signed.invoice.policy.network !== "testnet") throw new Error("Organization invoice creator mismatch");
+      const record = { id: String(r.id), organizationId: org, sequence: r.sequence, createdAt: String(r.createdAt), createdBy: String(r.createdBy), invoice: signed };
+      ids.add(record.id);
+      previous = record.sequence;
+      result.push(record);
+    }
+    if (value2.nextCursor === null) return result;
+    if (value2.items.length !== 50 || value2.nextCursor !== previous) throw new Error("Organization invoice cursor mismatch");
+    before = previous;
+  }
+  throw new Error("Organization invoice snapshot exceeds supported limit");
+}
+function invoiceDashboardState(row, now = Date.now()) {
+  if (!row.observation) return row.unavailable ? "unavailable" : "unchecked";
+  const s = row.observation.status, time2 = Date.parse(s.checkedAt.updatedAt), observed = Date.parse(row.observation.observedAt);
+  if (s.coverageLimited || (s.reusedPaymentReferences ?? 0) > 0) return "review_required";
+  if (!Number.isFinite(time2) || !Number.isFinite(observed) || time2 > now + 6e4 || observed > now + 6e4 || now - time2 > 3e5 || now - observed > 3e5) return "stale";
+  return s.state;
+}
+function filterInvoiceDashboard(rows, filter, now = Date.now()) {
+  const query = (filter.search ?? "").trim().normalize("NFKC").toLocaleLowerCase("en-US");
+  const day = (value2) => {
+    if (!value2) return void 0;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value2) || (/* @__PURE__ */ new Date(value2 + "T00:00:00.000Z")).toISOString().slice(0, 10) !== value2) throw new Error("Invalid date filter");
+    return value2;
+  };
+  const from = day(filter.from), to = day(filter.to);
+  if (from && to && from > to) throw new Error("Start date must precede end date");
+  return rows.filter((row) => {
+    const r = row.record, i = r.invoice.invoice, date2 = i.createdAt.slice(0, 10);
+    return (!filter.state || filter.state === "all" || invoiceDashboardState(row, now) === filter.state) && (!filter.registry || i.policy.registry === filter.registry) && (!filter.asset || (i.policy.tokenId ?? "NEAR") === filter.asset) && (!from || date2 >= from) && (!to || date2 <= to) && (!query || [r.id, i.id, i.title, i.reference, i.recipient, i.merchantAccount, i.policy.registry, i.policy.tokenId ?? "NEAR"].some((s) => s.normalize("NFKC").toLocaleLowerCase("en-US").includes(query)));
+  });
+}
+async function invoiceDashboardObservation(record, trusted, apiOrigin, input, now = Date.now()) {
+  const policy = parsePolicy(trusted), signed = await verifySignedInvoice(record.invoice), s = validateInvoiceStatus(input, signed.invoice), roots = await invoicePaymentRoots(signed.invoice);
+  if (canonical(policy) !== canonical(signed.invoice.policy) || s.invoiceHash !== await invoiceHash(signed.invoice) || (signed.invoice.version === 1 ? s.settlementRoot !== roots[0] : s.settlementRoot !== null || canonical(s.settlementRoots) !== canonical(roots))) throw new Error("Dashboard settlement binding mismatch");
+  const ids = /* @__PURE__ */ new Set();
+  for (const c of s.confirmations) {
+    if (!/^(0|[1-9][0-9]*)$/.test(c.nullifier) || c.nullifier.length > 77 || !Number.isSafeInteger(c.recordIndex) || !Number.isSafeInteger(c.blockHeight) || ids.has(c.nullifier)) throw new Error("Invalid finalized invoice confirmation");
+    ids.add(c.nullifier);
+    if (c.transaction && (typeof c.transaction.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(c.transaction.hash) || account(c.transaction.signer) !== c.transaction.signer)) throw new Error("Invalid finalized transaction reference");
+  }
+  if (!utc(s.checkedAt.updatedAt) || Date.parse(s.checkedAt.updatedAt) > now + 6e4) throw new Error("Invalid invoice checkpoint time");
+  return { status: structuredClone(s), apiOrigin: organizationOrigin(apiOrigin), observedAt: new Date(now).toISOString() };
+}
+function exportInvoiceDashboard(rows, format, now = Date.now()) {
+  if (rows.length > 1e3) throw new Error("Invoice export exceeds supported limit");
+  const data = rows.map((row) => {
+    const r = row.record, i = parseSignedInvoice(r.invoice).invoice, s = row.observation?.status;
+    return { organizationId: r.organizationId, recordId: r.id, invoiceId: i.id, title: i.title, reference: i.reference, merchant: i.merchantAccount, recipient: i.recipient, network: i.policy.network, registry: i.policy.registry, asset: i.policy.tokenId ?? "NEAR", createdAt: i.createdAt, expiresAt: i.expiresAt, units: i.units, expectedTokens: (BigInt(i.policy.denomination) * BigInt(i.units)).toString(), state: invoiceDashboardState(row, now), observedState: s?.state ?? null, paidTokens: s?.paidTokens ?? null, remainingTokens: s?.remainingTokens ?? null, confirmedPayments: s?.confirmedPayments ?? null, confirmationRecordIndices: s?.confirmations.map((c) => c.recordIndex) ?? null, confirmationTransactionHashes: s?.confirmations.flatMap((c) => c.transaction ? [c.transaction.hash] : []) ?? null, coverageLimited: s?.coverageLimited ?? null, indexHeight: s?.checkedAt.height ?? null, indexHash: s?.checkedAt.hash ?? null, indexUpdatedAt: s?.checkedAt.updatedAt ?? null, observedAt: row.observation?.observedAt ?? null, apiOrigin: row.observation?.apiOrigin ?? null, chainFreshnessChecked: false };
+  });
+  if (format === "json") return JSON.stringify({ format: "core-invoice-dashboard-export-v1", exportedAt: new Date(now).toISOString(), scope: "filtered organization snapshot", amountUnit: "asset atomic units", rows: data }, null, 2) + "\n";
+  const columns = ["organizationId", "recordId", "invoiceId", "title", "reference", "merchant", "recipient", "network", "registry", "asset", "createdAt", "expiresAt", "units", "expectedTokens", "state", "observedState", "paidTokens", "remainingTokens", "confirmedPayments", "confirmationRecordIndices", "confirmationTransactionHashes", "coverageLimited", "indexHeight", "indexHash", "indexUpdatedAt", "observedAt", "apiOrigin", "chainFreshnessChecked"];
+  const cell = (input) => {
+    let s = input === null || input === void 0 ? "" : Array.isArray(input) ? JSON.stringify(input) : String(input);
+    if (/^[\s\u0000-\u0020]*[=+@-]/.test(s) || /^[\t\r\n]/.test(s)) s = "'" + s;
+    return '"' + s.replaceAll('"', '""') + '"';
+  };
+  return "\uFEFF" + [columns.map(cell).join(","), ...data.map((row) => columns.map((c) => cell(row[c])).join(","))].join("\r\n") + "\r\n";
+}
 export {
   BrowserProver,
   CoreApiError,
@@ -2848,7 +2937,11 @@ export {
   discloseReceipt,
   encryptNoteBackup,
   encryptReceiptBackup,
+  exportInvoiceDashboard,
   feeQuote,
+  filterInvoiceDashboard,
+  invoiceDashboardObservation,
+  invoiceDashboardState,
   invoiceFromFragment,
   invoiceHash,
   invoiceLink,
@@ -2861,6 +2954,7 @@ export {
   invoiceSettlementGuards,
   invoiceSigningDigest,
   invoiceStatusRequest,
+  loadOrganizationInvoices,
   matchInvoicePlan,
   matchInvoiceProof,
   nonceBytes,

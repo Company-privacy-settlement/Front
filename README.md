@@ -8,6 +8,8 @@ English-first landing, documentation and wallet tools for Core, a development pr
 
 The synchronized SDK exposes `OrganizationInvoiceClient` for organization-scoped encrypted invoice storage and idempotent save/list/get requests. The roles table and English Docs describe invoice access and key provisioning. The current local invoice form/library does not automatically sync to this API. [Core API guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_INVOICES.md).
 
+Organization → Invoice payments now provides complete-snapshot invoice search, state/asset/group/date filters, CSV/JSON export, explicit signed-JSON import and finalized-index reconciliation. Trusted policy/API selection is required; unchecked, unavailable, stale and incomplete observations stay explicit. [Dashboard guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PAYMENT_DASHBOARD.md).
+
 ## Workspaces
 
 | Route | Current behavior |
@@ -97,3 +99,5 @@ Independent vaults hold principal; shared notes authorize a direct payout from o
 - [Front](https://github.com/Company-privacy-settlement/Front): landing, Docs and wallet interfaces.
 
 There are no external analytics or remote-font requests. Wallet connection loads NEAR Connect’s manifest/provider interfaces on demand.
+
+Payment dashboard validation on **2026-11-14**: **355 Core tests** and **182 desktop/mobile browser cases** passed, including 13 new Core and 18 browser dashboard cases; type checks, Node/browser SDK builds and the static Front build passed. Browser service/wallet fixtures do not establish a live public-network deployment.

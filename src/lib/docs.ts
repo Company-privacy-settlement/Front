@@ -394,7 +394,7 @@ export const docs: Doc[] = [
         "title": "Sharing, retention, and recovery",
         "paragraphs": [
           "Terms remain client-held. Link/JSON holders can read the business terms and derive its references. A fragment is omitted from the initial page URL request; page code, extensions, and link holders can still read it. Hosting access controls apply to shared checkout links.",
-          "Save the signed invoice before leaving. The public settlement API does not store invoice terms or send webhooks. The separate Organization API can store signed invoices with organization access controls, idempotency and encryption at rest; the local form does not automatically sync to it. Expiry is an application rule; contracts may settle late. Recovery keeps the original payout destination after expiry."
+          "Save the signed invoice before leaving. The public settlement API does not store invoice terms or send webhooks. The separate Organization API can store signed invoices with organization access controls, idempotency and encryption at rest; the local form does not automatically sync to it. Use Organization → Invoice payments to explicitly import signed JSON, search saved invoices and reconcile payments. Expiry is an application rule; contracts may settle late. Recovery keeps the original payout destination after expiry."
         ]
       },
       {
@@ -405,6 +405,14 @@ export const docs: Doc[] = [
           "Account activation, token registration and payment review are separate steps. A pre-registered token record does not activate a missing account. Activate the exact account with a compatible NEAR wallet, then refresh. The app does not estimate an account-creation amount or send a funding transfer.",
           "For an existing, unregistered account, inspect the public storage_deposit call and exact token storage minimum read at the checked final block. The payment session presents registration separately for wallet approval; gas and protocol fees remain separate.",
           "Ready for payment review is a snapshot of account existence and registration. It does not establish ownership, available gas, payer balance, vault liquidity or payment completion. Changing recipient, policy or API invalidates the result; failed refreshes clear previous readiness."
+        ]
+      },
+      {
+        "id": "organization-dashboard",
+        "title": "Track your organization’s payments",
+        "paragraphs": [
+          "For persisted team records, open Organization → Invoice payments and explicitly save signed JSON. Search/filter the complete saved snapshot, verify finalized-index observations against an independently trusted Core API/policy and export all filtered rows as CSV or JSON. The optional local encrypted library stays separate.",
+          "The dashboard shows finalized successful payments with index block/time and linked transaction details. Unchecked, unavailable, stale, incomplete and reused-reference cases remain explicit. Exported status is an indexed snapshot, not current-chain freshness, complete business history or tax acceptance."
         ]
       }
     ]
@@ -913,6 +921,17 @@ export const docs: Doc[] = [
         "paragraphs": [
           "The SDK transports signed terms with an explicit in-memory organization session. It does not persist plaintext invoice terms or tokens. A saved record is an archive, not a payment confirmation; checkout still verifies the current merchant key, independently trusted policy, fees and finalized settlement."
         ]
+      },
+      {
+        "id": "payment-dashboard",
+        "title": "Reconcile and export organization invoices",
+        "code": {
+          "label": "Browser SDK",
+          "text": "const records = await loadOrganizationInvoices(invoices, organizationId, signal);\nconst status = await gateway.invoiceHistory(record.invoice, { signal });\nconst observation = await invoiceDashboardObservation(\n  record, trustedPolicy, gateway.url, status\n);\nconst rows = [{ record, observation, unavailable: false }];\nconst filtered = filterInvoiceDashboard(rows, { search: 'INV-', state: 'paid' });\nconst csv = exportInvoiceDashboard(filtered, 'csv');"
+        },
+        "paragraphs": [
+          "invoiceHistory verifies archived terms and the API policy without requiring the historic merchant key to remain current. It never authorizes payment. Existing invoiceStatus and checkout retain the current-key requirement. The dashboard validates exact root/policy/amount bindings and marks uncertainty explicitly. CSV protects formula-like business fields; JSON retains exact atomic amount strings and nullable unknown values."
+        ]
       }
     ]
   },
@@ -1210,12 +1229,23 @@ export const docs: Doc[] = [
           "The separate Organization API accepts immutable merchant-signed invoices at POST /v1/organizations/:org/invoices. Use a stable requestId for retries. Exact repeats return the existing record; changed terms under an existing request or merchant invoice ID return a conflict. GET the collection with its before cursor or retrieve a record by storage ID.",
           "Owners, Admins and Operators can save and read; Auditors can read; Viewers cannot access invoices. New invoices require the authenticated merchant’s current FullAccess key and a valid NEP-413 signature. Invoice storage does not grant wallet authority or mark a payment complete.",
           "Operators must provision CORE_ORGANIZATION_INVOICE_KEYS_FILE separately from the database and backups. Signed terms use AES-256-GCM encryption, with keyed tenant-bound indexes for duplicate detection. Without keys, invoice storage is disabled. Organization IDs, timestamps/counts and existing membership/audit metadata remain visible to the database operator. Authorized readers and the live service can access plaintext.",
-          "Keep every data key needed by retained backups and the stable index key. Reviewed organization recovery restores ciphertext and retry indexes, drops sessions and requires current access approval before activation. The current browser invoice form/library remains independent; persistent dashboard search/export and webhooks are future work."
+          "Keep every data key needed by retained backups and the stable index key. Reviewed organization recovery restores ciphertext and retry indexes, drops sessions and requires current access approval before activation. The current browser invoice form/library remains independent; the organization payment dashboard now provides search/filter/export; webhooks remain future work."
         ],
         "code": {
           "label": "Core operator setup",
           "text": "npm run organizations:invoice-keys -- /absolute/private/service.invoice-keys.json initial\nexport CORE_ORGANIZATION_INVOICE_KEYS_FILE=/absolute/private/service.invoice-keys.json\nnpm run serve:organizations"
         }
+      },
+      {
+        "id": "payment-dashboard",
+        "title": "Manage invoice payments",
+        "paragraphs": [
+          "Open Organization, sign in, choose your team and select Invoice payments. Owners, Admins and Operators can explicitly save merchant-signed JSON; Auditors can read/check/export; Viewers cannot load invoices. The full authorized snapshot is signature-verified and loaded in bounded pages before display.",
+          "Search titles, references, IDs, merchants and recipients. Filter payment status, asset, group and inclusive UTC issue dates. The table shows 20 rows per page. CSV/JSON exports include all filtered rows across pages, exact atomic amounts, linked finalized record/transaction identifiers and checkpoint metadata. Exports contain readable business details; protect downloaded files.",
+          "Under Settlement source, independently import the trusted policy and enter its matching Core API. Check payments reads every loaded invoice matching that exact policy, at most one per second. Large collections take longer and can be cancelled. Source changes discard previous observations; other groups stay unchecked. Current private read access is checked before publishing each result or exporting.",
+          "Only matching finalized successful withdrawals count. Wallet callbacks and redirects never mark paid. Unknown/error observations stay Unchecked or Unavailable; index/browser observations older than five minutes become Stale index. Incomplete coverage and reused v2 unit references need review. Every result retains its observed height/time and chainFreshnessChecked: false.",
+          "Historical signed invoice records can be reconciled after a merchant key rotation; checkout still requires a current merchant signing key. Organization switching, page-hide and revoked access clear cached private data and reject late responses. No plaintext browser invoice/status cache is created."
+        ]
       }
     ]
   }

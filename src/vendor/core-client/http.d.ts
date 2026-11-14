@@ -6,7 +6,9 @@ export declare class HttpGateway implements Gateway {
     readonly url: string;
     constructor(url: string);
     private request;
-    policy(): Promise<Policy>;
+    policy(options?: {
+        signal?: AbortSignal;
+    }): Promise<Policy>;
     preflight(request: Parameters<Gateway["preflight"]>[0]): Promise<Preflight>;
     observe(reference: Reference): Promise<Observation>;
     verify(transaction: TxRef, call: Call): Promise<Verification>;
@@ -29,6 +31,11 @@ export declare class HttpGateway implements Gateway {
     invoiceStatus(input: SignedInvoice, options?: {
         signal?: AbortSignal;
     }): Promise<InvoiceStatus>;
+    /** Archived signed terms: indexed final history only, without granting current merchant authority. */
+    invoiceHistory(input: SignedInvoice, options?: {
+        signal?: AbortSignal;
+    }): Promise<InvoiceStatus>;
+    private readInvoiceHistory;
     indexStatus(policy: Policy): Promise<import("./activity.js").IndexStatus>;
     activity(policy: Policy, query?: ActivityFilters & {
         limit?: number;

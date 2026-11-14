@@ -21,3 +21,4 @@ export type { Invoice, InvoiceSignature, SignedInvoice, InvoiceProof, InvoiceSta
 export { activityKinds, parseIndexStatus, parseActivityPage, } from "./activity.js";
 export type { ActivityKind, ActivityFilters, IndexStatus, IndexedRecord, IndexedActivity, ActivityPage, } from "./activity.js";
 export * from './organization-invoices.js';
+export * from "./invoice-dashboard.js";

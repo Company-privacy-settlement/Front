@@ -8,6 +8,8 @@ Core 的落地页、文档与钱包工具，使用 Next.js 构建。Core 是支�
 
 同步 SDK 的 `OrganizationInvoiceClient` 支持按组织加密保存和查询发票及幂等创建。权限表与英文 Docs 已说明发票权限和密钥配置。现有本地发票表单与库不会自动同步到此 API。[Core API 指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_INVOICES.md)。
 
+Organization → Invoice payments 提供完整组织发票快照搜索、状态/资产/组/日期筛选、CSV/JSON 导出、签名 JSON 保存与最终化索引对账。须独立选择可信策略/API，未检查、失败、过期和不完整观察明确显示。[仪表板指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PAYMENT_DASHBOARD.md)。
+
 ## 工作区
 
 | 路径 | 当前功能 |
@@ -97,3 +99,5 @@ KYB 目前仅为美国、阿布扎比大陆或 ADGM 的示例资料流程。草�
 - [Front](https://github.com/Company-privacy-settlement/Front)：落地页、Docs 与钱包界面。
 
 没有外部分析或远程字体请求。钱包连接按需加载 NEAR Connect 清单及服务商接口。
+
+**2026-11-14 付款仪表板验证：**包含新增 13 项 Core 和 18 项浏览器用例的 **355 项 Core 测试**与 **182 项桌面/移动浏览器用例**通过，类型、Node/浏览器 SDK 和静态构建也通过。浏览器服务/钱包测试夹具不代表公开网络实际部署。
