@@ -18,8 +18,8 @@ test -x /usr/sbin/nginx
 systemctl is-active --quiet nginx
 /usr/sbin/nginx -t
 
-targets=(/etc/money-station/nginx.conf /etc/systemd/system/money-station.service /etc/nginx/sites-available/moneystation.site.conf)
-enabled=/etc/nginx/sites-enabled/moneystation.site.conf
+targets=(/etc/money-station/nginx.conf /etc/systemd/system/money-station.service /etc/nginx/sites-available/moneysation.site.conf)
+enabled=/etc/nginx/sites-enabled/moneysation.site.conf
 for target in "${targets[@]}"; do
   if [[ -e $target || -L $target ]]; then
     if [[ -L $target ]] || ! head -1 -- "$target" | grep -q '^# Managed by Money Station$'; then
@@ -45,7 +45,7 @@ parts=re.split(r'^# configuration file (.+):$',config,flags=re.M)
 for i in range(1,len(parts),2):
     body=re.sub(r'#[^\n]*','',parts[i+1])
     for names in re.findall(r'\bserver_name\s+([^;]+);',body):
-        if {'moneystation.site','api.moneystation.site'} & set(shlex.split(names)) and Path(parts[i]).resolve()!=expected:
+        if {'moneysation.site','api.moneysation.site'} & set(shlex.split(names)) and Path(parts[i]).resolve()!=expected:
             raise SystemExit('A Money Station domain is already handled by another route. No changes made.')
 PY_CHECK
 if [[ -n $(ss -H -ltn 'sport = :3330') ]] && ! systemctl is-active --quiet money-station.service; then
@@ -125,7 +125,7 @@ Path(sys.argv[2]).write_text(Path(sys.argv[1]).read_text().replace('@RELEASE_ID@
 PY
 install -m 0644 "$stage/nginx.conf" "${targets[0]}"
 install -m 0644 "$script_dir/money-station.service" "${targets[1]}"
-if (( ! https_active )); then install -m 0644 "$script_dir/moneystation.site.http.conf" "${targets[2]}"; fi
+if (( ! https_active )); then install -m 0644 "$script_dir/moneysation.site.http.conf" "${targets[2]}"; fi
 ln -s -- "releases/$release" "$stage/current"
 mv -Tf -- "$stage/current" /srv/money-station/current
 ln -sfn -- "${targets[2]}" "$enabled"
@@ -135,16 +135,16 @@ systemctl enable money-station.service
 systemctl restart money-station.service
 ready=0
 for attempt in {1..20}; do
-  if curl --noproxy '*' --fail --silent --max-time 2 -H 'Host: moneystation.site' http://127.0.0.1:3330/healthz >/dev/null; then ready=1; break; fi
+  if curl --noproxy '*' --fail --silent --max-time 2 -H 'Host: moneysation.site' http://127.0.0.1:3330/healthz >/dev/null; then ready=1; break; fi
   sleep 0.25
 done
 (( ready == 1 ))
 python3 "$script_dir/verify.py" --origin http://127.0.0.1:3330 --release "$release"
 systemctl reload nginx
 if (( https_active )); then
-  python3 "$script_dir/verify.py" --origin https://moneystation.site --release "$release" --wait-seconds 10
+  python3 "$script_dir/verify.py" --origin https://moneysation.site --release "$release" --wait-seconds 10
 else
   python3 "$script_dir/verify.py" --origin http://127.0.0.1 --release "$release" --wait-seconds 10
 fi
-echo "Installed Money Station release $release for moneystation.site. DNS was not modified."
+echo "Installed Money Station release $release for moneysation.site. DNS was not modified."
 echo "Configuration backup: $backup"

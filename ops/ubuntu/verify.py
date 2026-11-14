@@ -17,7 +17,7 @@ def wait_for_release(origin, release, seconds):
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
-        req = urllib.request.Request(origin.rstrip('/') + '/healthz', headers={'Host': 'moneystation.site'})
+        req = urllib.request.Request(origin.rstrip('/') + '/healthz', headers={'Host': 'moneysation.site'})
         try:
             with opener.open(req, timeout=min(2, max(.1, deadline-time.monotonic()))) as r:
                 if r.status == 200 and r.headers.get('X-Money-Station-Release') and (
@@ -41,7 +41,7 @@ def check(origin, release=None):
     def fetch(path, status=200, method='GET', extra=None):
         nonlocal checks
         req = urllib.request.Request(origin + path, method=method,
-                                     headers={'Host': 'moneystation.site', **(extra or {})})
+                                     headers={'Host': 'moneysation.site', **(extra or {})})
         try:
             r = opener.open(req, timeout=10)
         except urllib.error.HTTPError as e:
@@ -88,7 +88,7 @@ def check(origin, release=None):
     fetch('/', status=405, method='POST')
     video, h = fetch('/media/core-hackathon-demo-en.mp4', status=206, extra={'Range': 'bytes=0-15'})
     assert len(video) == 16 and h['Content-Range'].startswith('bytes 0-15/')
-    return {'status': 'passed', 'checks': checks, 'origin': origin, 'host': 'moneystation.site',
+    return {'status': 'passed', 'checks': checks, 'origin': origin, 'host': 'moneysation.site',
             'release': release, 'dnsRequired': False}
 
 

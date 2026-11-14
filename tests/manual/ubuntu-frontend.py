@@ -33,7 +33,7 @@ def status():return json.loads((root/'run/status.json').read_text())
 def ready():
     for _ in range(50):
         try:
-            request=urllib.request.Request('http://127.0.0.1:3330/healthz',headers={'Host':'moneystation.site'})
+            request=urllib.request.Request('http://127.0.0.1:3330/healthz',headers={'Host':'moneysation.site'})
             with opener.open(request,timeout=1) as r:
                 if r.status==200 and r.headers['X-Money-Station-Release']==c['releaseId']:return
         except OSError:pass
@@ -71,7 +71,7 @@ os.kill(old,signal.SIGKILL);changed_worker(old);checks.append('worker-crash-reco
 final=verify.check('http://127.0.0.1:3330',c['releaseId']);checks.append('routes-docs-media-policy-after-recovery')
 report={'format':'money-station-frontend-acceptance-v1','status':'passed','checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
         'releaseId':c['releaseId'],'sourceCommit':info['sourceCommit'],'archiveSha256':c['archiveSha256'],
-        'controllerSha256':m.release.file_digest(root/'control.py'),'origin':'http://127.0.0.1:3330','host':'moneystation.site',
+        'controllerSha256':m.release.file_digest(root/'control.py'),'origin':'http://127.0.0.1:3330','host':'moneysation.site',
         'checks':checks,'before':first,'after':final,'scope':{'ownerFrontendRunning':True,'publicHttpsAccepted':False,
         'hostSystemServiceInstalled':False,'browserWalletUsdcAccepted':False}}
 with a.output.open('x') as f:json.dump(report,f,indent=2);f.write('\n')

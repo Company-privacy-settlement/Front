@@ -218,7 +218,7 @@ def main():
         if current.stdout!=before.stdout:raise RuntimeError('Crontab changed; refusing to overwrite')
         subprocess.run(['crontab','-'],input='\n'.join(lines)+'\n',text=True,check=True)
         print(json.dumps({'status':'owner-autostart-removed' if a.disable else 'owner-autostart-installed'}))
-    else:print(json.dumps({'managerPid':pid,'releaseId':c['releaseId'],'origin':'http://127.0.0.1:3330','host':'moneystation.site'}))
+    else:print(json.dumps({'managerPid':pid,'releaseId':c['releaseId'],'origin':'http://127.0.0.1:3330','host':'moneysation.site'}))
 
 
 if __name__=='__main__':
