@@ -105,7 +105,7 @@ http {
         tls_config=tls_config.replace('listen 443 ssl;',f'listen 127.0.0.1:{tls} ssl;').replace('listen [::]:443 ssl;','')
         tls_config=tls_config.replace(':3330',f':{up}')
         if not live_backends:tls_config=tls_config.replace(':3331',f':{missing_api}').replace(':3332',f':{missing_api}')
-        tls_config=tls_config.replace('/etc/letsencrypt/live/moneysation.site/fullchain.pem','/etc/money-station/test-cert.pem').replace('/etc/letsencrypt/live/moneysation.site/privkey.pem','/etc/money-station/test-key.pem')
+        tls_config=tls_config.replace('/etc/letsencrypt/money-station/live/moneysation.site/fullchain.pem','/etc/money-station/test-cert.pem').replace('/etc/letsencrypt/money-station/live/moneysation.site/privkey.pem','/etc/money-station/test-key.pem')
         for label in ['money-station.access.log','money-station.error.log','money-station-api.error.log']:
             tls_config=tls_config.replace('/var/log/nginx/'+label,'/dev/stderr')
         (work/'tls.conf').write_text(tls_config)

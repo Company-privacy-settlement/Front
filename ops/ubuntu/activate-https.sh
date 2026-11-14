@@ -35,7 +35,25 @@ try:
         except Exception:raise SystemExit('The public ACME probe did not reach this server for '+domain+'. No certificate was requested.')
 finally:p.unlink(missing_ok=True)
 PY
-certbot certonly --webroot -w "$webroot" --cert-name moneysation.site \
+# Use a service-owned ACME account/store instead of selecting unrelated host accounts.
+python3 - <<'PY'
+from pathlib import Path
+for name in ['/etc/letsencrypt/money-station','/var/lib/money-station-acme','/var/log/money-station-acme']:
+    p=Path(name)
+    if p.is_symlink() or (p.exists() and (not p.is_dir() or p.stat().st_uid!=0 or p.stat().st_mode&0o022)):
+        raise SystemExit('Unprotected ACME directory: '+name)
+    p.mkdir(parents=True,exist_ok=True,mode=0o700)
+PY
+for unit in money-station-cert-renew.service money-station-cert-renew.timer; do
+  if [[ -e /etc/systemd/system/$unit || -L /etc/systemd/system/$unit ]]; then
+    if [[ -L /etc/systemd/system/$unit ]] || ! head -1 "/etc/systemd/system/$unit" | grep -q '^# Managed by Money Station$'; then
+      echo "Refusing to replace an unmanaged renewal unit: $unit" >&2; exit 1
+    fi
+  fi
+done
+certbot certonly --config-dir /etc/letsencrypt/money-station \
+  --work-dir /var/lib/money-station-acme --logs-dir /var/log/money-station-acme \
+  --webroot -w "$webroot" --cert-name moneysation.site \
   -d moneysation.site -d api.moneysation.site --non-interactive --agree-tos \
   --register-unsafely-without-email --keep-until-expiring \
   --deploy-hook '/usr/sbin/nginx -t && /bin/systemctl reload nginx'
@@ -60,5 +78,10 @@ systemctl reload nginx
 python3 "$script_dir/verify.py" --origin https://moneysation.site --wait-seconds 10
 curl --noproxy '*' --fail --silent --show-error --max-time 20 -o /dev/null https://api.moneysation.site/readyz
 curl --noproxy '*' --fail --silent --show-error --max-time 20 -o /dev/null https://api.moneysation.site/readyz/organizations
+systemd-analyze verify "$script_dir/money-station-cert-renew.service" "$script_dir/money-station-cert-renew.timer"
+install -m 0644 "$script_dir/money-station-cert-renew.service" /etc/systemd/system/money-station-cert-renew.service
+install -m 0644 "$script_dir/money-station-cert-renew.timer" /etc/systemd/system/money-station-cert-renew.timer
+systemctl daemon-reload
+systemctl enable --now money-station-cert-renew.timer
 echo 'Both domain certificates and the frontend HTTPS route are active.'
 echo 'Settlement/indexer and organization readiness passed over HTTPS. Payment wallets and external providers require separate qualification.'

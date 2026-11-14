@@ -1,0 +1,10 @@
+# Managed by Money Station
+[Unit]
+Description=Renew Money Station HTTPS certificates
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/usr/bin/certbot renew --config-dir /etc/letsencrypt/money-station --work-dir /var/lib/money-station-acme --logs-dir /var/log/money-station-acme --non-interactive --quiet --deploy-hook "/usr/sbin/nginx -t && /bin/systemctl reload nginx"
