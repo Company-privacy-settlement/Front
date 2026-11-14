@@ -1,125 +1,82 @@
-# Core Front — business payments on NEAR
+# Core Front — invoices, proofs and business workflows
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md)
 
-English-first landing, documentation and wallet tools for Core, a development protocol for private business-to-business and business-to-worker settlement. Built with Next.js; contracts, proving and server/index code remain in separate repositories.
+Private business settlement on NEAR: independent vaults hold principal, shared zero-knowledge notes authorize payouts, and selective evidence supports reconciliation.
 
-[Service overview](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md) · [Web Docs](https://core-private-settlement-0574c4.jiheon6768.chatgpt.site/docs/) · [Development roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)
+Front is the Next.js landing, documentation and application repository.
 
-The synchronized SDK exposes `OrganizationInvoiceClient` for organization-scoped encrypted invoice storage and idempotent save/list/get requests. The roles table and English Docs describe invoice access and key provisioning. The current local invoice form/library does not automatically sync to this API. [Core API guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_INVOICES.md).
+## The idea
 
-Organization → Invoice payments now provides complete-snapshot invoice search, state/asset/group/date filters, CSV/JSON export, explicit signed-JSON import and finalized-index reconciliation. Trusted policy/API selection is required; unchecked, unavailable, stale and incomplete observations stay explicit. [Dashboard guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PAYMENT_DASHBOARD.md).
+Businesses need to pay suppliers, employees and contractors without putting invoice terms and business records on-chain. Core combines signed payment requests, local proofs and reviewable evidence while keeping custody distributed across vaults.
 
-Organization → Webhooks manages signed finalized-payment callbacks, secret rotation, delivery attempts, failures and versioned dead-letter/recovery retries. Owners/Admins manage; Operators/Auditors read; Viewers cannot load webhook data. Secrets remain transient in the browser. [Worker and receiver configuration](https://github.com/Company-privacy-settlement/Core/blob/main/docs/WEBHOOKS.md).
+[Hackathon guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/HACKATHON.md) · [Web Docs](https://core-private-settlement-0574c4.jiheon6768.chatgpt.site/docs/) · [Core](https://github.com/Company-privacy-settlement/Core) · [Contract](https://github.com/Company-privacy-settlement/Contract) · [Front](https://github.com/Company-privacy-settlement/Front)
 
-Organization → Payouts manages worker/contractor runs, recipient-specific approval/fee review, a shared encrypted journal, individual original-destination recovery and observational settlement exports. Import an independently trusted testnet FT policy/API and a public manifest with distinct funded notes. [Payout guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PAYOUT_BATCHES.md).
+## Watch the demo
 
-## Workspaces
+[![Core — English narrated hackathon demo](docs/assets/hackathon-demo-poster.png)](https://github.com/Company-privacy-settlement/Front/blob/main/public/media/core-hackathon-demo-en.mp4)
 
-| Route | Current behavior |
+[Watch English MP4](https://github.com/Company-privacy-settlement/Front/blob/main/public/media/core-hackathon-demo-en.mp4) · [Captions, transcript & chapters](https://github.com/Company-privacy-settlement/Front/blob/main/docs/HACKATHON_DEMO.md) · [Hosted video player](https://core-private-settlement-0574c4.jiheon6768.chatgpt.site/media/)
+
+English narration, captions and actual application screens. Browser segments use labelled wallet/API fixtures and real local proof generation. A separate section shows the recorded native NEAR public-testnet run.
+
+Repository and Site access follow their existing permissions. Demo media is stored in Front; reviewers need Front access, or the downloadable video bundle. No sharing permissions are changed by this submission.
+
+## What is built
+
+| Capability | Implementation |
 | --- | --- |
-| `/` | Service landing and documentation entry |
-| `/docs/` | Ten English guides: setup, architecture, fees, invoices, groups, privacy, KYB, SDK/API, recovery and organizations |
-| `/live/` | Independently configured testnet FT settlements, reviewed wallet calls, encrypted journal and public indexed activity |
-| `/notes/` | Local FT note creation, encrypted backup/reopen, optional disclosure-root import and public deposit-plan preparation |
-| `/invoices/` | Recipient-signed NEP-413 requests with per-unit references; optional encrypted local invoice library |
-| `/pay/#invoice=…` | Signed checkout, recipient readiness, exact withdrawal-plan binding and finalized invoice reconciliation |
-| `/evidence/` | Private receipts, encrypted backups, selected-field proofs and integrity checks against an independently supplied root |
-| `/kyb/` | Six-page sample intake: overview, business, people/ownership, documents, review and status |
-| `/organization/` | Wallet-authenticated organizations, members, invitations, fixed roles, ownership and audit history through the separate Organization API |
-| `/app/` | Legacy routes redirect to the relevant Docs guide |
+| Invoices → checkout | Signed request → encrypted note → local proof → amount/fee review → wallet calls → confirmation. |
+| Private workspaces | Notes, proof verification/cancellation, selected evidence and encrypted local journals. |
+| Organization | Members/roles, invoice dashboard, payment approval, payouts, webhooks and verification workflows. |
+| Tax drafts | Source-bound outlines, optional configured AI planning, immutable revisions and independent review. |
+| Documentation | English-first landing and ten web guides; English/Korean/Simplified Chinese READMEs. |
 
-The site and web Docs default to English. READMEs also support Korean and Simplified Chinese. Landing, Docs and app share black, white and green styling, contained mobile layouts and independently scrolling content. `src/lib/docs.ts` is the web-guide source.
+## Run locally
 
-**Local proofs** (`/prove/`) generates FT withdrawal proofs in a disposable local worker, checks independent artifact hashes and policy verifier bytes, supports cancellation and verifies downloaded proof files. [Setup and trust model](https://github.com/Company-privacy-settlement/Core/blob/main/docs/BROWSER_PROVER.md). [Connected invoice checkout](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICE_PAYMENTS.md) supports original-group encrypted note selection → local proof → amount/fee review → separate wallet approvals → finalized confirmation, with selected-unit binding, cancellation, fresh merchant/status gates and conservative recovery.
+Node.js 22.16+. The app builds without sibling checkouts or API keys. The static export is `out/`. Browser settlement needs an independently trusted FT policy plus separately configured Core/Organization APIs; the native evidence policy is not a USDC browser policy.
 
-## Run and validate
-
-Requires Node.js 22 or later.
-
-```sh
+```bash
 npm ci
 npm run dev
-```
-
-```sh
+# Production export and checks
 npm run check
 npm test
 npm run build
-npx playwright install chromium
-npm run test:e2e
 ```
 
-The static export is `out/`. Build verifies the vendored Core browser bundle/declarations against their SHA-256 manifest and requires no sibling checkout or API keys. After changing Core: run `npm run build:client` in Core, then `npm run sync:core` here. Tests cover Docs, mobile containment, invoices, recipient readiness, evidence, notes, wallet recovery, journals and sample KYB. The full browser run on 2026-11-13 passed 164 desktop/mobile cases with actual proving artifacts; see Core’s [roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md) for validation scope.
+Routes: `/docs/`, `/invoices/`, `/pay/`, `/notes/`, `/prove/`, `/evidence/`, `/organization/`, `/rules/`, `/kyb/`, `/live/`. Demo media is under `public/media/`; fixture recording tools are under `scripts/demo/` and are excluded from the application runtime.
 
-## Organizations and access
+## Real testnet evidence
 
-Open Organization, supply the independently hosted Organization API origin, and sign in with a NEP-413-capable testnet wallet. Choose/create an organization, invite a wallet account, accept invitations, manage permitted member roles and read the audit log. Tokens stay in memory and clear on page-hide/origin change. Owner/Admin/Operator/Viewer/Auditor permissions are enforced by the server, separate from wallet signing, KYB and the hosted Site audience. The backend needs its own deployment; no public organization service is bundled. [Setup and boundaries](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md).
+**14 actual public-testnet transactions reached FINAL** on 2026-11-14: deploy/seal, two 0.1 NEAR deposits, payouts and an actual missing-recipient failure recovered to the original destination. Both recipients received the full 0.1 NEAR; retry charged no second protocol fee. Registry and both vaults were keyless. A separate read-only verifier checked receipts, signatures, historical before/after balances and 0.0006 NEAR collected protocol fees.
 
-[Organization backup and recovery](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_BACKUPS.md) captures consistent online snapshots, discards sessions/challenges and restores into quarantine. A separately approved current-access file is required before activation into a new database; historical owners, roles and pending invitations are never automatically restored as authority.
+[Testnet run and transaction links](https://github.com/Company-privacy-settlement/Core/blob/main/docs/TESTNET_WALLET.md) · [Public evidence](https://github.com/Company-privacy-settlement/Core/blob/main/docs/evidence/testnet-wallet-2026-11-14.json)
 
-[Corporate payment approval](https://github.com/Company-privacy-settlement/Core/blob/main/docs/CORPORATE_PAYMENTS.md) separates the creator from another Owner/Admin approver and freezes the payment, additive 0.15% fee and reviewed prerequisite calls. The supported wallet flow rechecks current membership and approval before reserving each exact call once. This is an organization API/SDK/app policy; the existing contracts retain permissionless fixed-destination proof execution.
+Latest recorded engineering gate: **513 Core tests** passed, with SDK/type builds and compiled service restart/backup/recovery. Browser fixtures and public native execution are separate evidence categories.
 
-## Integrated CI
+## Architecture and fees
 
-Pushes and PRs call Core's commit-pinned pipeline with this Front event SHA. It checks types/units/static build, all desktop/mobile browsers, vendoring against rebuilt Core files and sources, and the pinned Contract with actual WASM/Groth16 and development-release verification. CI starts a fresh loopback server; `CORE_E2E_PORT` selects another local test port. Private siblings need read-only checkout credentials and Core reusable-workflow access. [Pins, evidence and setup](https://github.com/Company-privacy-settlement/Core/blob/main/docs/CI.md). Site access and publication are unchanged.
+```mermaid
+flowchart LR
+    P["Payer"] --> A["Independent vault A"]
+    P --> B["Independent vault B"]
+    A -. "shared commitments / nullifiers" .-> Z["NEAR ZK registry"]
+    B -. "shared commitments / nullifiers" .-> Z
+    Z -. "authorize one funded payout" .-> B
+    B --> R["Recipient: full principal"]
+```
 
-## Configure a settlement
+Deposit and withdrawal each add **0.15%**. The recipient receives the full principal. NEAR action storage, registration, activation and network gas are separate.
 
-1. Run the matching Core read-only API and finalized index. Obtain the trusted deployment policy independently of the API; check network, registry, token, denomination, treasury and verifier/WASM hashes. Import that policy or an approved group directory in Settlements.
-2. Enter each group’s API origin and inspect verified capacity. A hosted frontend requires a reachable HTTPS API whose CORS allowlist includes the exact frontend origin. No funded public testnet group is bundled.
-3. Connect a compatible NEAR testnet wallet. Create/unlock the local encrypted operation journal; group selection locks while the journal is open.
-4. Create an FT note in Notes, download its encrypted backup and reopen it before preparing a public deposit plan. Import the plan in Settlements and review each registration, storage, transfer and gas approval.
-5. In signed checkout, select a payment unit and open an original-group encrypted note. Import trusted proving files and an independent artifact-manifest hash, then generate the proof locally. Review full principal, the additive 0.15% withdrawal fee and separate NEAR costs. Approve each prerequisite/payment and observe finalized confirmation. Local proofs and CLI/public-plan import remain alternatives.
+The ZK statement hides which input note is spent. Signers, recipients, timing, fixed amounts, vaults and funding edges remain public. This single-payer run does not establish effective anonymity. There is no cover-traffic scheduler; a group currently supports 256 total outputs.
 
-Groups use fixed denominations and **256 total outputs**. Deposits and private transfers consume outputs; withdrawing does not restore capacity. Full or retired groups allow original-group recovery, not new deposits. Native NEAR v2 is available through Contract/Core CLI; browser execution currently supports testnet FT groups.
+## Scope and next steps
 
-## Payments, invoices and evidence
+**Hackathon / development prototype.** The setup is `UNSAFE_LOCAL_DEVELOPMENT_ONLY`. Public-testnet qualification covers native NEAR with a local Ed25519 software wallet. Real browser-wallet/USDC execution, hosted API HTTPS acceptance, observed remote Actions success and production security review remain open.
 
-Deposit and withdrawal each add **0.15%** of principal, rounded down in token atomic units. For a 1 USDC denomination: deposit 1.0015 USDC, pay a separate 0.0015 USDC withdrawal fee, and deliver the full 1 USDC. NEAR storage, account activation, token registration and gas are separate. [Fee details](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md#fees).
+Next priorities: noncustodial relaying, optional randomized delay/batching, privacy measurements, then budgeted cover-traffic experiments. Live KYB/AI providers, professional rule approval and statutory filing require separate qualification.
 
-New invoice terms v2 use a distinct signed reference per payment unit; v1 remains readable. Checkout checks current merchant FullAccess ownership, independent policy, recipient readiness, exact proof destination and indexed partial/paid/late/overpaid totals. Expiry, unit caps and reference reuse are application checks, not contract reservations. Concurrent payments can overpay. A wallet approval or redirect does not prove payment.
+## Explore the project
 
-Signed terms remain client-held in JSON or a URL fragment visible to link holders. The optional invoice library encrypts local merchant/network namespaces and supports backup, restore and immutable-request merge. There is no server terms inbox, webhook, automatic refund or fiat conversion. Hosted access remains owner-private, including shared checkout links.
-
-Evidence receipts prove selected-field integrity against a separately trusted root; they do not establish truthful declarations, payment finality, identity or tax acceptance. Notes import only a verified disclosure root for public deposit planning. **An arbitrary receipt root cannot replace an invoice’s signed per-unit payment reference.** Combined invoice/business evidence needs a separately designed commitment format. [Evidence guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/BROWSER_RECEIPTS.md).
-
-## Data ownership and recovery
-
-Notes and full receipts remain in memory and downloaded encrypted files, not persistent browser storage. Journals and the optional invoice library use separate encrypted browser stores. Export backups before clearing browser data; there is no passphrase recovery. A journal is not a note backup.
-
-Private workspaces lock on page-hide and history-cache return, clearing private views and cancelling pending work. An already-open wallet request cannot be undone. A saved signing intent blocks resubmission until explicit reconciliation with the original transaction or bound finalized state; no automatic resend occurs. Cross-tab exclusion protects updates.
-
-## Business verification and limits
-
-The `/kyb/` route collects sample intake for the US, Abu Dhabi mainland or ADGM. Drafts are held in memory and cleared on reload or leaving the KYB layout. File contents are not read or uploaded. Exported preparation states `verified: false`, `credentialIssued: false`, `providerSubmission: not_sent`. No live provider review or payment eligibility is issued. Rules and Tax drafts now provide limited source-bound preparation separately from this sample KYB intake; full jurisdiction advice and filings remain external.
-
-Independent vaults hold principal; shared notes authorize a direct payout from one funded vault. Funds do not hop through a sequence of vaults. Public signers, recipients, amounts, timing, vaults and references can correlate activity; more vaults alone do not guarantee anonymity. The protocol and single-machine development setup have no production audit. See [privacy](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PRIVACY.md) and [service boundaries](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md#current-boundaries).
-
-## Repositories
-
-- [Core](https://github.com/Company-privacy-settlement/Core): browser/Node SDK, proving CLI, read-only API, index and evidence.
-- [Contract](https://github.com/Company-privacy-settlement/Contract): contracts, circuit, vectors and WASM builds.
-- [Front](https://github.com/Company-privacy-settlement/Front): landing, Docs and wallet interfaces.
-
-There are no external analytics or remote-font requests. Wallet connection loads NEAR Connect’s manifest/provider interfaces on demand.
-
-Payment dashboard validation on **2026-11-14**: **355 Core tests** and **182 desktop/mobile browser cases** passed, including 13 new Core and 18 browser dashboard cases; type checks, Node/browser SDK builds and the static Front build passed. Browser service/wallet fixtures do not establish a live public-network deployment.
-
-Signed webhook validation on **2026-11-14**: **379 Core tests** and **194 desktop/mobile browser cases** passed, including 24 new Core and 12 browser webhook cases. Node/browser SDK, static build and compiled service/recovery checks passed. Tests use local index/wallet/transport fixtures; no real merchant callback or public backend deployment was performed.
-
-Worker/contractor payout validation on **2026-11-14**: **401 Core tests** and **210 desktop/mobile browser cases** passed, including 22 new Core and 16 browser payout cases. Type checks, Node/browser SDK and static Front builds, compiled service restart/backup/recovery and documentation checks passed. Browser wallets, RPC and organization services are local fixtures; these results do not qualify funded public-network payroll or real mobile wallets.
-
-[Sumsub KYB/KYC integration](https://github.com/Company-privacy-settlement/Core/blob/main/docs/VERIFICATION.md) is available in Organization → Verification: company/beneficial-owner review, secure supplemental submissions, encrypted minimal snapshots, authenticated invalidation and fixed review-date expiry/revocation. Activation needs an operator-contracted account, configured levels and HTTPS callbacks; development exercised provider fixtures, not real entities. The separate `/kyb/` sample stays unsubmitted.
-
-KYB/KYC connector validation on **2026-11-14**: **428 Core tests** and **224 desktop/mobile browser cases** passed, including 27 new Core and 14 provider-workflow browser cases. Types, Node/browser SDK and static Front builds, compiled service restart/backup/recovery, documentation and SDK synchronization passed. Tests use local provider/RPC/wallet fixtures; no real Sumsub account, entity/person decision, live callback or public backend was qualified.
-
-[US/Abu Dhabi rules](https://github.com/Company-privacy-settlement/Core/blob/main/docs/RULES.md) provide seven source-checked component candidates selected by jurisdiction, employee/contractor/B2B relationship and applicable date. The local browser/CLI engine records exact arithmetic and official sources; reviewed use requires an independently pinned Ed25519 reviewer approval. No professional approval, complete tax liability, automatic withholding or filing is bundled.
-
-Rule-engine validation on **2026-11-14**: **459 Core tests** and **240 desktop/mobile browser cases** passed, including 31 new Core and 16 rule-workspace browser cases. Types, Node/browser SDK and static Front builds, compiled CLI export/reverification, service restart/backup/recovery and source/documentation checks passed. Reviewer keys are test fixtures; no professional tax/legal rule approval, taxpayer assessment, automatic withholding or filing was performed.
-
-[AI tax/procedure preparation](https://github.com/Company-privacy-settlement/Core/blob/main/docs/TAX_DRAFTS.md) is available in Organization → Tax drafts: source-cited verified rule calculations and exact selected-receipt bindings, encrypted organization storage, independent review, immutable revisions, withdrawal and JSON/Markdown exports. Optional AI only arranges verified statement IDs without sending figures or evidence to the model; deterministic outlines are explicitly separate. Real AI activation needs a private provider key/model; accepted review needs the operator-pinned signed rule policy. No professional rule approval, autonomous legal advice, statutory filing or payment authorization is bundled.
-
-Draft-focused verification on **2026-11-14** passed **488 Core tests** (29 new draft cases), **256 desktop/mobile browser cases** (16 draft cases), three Front unit tests, type checks, Node/browser SDK and static builds, compiled service/backup/recovery checks and documentation/source-inventory checks. AI transport and reviewer signatures use controlled fixtures; no live model request, professional rule approval or statutory filing was performed.
-
-[Native NEAR public-testnet wallet qualification](https://github.com/Company-privacy-settlement/Core/blob/main/docs/TESTNET_WALLET.md) on **2026-11-14** finalized **14 real transactions**: keyless registry/vault deployment, two 0.1 NEAR deposits, a payout from a different vault and actual missing-recipient recovery with the same nullifier/destination and no second protocol fee. Public signatures, canonical snapshot, principal balances and 0.0006 NEAR collected fees were re-read by a separate read-only verifier; **513 Core tests**, SDK/types and compiled runtime/recovery gates passed. This is a local-key native software-wallet development run. Browser wallet/USDC, hosted HTTPS, remote Actions success and effective anonymity are not qualified. No cover-traffic scheduler is implemented; the single public payer remains correlated. Public policy, transaction links and read-only verification are in the guide; keys and note witnesses are excluded.
+[Service](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md) · [Privacy](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PRIVACY.md) · [Invoices](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICE_PAYMENTS.md) · [Organizations](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md) · [Tax drafts](https://github.com/Company-privacy-settlement/Core/blob/main/docs/TAX_DRAFTS.md) · [Deployment](https://github.com/Company-privacy-settlement/Core/blob/main/docs/DEPLOYMENT.md) · [Hosting](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PRODUCTION_HOSTING.md) · [CI](https://github.com/Company-privacy-settlement/Core/blob/main/docs/CI.md) · [Roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)

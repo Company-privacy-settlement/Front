@@ -1,125 +1,82 @@
-# Core Front — NEAR 企业支付
+# Core Front — invoices, proofs and business workflows
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md)
 
-Core 的落地页、文档与钱包工具，使用 Next.js 构建。Core 是支持企业间及企业向员工转账的隐私结算开发协议。合约、证明生成、服务器及索引器分别保存在其他仓库。
+基于 NEAR 的企业隐私结算：独立金库持有本金，共享零知识票据授权付款，选择披露证据用于对账。
 
-[服务概览](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md) · [网页 Docs](https://core-private-settlement-0574c4.jiheon6768.chatgpt.site/docs/) · [开发路线图](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)
+Front 仓库提供 Next.js 落地页、文档及应用。
 
-同步 SDK 的 `OrganizationInvoiceClient` 支持按组织加密保存和查询发票及幂等创建。权限表与英文 Docs 已说明发票权限和密钥配置。现有本地发票表单与库不会自动同步到此 API。[Core API 指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_INVOICES.md)。
+## 项目简介
 
-Organization → Invoice payments 提供完整组织发票快照搜索、状态/资产/组/日期筛选、CSV/JSON 导出、签名 JSON 保存与最终化索引对账。须独立选择可信策略/API，未检查、失败、过期和不完整观察明确显示。[仪表板指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PAYMENT_DASHBOARD.md)。
+企业需要向供应商、员工和承包商付款，同时避免将发票条款及业务文档公开上链。Core 结合收款人签名请求、本地证明和可审核证据，并将本金分布在独立金库中。
 
-Organization → Webhooks 管理最终付款回调、签名密钥轮换、尝试/失败历史与版本化重试。Owner/Admin 管理，Operator/Auditor 读取，Viewer 无权加载。浏览器不持久保存签名秘密。[工作器和接收端配置](https://github.com/Company-privacy-settlement/Core/blob/main/docs/WEBHOOKS.md)。
+[Hackathon guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/HACKATHON.md) · [Web Docs](https://core-private-settlement-0574c4.jiheon6768.chatgpt.site/docs/) · [Core](https://github.com/Company-privacy-settlement/Core) · [Contract](https://github.com/Company-privacy-settlement/Contract) · [Front](https://github.com/Company-privacy-settlement/Front)
 
-Organization → Payouts 管理员工/承包商付款批次、逐收款人审批和费用、共享加密日志、原目标单独恢复及观察性对账导出。须独立导入可信测试网 FT 策略/API 与不同已充值票据的公开清单。[付款指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PAYOUT_BATCHES.md)。
+## 观看演示
 
-## 工作区
+[![Core — English narrated hackathon demo](docs/assets/hackathon-demo-poster.png)](https://github.com/Company-privacy-settlement/Front/blob/main/public/media/core-hackathon-demo-en.mp4)
 
-| 路径 | 当前功能 |
+[Watch English MP4](https://github.com/Company-privacy-settlement/Front/blob/main/public/media/core-hackathon-demo-en.mp4) · [Captions, transcript & chapters](https://github.com/Company-privacy-settlement/Front/blob/main/docs/HACKATHON_DEMO.md) · [Hosted video player](https://core-private-settlement-0574c4.jiheon6768.chatgpt.site/media/)
+
+提供英文旁白、字幕及真实应用画面。浏览器片段标明钱包/API 测试环境，并生成真实本地证明。独立章节展示已记录的原生 NEAR 公开测试网验证。
+
+仓库与站点保留现有访问权限。视频位于 Front；评审需要 Front 权限或下载的视频包。本次提交准备不改变共享范围。
+
+## 已实现功能
+
+| 能力 | 实现 |
 | --- | --- |
-| `/` | 服务落地页与文档入口 |
-| `/docs/` | 十篇英文指南：入门、架构、费用、发票、分组、隐私、KYB、SDK/API、恢复和组织 |
-| `/live/` | 独立配置的测试网 FT 结算、逐项钱包审核、加密日志与公开索引活动 |
-| `/notes/` | 本地 FT 票据生成、加密备份及重新打开、可选披露根导入与公开存款计划 |
-| `/invoices/` | 收款人 NEP-413 签名请求、每支付单位独立引用、可选本地加密发票库 |
-| `/pay/#invoice=…` | 签名结账、收款人准备检查、精确提款计划绑定与最终结算对账 |
-| `/evidence/` | 私密收据、加密备份、选定字段证明与独立可信根的完整性检查 |
-| `/kyb/` | 六步示例流程：概览、企业、人员/所有权、文件、审核、状态 |
-| `/organization/` | 通过独立 Organization API 管理组织、成员、邀请、角色、所有权和审计历史 |
-| `/app/` | 旧路径重定向至对应 Docs |
+| 发票→付款 | 签名请求→加密票据→本地证明→金额/费用审核→钱包调用→确认。 |
+| 隐私工作区 | 票据、证明验证/取消、选择证据和加密本地日志。 |
+| 组织 | 成员/角色、发票看板、付款审批、批量付款、webhook 与审核流程。 |
+| 税务草稿 | 来源绑定提纲、可选 AI 计划、不可变修订及独立审核。 |
+| 文档 | 英文优先落地页和十份网页指南，英/韩/简中 README。 |
 
-网站与网页 Docs 默认使用英文，README 同时提供韩文与简体中文。落地页、Docs 与应用共享黑白绿色调、移动端横向约束与内部滚动。网页指南源文件为 `src/lib/docs.ts`。
+## 本地运行
 
-**Local proofs** (`/prove/`) 在本地 worker 中生成 FT 提现证明，检查独立材料哈希与策略验证密钥字节，支持取消及下载证明文件验证。[配置与信任模型](https://github.com/Company-privacy-settlement/Core/blob/main/docs/BROWSER_PROVER.md)。[发票结账](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICE_PAYMENTS.md)支持原分组加密票据选择 → 本地证明 → 金额与费用确认 → 逐项钱包授权 → 最终付款确认，并提供所选单位绑定、取消、签名前商户密钥/状态复查与保守恢复。
+需要 Node.js 22.16+，无需兄弟仓库或 API 密钥即可构建，静态输出为 `out/`。浏览器结算需要独立信任的 FT 策略和另行配置的 Core/组织 API；原生证据策略不能作为 USDC 浏览器策略。
 
-## 运行与验证
-
-需要 Node.js 22 或更新版本。
-
-```sh
+```bash
 npm ci
 npm run dev
-```
-
-```sh
+# Production export and checks
 npm run check
 npm test
 npm run build
-npx playwright install chromium
-npm run test:e2e
 ```
 
-静态输出位于 `out/`。构建会校验内置 Core 浏览器包与类型声明的 SHA-256 清单，无需相邻仓库或 API 密钥。更新 Core 后，先在 Core 执行 `npm run build:client`，再在此执行 `npm run sync:core`。测试覆盖 Docs、移动端布局、发票、收款人准备、证据、票据、钱包恢复、日志及示例 KYB。2026-11-13 完整浏览器运行通过 164 个桌面/移动用例，并使用实际证明材料，详见 [验证范围](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)。
+Routes: `/docs/`, `/invoices/`, `/pay/`, `/notes/`, `/prove/`, `/evidence/`, `/organization/`, `/rules/`, `/kyb/`, `/live/`. Demo media is under `public/media/`; fixture recording tools are under `scripts/demo/` and are excluded from the application runtime.
 
-## 组织与访问权限
+## 真实测试网证据
 
-在 Organization 输入独立部署的 Organization API 来源，使用支持 NEP-413 的测试网钱包登录。可创建/选择组织、定向邀请及接受、管理允许的成员角色和查看审计记录。令牌仅在内存中，页面隐藏或 API 来源变化即清除。Owner/Admin/Operator/Viewer/Auditor 权限由服务端检查，与钱包签名、KYB 和托管网站访问范围分开。后端需要独立部署，不内置公开企业服务器。[配置及边界](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md)。
+2026-11-14 确认 **14 笔真实公开测试网交易达到 FINAL**：部署/移除密钥、两笔 0.1 NEAR 入金、付款，以及收款账户不存在后向原目的地恢复。两名收款人均收到完整 0.1 NEAR，重试无第二次协议费。注册表与两个金库均无访问密钥；独立只读验证程序重新查询收据、签名、历史前后余额及合计 0.0006 NEAR 协议费。
 
-[组织数据备份与恢复](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATION_BACKUPS.md)提供一致在线快照、会话/挑战废弃及隔离恢复。必须使用单独审核的当前权限文件才能激活到新的运行数据库；历史所有者、角色和待处理邀请不会自动恢复为权限。
+[Testnet run and transaction links](https://github.com/Company-privacy-settlement/Core/blob/main/docs/TESTNET_WALLET.md) · [Public evidence](https://github.com/Company-privacy-settlement/Core/blob/main/docs/evidence/testnet-wallet-2026-11-14.json)
 
-[企业付款审批](https://github.com/Company-privacy-settlement/Core/blob/main/docs/CORPORATE_PAYMENTS.md)分离创建者与另一位 Owner/Admin 审批者，固定付款、额外 0.15% 费用及前置调用。支持的钱包流程在执行前复查当前成员权限与审批，并将每个准确调用仅保留一次。这属于组织 API/SDK/应用策略；现有合约继续支持无许可的固定收款人证明执行。
+最近记录的工程验证为 **513 项 Core 测试**、SDK/类型构建及编译服务重启/备份/恢复。浏览器测试环境与公开原生实交易证据分别记录。
 
-## 集成 CI
+## 架构与费用
 
-推送和 PR 将当前 Front 提交传入固定 Core 流水线，验证类型/单元/静态构建/全部桌面与移动浏览器、与重建 Core 文件及源清单的 SDK 一致性、固定 Contract 的实际 WASM/Groth16 和开发发布包。CI 启动全新本地服务器；`CORE_E2E_PORT` 可指定测试端口。私有仓库需要只读检出凭据和 Core 复用工作流访问设置。[版本、证据及配置](https://github.com/Company-privacy-settlement/Core/blob/main/docs/CI.md)。不会改变网站访问范围或发布网站。
+```mermaid
+flowchart LR
+    P["Payer"] --> A["Independent vault A"]
+    P --> B["Independent vault B"]
+    A -. "shared commitments / nullifiers" .-> Z["NEAR ZK registry"]
+    B -. "shared commitments / nullifiers" .-> Z
+    Z -. "authorize one funded payout" .-> B
+    B --> R["Recipient: full principal"]
+```
 
-## 配置结算
+入金与出金各在本金之外加收 **0.15%**。收款人收到完整本金。NEAR 操作存储、代币注册、账户激活及网络 gas 单独计算。
 
-1. 运行匹配的 Core 只读 API 与最终化索引。从 API 之外独立获取可信部署策略，核对网络、注册表、代币、面额、费用接收方和验证密钥/WASM 哈希；在 Settlements 导入策略或已批准分组目录。
-2. 设置各分组 API 地址并检查已验证容量。托管前端需要可访问的 HTTPS API，并在 CORS 中允许准确的前端来源。不附带已注资的公开测试网分组。
-3. 连接兼容的 NEAR 测试网钱包，创建或解锁本地加密操作日志；日志打开期间禁止切换分组。
-4. 在 Notes 创建 FT 票据，下载加密备份并重新打开后准备公开存款计划。导入 Settlements，逐项审核注册、存储、代币转账及 gas 调用。
-5. 在签名结账中选择付款单位与原分组加密票据，导入可信证明文件及独立材料清单哈希并生成本地证明。确认完整本金、额外 0.15% 提现费用和独立 NEAR 成本，分别授权前置操作及付款，并等待最终确认。Local proofs 与 CLI/公开计划导入仍可使用。
+ZK 隐藏使用了哪一张输入票据。签名人、收款人、时间、固定金额、金库及资金来源仍公开。单一付款人测试不证明有效匿名性。当前无 cover traffic 调度，每组总输出上限为 256。
 
-分组使用固定面额及**总计 256 个输出**。存款和私密转移消耗输出，提款不会恢复容量。已满或停用分组仅支持原分组恢复。原生 NEAR v2 通过 Contract/Core CLI 使用；浏览器目前执行测试网 FT 分组。
+## 范围与后续工作
 
-## 支付、发票与证据
+**黑客松/开发原型**，设置为 `UNSAFE_LOCAL_DEVELOPMENT_ONLY`。公开测试网验证仅覆盖本地 Ed25519 软件钱包的原生 NEAR。真实浏览器钱包/USDC、外部 API HTTPS 验收、远程 Actions 成功及生产安全审核尚待完成。
 
-存款与提款各**额外收取本金的 0.15%**，按代币最小单位向下取整。面额为 1 USDC 时存入 1.0015 USDC，另付提款费 0.0015 USDC，收款人获得完整 1 USDC。NEAR 存储、账户激活、代币注册及 gas 单独计算。[费用详情](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md#fees)。
+下一步优先非托管中继、自愿随机延迟/批处理、隐私测量，再评估有预算限制的 cover traffic。真实 KYB/AI 服务资格、专业规则批准和法定申报仍需独立验证。
 
-新 v2 发票为每个支付单位签署独立引用，仍可读取 v1。结账检查商户当前 FullAccess 密钥、独立可信策略、收款准备、准确证明目的地及索引中的部分/已付/逾期/超额总额。有效期、单位上限与引用复用是应用规则，并非合约预留。并发付款可能超额；钱包批准或跳转并不能证明支付完成。
+## 探索项目
 
-签名条款保留在客户端 JSON 或链接持有者可见的 URL 片段。可选发票库按商户/网络加密，支持备份、恢复及不可变请求合并。没有服务器发票收件箱、Webhook、自动退款或法币兑换。当前托管站点仅所有者可访问，结账链接也受此限制。
-
-证据收据仅验证选定字段相对于独立可信根的完整性，不证明陈述真实、支付最终性、身份或税务认可。Notes 仅导入已验证披露根用于公开存款准备。**任意收据根不能替换发票已签名的每单位支付引用。** 将发票与业务证据结合需要单独设计承诺格式。[证据指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/BROWSER_RECEIPTS.md)。
-
-## 数据所有权与恢复
-
-票据及完整收据位于内存和下载的加密文件中，不持久保存在浏览器。日志和可选发票库使用独立的加密浏览器存储。清除浏览器数据前请导出备份；不提供口令恢复。日志不等于票据备份。
-
-私密工作区在页面隐藏或历史缓存恢复时锁定，清空私密视图并取消待处理任务。已经打开的钱包请求无法撤销。保存的签名意图会阻止再次发送，直到显式核对原交易或绑定的最终状态；不会自动重发。跨标签页互斥保护更新。
-
-## 企业验证与边界
-
-`/kyb/` 路由为美国、阿布扎比大陆或 ADGM 的示例资料流程。草稿仅在内存中，刷新或离开 KYB 布局即清除。不会读取或上传文件内容。准备结果明确标记 `verified: false`、`credentialIssued: false`、`providerSubmission: not_sent`。没有真实服务商审核或支付资格签发。Rules 与 Tax drafts 已另行提供有限的来源绑定准备，完整法律建议与申报仍需独立集成。
-
-本金保存在独立金库，由共享票据授权一个有余额的金库直接支付，不会依次穿过多个金库。公开签名者、收款人、金额、时间、金库及引用仍可关联活动；增加金库本身不保证匿名性。协议与单机开发设置尚无生产安全审计。[隐私](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PRIVACY.md) · [服务边界](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md#current-boundaries)。
-
-## 仓库
-
-- [Core](https://github.com/Company-privacy-settlement/Core)：浏览器/Node SDK、证明 CLI、只读 API、索引与证据。
-- [Contract](https://github.com/Company-privacy-settlement/Contract)：合约、电路、向量与 WASM 构建。
-- [Front](https://github.com/Company-privacy-settlement/Front)：落地页、Docs 与钱包界面。
-
-没有外部分析或远程字体请求。钱包连接按需加载 NEAR Connect 清单及服务商接口。
-
-**2026-11-14 付款仪表板验证：**包含新增 13 项 Core 和 18 项浏览器用例的 **355 项 Core 测试**与 **182 项桌面/移动浏览器用例**通过，类型、Node/浏览器 SDK 和静态构建也通过。浏览器服务/钱包测试夹具不代表公开网络实际部署。
-
-**2026-11-14 付款 Webhook 验证：**含新增 24 项 Core 和 12 项浏览器用例的 **379 项 Core 测试**与 **194 项桌面/移动浏览器用例**通过，Node/浏览器 SDK、静态构建和编译服务恢复检查通过。使用本地索引/钱包/传输夹具，未向实际商户回调发送消息或部署公开后端。
-
-员工与承包商批量付款验证（**2026-11-14**）：**401 项 Core 测试**、**210 项桌面/移动浏览器用例**通过，其中新增 22 项 Core 和 16 项批量付款浏览器用例。类型检查、Node/浏览器 SDK、静态 Front 构建、编译服务重启/备份/恢复及文档检查均通过。钱包、RPC 和组织服务使用本地测试环境；结果不代表已验证真实资金的公网工资支付或真实移动钱包。
-
-Organization → Verification 新增 [Sumsub KYB/KYC 集成](https://github.com/Company-privacy-settlement/Core/blob/main/docs/VERIFICATION.md)，支持企业/实益所有人审核、安全补充资料、最小状态加密、签名回调及基于审核日期的到期/撤销。启用需要签约账户、审核级别和 HTTPS 回调；开发验证使用提供方测试环境模拟，未审核真实企业。独立 `/kyb/` 示例仍不提交。
-
-KYB/KYC 集成验证（**2026-11-14**）：**428 项 Core 测试**和 **224 项桌面/移动浏览器用例**通过，含新增 27 项 Core 和 14 项提供方流程浏览器用例。类型、Node/浏览器 SDK、静态 Front 构建、编译服务重启/备份/恢复、文档及 SDK 同步检查通过。使用本地提供方/RPC/钱包测试环境；未验证真实 Sumsub 账户、企业/个人审核、实际回调或公网后端。
-
-[美国/阿布扎比规则引擎](https://github.com/Company-privacy-settlement/Core/blob/main/docs/RULES.md)按辖区、员工/承包商/B2B 关系及适用日期选择 7 项已核对来源的组件候选规则，保留精确算式与官方依据。浏览器/CLI 本地运行；审核模式需要独立可信的 Ed25519 审批。未附专业审核批准、完整税额、自动预扣或申报。
-
-规则引擎验证（**2026-11-14**）：**459 项 Core 测试**和 **240 项桌面/移动浏览器用例**通过，含新增 31 项 Core 和 16 项 Rules 浏览器用例。类型、Node/浏览器 SDK、静态 Front 构建、编译 CLI 导出/复核、服务重启/备份/恢复及来源/文档检查通过。审核密钥为测试数据；未进行专业税务/法律规则批准、真实纳税人评估、自动预扣或申报。
-
-[AI 税务与程序草稿](https://github.com/Company-privacy-settlement/Core/blob/main/docs/TAX_DRAFTS.md)位于 Organization → Tax drafts：验证规则计算与选定收据值的精确绑定、带来源草稿、组织加密存储、独立审核、不可变修订、撤销及 JSON/Markdown 导出。AI 仅排列已验证语句 ID，不接收金额或证据；确定性提纲明确区分。真实 AI 启用需要私有提供商密钥与模型，有效审核需要运营方固定的签名规则策略。不附带专业规则批准、自主法律建议、法定申报或付款授权。
-
-草稿专项验证（**2026-11-14**）通过：**488 项 Core 测试**（新增草稿 29 项）、**256 项桌面/移动浏览器用例**（草稿 16 项）、3 项 Front 单元、类型检查、Node/浏览器 SDK 与静态构建、编译服务/备份/恢复及文档/来源清单检查。AI 传输与审核签名使用受控测试环境，未执行真实模型调用、专业规则批准或法定申报。
-
-[原生 NEAR 真实 testnet 钱包验证](https://github.com/Company-privacy-settlement/Core/blob/main/docs/TESTNET_WALLET.md)（**2026-11-14**）确认 **14 笔真实交易均为 FINAL**：无密钥注册表/金库、两笔 0.1 NEAR 入金、跨金库付款及收款账户不存在后的原 nullifier/目的地恢复，重试无额外协议费。重新查询公开签名、规范快照、本金与合计 0.0006 NEAR 费用；**513 项 Core 测试**、SDK/类型/编译运行时及恢复检查通过。范围为本地密钥原生软件钱包开发验证，未验证浏览器钱包、USDC、外部 HTTPS、远程 Actions 成功或有效匿名性。当前无 cover traffic 调度，单一公开付款人的关联仍存在。指南提供公开策略、交易链接和只读验证命令，不包含私钥或票据 witness。
+[Service](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md) · [Privacy](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PRIVACY.md) · [Invoices](https://github.com/Company-privacy-settlement/Core/blob/main/docs/INVOICE_PAYMENTS.md) · [Organizations](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ORGANIZATIONS.md) · [Tax drafts](https://github.com/Company-privacy-settlement/Core/blob/main/docs/TAX_DRAFTS.md) · [Deployment](https://github.com/Company-privacy-settlement/Core/blob/main/docs/DEPLOYMENT.md) · [Hosting](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PRODUCTION_HOSTING.md) · [CI](https://github.com/Company-privacy-settlement/Core/blob/main/docs/CI.md) · [Roadmap](https://github.com/Company-privacy-settlement/Core/blob/main/docs/ROADMAP.md)

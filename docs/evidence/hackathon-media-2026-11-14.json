@@ -1,0 +1,47 @@
+{
+  "format": "core-hackathon-media-check-v1",
+  "scope": "Local static media browser QA with HTTP byte ranges; this is not hosted backend, live wallet, USDC or anonymity qualification.",
+  "checkedAt": "2026-11-14T07:04:40.315Z",
+  "results": [
+    {
+      "viewport": "desktop",
+      "metadata": {
+        "duration": 179.118005,
+        "width": 1600,
+        "height": 900,
+        "error": null
+      },
+      "playbackAdvanced": true,
+      "chapterSeek": true,
+      "englishTrackLoaded": true,
+      "noHorizontalOverflow": true,
+      "downloadLinks": [
+        "core-hackathon-demo-en.mp4",
+        "core-hackathon-demo-en.srt",
+        "core-hackathon-demo-en.vtt",
+        "manifest.json"
+      ],
+      "browserErrors": []
+    },
+    {
+      "viewport": "mobile",
+      "metadata": {
+        "duration": 179.118005,
+        "width": 1600,
+        "height": 900,
+        "error": null
+      },
+      "playbackAdvanced": true,
+      "chapterSeek": true,
+      "englishTrackLoaded": true,
+      "noHorizontalOverflow": true,
+      "downloadLinks": [
+        "core-hackathon-demo-en.mp4",
+        "core-hackathon-demo-en.srt",
+        "core-hackathon-demo-en.vtt",
+        "manifest.json"
+      ],
+      "browserErrors": []
+    }
+  ]
+}

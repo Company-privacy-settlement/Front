@@ -1,0 +1,110 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:09.504
+Meet Core: private business settlement on NEAR, with evidence you choose to share.
+Built for business invoices, worker payments, and
+
+2
+00:00:09.504 --> 00:00:11.918
+contractor payouts.
+
+3
+00:00:11.918 --> 00:00:22.025
+Principal stays in independent vaults. A shared zero knowledge note authorizes a
+funded vault to pay, without naming the input note. A
+
+4
+00:00:22.025 --> 00:00:26.018
+global nullifier prevents a second spend.
+
+5
+00:00:26.018 --> 00:00:35.401
+The recipient creates a signed invoice. Checkout verifies the request, payment unit,
+merchant, and trusted group before a payer
+
+6
+00:00:35.401 --> 00:00:38.223
+selects an encrypted note.
+
+7
+00:00:38.223 --> 00:00:48.303
+Here, the browser generates a real Groth sixteen proof using verified proving files.
+Note secrets and the note password stay local.
+
+8
+00:00:48.303 --> 00:00:52.204
+Proof generation can also be cancelled.
+
+9
+00:00:52.204 --> 00:01:01.348
+Review the amount and the added fifteen basis point fee. The recipient receives the
+full principal. Storage and network gas are
+
+10
+00:01:01.348 --> 00:01:06.929
+separate, and each required wallet call is reviewed individually.
+
+11
+00:01:06.929 --> 00:01:16.861
+The payment view reconciles finalized observations. An uncertain response stays
+unresolved until checked, avoiding an automatic second
+
+12
+00:01:16.861 --> 00:01:22.949
+payment. This browser walkthrough uses a test wallet and API fixtures.
+
+13
+00:01:22.949 --> 00:01:32.084
+Teams can prepare cited tax and procedure drafts from verified rule calculations and
+selected evidence. This example uses
+
+14
+00:01:32.084 --> 00:01:38.873
+deterministic outline mode. Unsupported obligations remain visible for review.
+
+15
+00:01:38.873 --> 00:01:48.507
+Submit an immutable revision for another authorized reviewer. The author cannot
+approve their own preparation. Changes require a new
+
+16
+00:01:48.507 --> 00:01:54.005
+revision, and source or permission changes invalidate reliance.
+
+17
+00:01:54.005 --> 00:02:03.230
+Separately, the native NEAR software wallet run recorded fourteen real public testnet
+transactions. Two deposits of point one NEAR
+
+18
+00:02:03.230 --> 00:02:08.044
+reached keyless vaults, followed by successful payouts.
+
+19
+00:02:08.044 --> 00:02:17.914
+A missing recipient caused an actual failed transfer. After activating that same
+recipient, recovery kept the original nullifier,
+
+20
+00:02:17.914 --> 00:02:24.648
+vault, amount, and destination. The retry charged no second protocol fee.
+
+21
+00:02:24.648 --> 00:02:34.255
+The read only verifier rechecks receipts, signatures, code, keys, and historical
+balances. This does not establish effective
+
+22
+00:02:34.255 --> 00:02:47.122
+anonymity. Browser wallet and USDC public testnet qualification, live hosting, and
+production review remain separate.
+
+23
+00:02:47.122 --> 00:02:56.695
+Explore the three repositories, follow the quick start, and verify the published
+transaction evidence. Core: private settlement,
+
+24
+00:02:56.695 --> 00:02:59.061
+shared confidence.
