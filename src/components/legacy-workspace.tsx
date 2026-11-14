@@ -9,5 +9,5 @@ export function LegacyWorkspace() {
     const destination = view === 'vaults' ? '/docs/architecture/' : view === 'proofs' ? '/docs/privacy/' : view === 'payments' ? '/docs/payments/' : '/docs/';
     router.replace(destination);
   }, [router]);
-  return <main style={{padding:40}}><h1>Core documentation</h1><p><Link href="/docs/">Continue to the documentation</Link></p></main>;
+  return <main style={{padding:40}}><h1>Money Station documentation</h1><p><Link href="/docs/">Continue to the documentation</Link></p></main>;
 }

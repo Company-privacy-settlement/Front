@@ -1,0 +1,65 @@
+{
+  "format": "money-station-media-browser-check-v1",
+  "brand": "Money Station",
+  "scope": "Local Chromium over DNS-independent Nginx; not a live wallet or public deployment check.",
+  "results": [
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 1000,
+      "status": "passed",
+      "duration": 103.558005,
+      "seek": 65.562,
+      "englishCueCount": 26,
+      "downloads": [
+        {
+          "file": "money-station-demo-en.mp4",
+          "bytes": 3511951
+        },
+        {
+          "file": "money-station-demo-en.srt",
+          "bytes": 1973
+        },
+        {
+          "file": "money-station-demo-en.vtt",
+          "bytes": 1981
+        },
+        {
+          "file": "money-station-demo-poster.png",
+          "bytes": 497320
+        }
+      ],
+      "byteRanges": true,
+      "errors": []
+    },
+    {
+      "name": "mobile",
+      "width": 320,
+      "height": 650,
+      "status": "passed",
+      "duration": 103.558005,
+      "seek": 65.562,
+      "englishCueCount": 26,
+      "downloads": [
+        {
+          "file": "money-station-demo-en.mp4",
+          "bytes": 3511951
+        },
+        {
+          "file": "money-station-demo-en.srt",
+          "bytes": 1973
+        },
+        {
+          "file": "money-station-demo-en.vtt",
+          "bytes": 1981
+        },
+        {
+          "file": "money-station-demo-poster.png",
+          "bytes": 497320
+        }
+      ],
+      "byteRanges": true,
+      "errors": []
+    }
+  ]
+}

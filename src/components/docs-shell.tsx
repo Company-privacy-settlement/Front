@@ -16,7 +16,7 @@ function DocsNavigation() {
     <div className="docs-search"><Search size={15}/><input type="search" aria-label="Search documentation" placeholder="Search documentation" value={query} onChange={e => setQuery(e.target.value)}/>{query && <button aria-label="Clear documentation search" onClick={() => setQuery('')}><X size={14}/></button>}</div>
     <nav aria-label="Documentation">{results.map(doc => <Link href={docHref(doc.slug)} key={doc.slug} aria-current={path === docHref(doc.slug) ? 'page' : undefined}>{doc.title}<ChevronRight size={13}/></Link>)}</nav>
     {results.length === 0 && <p className="docs-no-results" role="status">No matching documentation.</p>}
-    <div className="docs-source-links"><a href="https://github.com/Company-privacy-settlement/Core" target="_blank" rel="noreferrer">Core SDK <ArrowUpRight size={13}/></a><a href="https://github.com/Company-privacy-settlement/Contract" target="_blank" rel="noreferrer">Smart contracts <ArrowUpRight size={13}/></a></div>
+    <div className="docs-source-links"><a href="https://github.com/Company-privacy-settlement/Core" target="_blank" rel="noreferrer">Protocol SDK <ArrowUpRight size={13}/></a><a href="https://github.com/Company-privacy-settlement/Contract" target="_blank" rel="noreferrer">Smart contracts <ArrowUpRight size={13}/></a></div>
   </>;
 }
 export function DocsShell({ children }: { children: ReactNode }) {

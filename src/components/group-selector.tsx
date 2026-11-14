@@ -57,7 +57,7 @@ export function GroupSelector({ disabled, onSelect, onInvalidate }: { disabled: 
   return <details className="group-picker">
     <summary>Choose from approved groups</summary>
     <div className="group-picker-content">
-      <p>Import your independently approved directory, then check each group against its own Core API. Notes keep their original group; withdrawal proofs are prepared in the CLI.</p>
+      <p>Import your independently approved directory, then check each group against its own Settlement API. Notes keep their original group; withdrawal proofs are prepared in the CLI.</p>
       <label className="live-file form-label">Approved group directory
         <input type="file" accept="application/json,.json" aria-label="Approved group directory" disabled={disabled} onChange={e => void importDirectory(e)}/>
       </label>
@@ -70,7 +70,7 @@ export function GroupSelector({ disabled, onSelect, onInvalidate }: { disabled: 
           return <section className="group-option" key={group.id} aria-label={`Approved group ${group.id}`}>
             <div className="group-option-heading"><h3>{group.id}</h3><span className={canDeposit ? 'group-state available' : 'group-state'}>{state}</span></div>
             <code className="group-registry">{group.policy.registry}</code>
-            <label className="form-label">Core API for {group.id}<input type="url" aria-label={`Core API for ${group.id}`} value={row.origin} disabled={disabled} placeholder="https://api.example.com" onChange={e => editOrigin(group.id, e.target.value)}/></label>
+            <label className="form-label">Settlement API for {group.id}<input type="url" aria-label={`Settlement API for ${group.id}`} value={row.origin} disabled={disabled} placeholder="https://api.example.com" onChange={e => editOrigin(group.id, e.target.value)}/></label>
             <button className="button button-outline" disabled={disabled || !!checking || !row.origin} onClick={() => void check(group)}>
               {pending ? <LoaderCircle size={14} className="spin"/> : capacity ? <RefreshCw size={14}/> : <Check size={14}/>}{pending ? 'Checking group…' : capacity ? `Refresh ${group.id}` : `Check ${group.id}`}
             </button>

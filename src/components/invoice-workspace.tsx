@@ -263,7 +263,7 @@ export function InvoiceWorkspace() {
           </div>
           <InvoicePreview policy={policy} merchant={merchant} recipient={recipient} title={title} reference={reference} units={units} hours={hours}/>
         </div>
-        <InvoiceLibraryPanel key={merchant || 'disconnected'} merchant={merchant} current={signed} disabled={busy} onHideOpened={hideLibraryInvoice} onOpen={s => { setSigned(s); setLink(invoiceLink(location.origin, s)); setLibraryInvoiceId(s.invoice.id); setNotice('Saved invoice opened. Use its matching Core API and refresh payment status.'); }}/>
+        <InvoiceLibraryPanel key={merchant || 'disconnected'} merchant={merchant} current={signed} disabled={busy} onHideOpened={hideLibraryInvoice} onOpen={s => { setSigned(s); setLink(invoiceLink(location.origin, s)); setLibraryInvoiceId(s.invoice.id); setNotice('Saved invoice opened. Use its matching Settlement API and refresh payment status.'); }}/>
         <section className="panel live-card saved-invoice" id="existing-invoice">
           <h2>Open an existing signed invoice</h2>
           <label className="form-label">

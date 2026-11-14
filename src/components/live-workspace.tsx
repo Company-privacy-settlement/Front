@@ -502,7 +502,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
           </div>
           <p>
             Import a public deposit plan from <Link href="/notes/">Private notes</Link> or
-            a withdrawal plan from <Link href="/prove/">Local proofs</Link> or Core’s CLI. Keep your encrypted note backup until final reconciliation.
+            a withdrawal plan from <Link href="/prove/">Local proofs</Link> or the settlement CLI. Keep your encrypted note backup until final reconciliation.
           </p>
           {invoice && verified && policy && unlocked && payer && <InvoiceNotePayment key={`${api}:${canonical(policy)}:${payer}`} signed={invoice} paymentIndex={paymentIndex} policy={policy} api={api} disabled={busy}
             progress={review?.action === 'complete' ? 'confirmed' : op?.attempts.length && ['wait','reconcile'].includes(review?.action ?? '') ? 'wallet' : review ? 'review' : 'note'}
@@ -757,7 +757,7 @@ export function LiveWorkspace({ invoice }: { invoice?: SignedInvoice } = {}) {
         )}
         <p className="small-note live-footnote">
           This journal contains public settlement metadata, not spendable
-          private notes. The read-only Core API can observe requests; its
+          private notes. The read-only Settlement API can observe requests; its
           availability and RPC responses affect status checks. Payment evidence supports professional review; verification and statutory filing are separate steps.
         </p>
     </SettlementFrame>

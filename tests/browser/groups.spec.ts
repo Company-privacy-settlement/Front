@@ -26,7 +26,7 @@ async function setup(page: Page) {
 }
 const row = (page: Page, id: string) => page.getByRole('region', { name: `Approved group ${id}`, exact: true });
 async function check(page: Page, id: string) {
-  await page.getByLabel(`Core API for ${id}`).fill(`https://${id}-api.example`);
+  await page.getByLabel(`Settlement API for ${id}`).fill(`https://${id}-api.example`);
   await row(page, id).getByRole('button', { name: `Check ${id}`, exact: true }).click();
   await expect(row(page, id).locator('.group-capacity')).toBeVisible();
 }
@@ -84,7 +84,7 @@ test('a group that fills before selection cannot apply a stale deposit snapshot'
 
 test('wrong API policies and malformed or failed refreshes invalidate selection', async ({ page }) => {
   const f = await setup(page); f.state.wrongPolicy = true;
-  await page.getByLabel('Core API for next').fill('https://next-api.example');
+  await page.getByLabel('Settlement API for next').fill('https://next-api.example');
   await row(page, 'next').getByRole('button', { name: 'Check next', exact: true }).click();
   await expect(row(page, 'next').getByRole('alert')).toContainText('policy differs');
   expect(f.requests.some(url => url.endsWith('/v1/group/capacity'))).toBe(false);
@@ -108,9 +108,9 @@ test('editing an API while a capacity lookup is pending discards its old respons
   await setup(page); let entered!: () => void, release!: () => void;
   const started = new Promise<void>(resolve => { entered = resolve; }), gate = new Promise<void>(resolve => { release = resolve; });
   await page.route('https://next-api.example/v1/group/capacity', async route => { entered(); await gate; await route.fulfill({ json: capacity(next), headers: { 'access-control-allow-origin': '*' } }).catch(() => {}); });
-  await page.getByLabel('Core API for next').fill('https://next-api.example');
+  await page.getByLabel('Settlement API for next').fill('https://next-api.example');
   await row(page, 'next').getByRole('button', { name: 'Check next', exact: true }).click(); await started;
-  await page.getByLabel('Core API for next').fill('https://replacement-api.example'); release();
+  await page.getByLabel('Settlement API for next').fill('https://replacement-api.example'); release();
   await expect(row(page, 'next').getByText('Not checked', { exact: true })).toBeVisible();
   await expect(row(page, 'next').locator('.group-capacity')).toHaveCount(0);
   await expect(row(page, 'next').getByRole('button', { name: 'Use next for deposits' })).toHaveCount(0);

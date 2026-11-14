@@ -5,15 +5,15 @@ export const docs: Doc[] = [
   {
     "slug": "",
     "title": "Getting started",
-    "description": "Use Money Station, understand the Core settlement protocol, and follow a private payment through confirmation.",
+    "description": "Use Money Station, understand the settlement protocol, and follow a private payment through confirmation.",
     "source": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md",
     "sections": [
       {
         "id": "overview",
         "title": "Private settlement on NEAR",
         "paragraphs": [
-          "Core is a development protocol for business-to-business payments and business-to-worker or contractor transfers on NEAR. Independent vaults hold principal. Shared zero-knowledge notes authorize a direct payout from one verified funded vault, with recipient-signed invoices and selected evidence for reconciliation.",
-          "The current implementation supports native NEAR shared groups and token-bound USDC/NEP-141 groups. The browser executes configured testnet FT plans. Private notes creates encrypted notes and deposit plans; invoice checkout connects an original-group note to local proof generation, fee review, wallet approval and finalized confirmation. Local proofs remains available for standalone proofs and proof-file verification. Native/private-transfer proving remains in the Core CLI."
+          "Money Station is a development protocol for business-to-business payments and business-to-worker or contractor transfers on NEAR. Independent vaults hold principal. Shared zero-knowledge notes authorize a direct payout from one verified funded vault, with recipient-signed invoices and selected evidence for reconciliation.",
+          "The current implementation supports native NEAR shared groups and token-bound USDC/NEP-141 groups. The browser executes configured testnet FT plans. Private notes creates encrypted notes and deposit plans; invoice checkout connects an original-group note to local proof generation, fee review, wallet approval and finalized confirmation. Local proofs remains available for standalone proofs and proof-file verification. Native/private-transfer proving remains in the settlement CLI."
         ]
       },
       {
@@ -22,7 +22,7 @@ export const docs: Doc[] = [
         "bullets": [
           "Obtain a deployment policy independently from your group operator. Check its network, registry, token, denomination, fee recipient, and contract/verifier hashes.",
           "Use a compatible wallet and fund the accounts required by your independently reviewed deployment. A native NEAR reference group is published under Contract addresses; browser checkout still needs a separately configured FT group and its services.",
-          "Run the matching read-only Core API and finalized index. Keep wallet keys, private notes, passwords, and business documents outside API requests.",
+          "Run the matching read-only Settlement API and finalized index. Keep wallet keys, private notes, passwords, and business documents outside API requests.",
           "Keep encrypted private-note backups and a separate encrypted browser-operation backup. The journal is not a backup of spendable notes."
         ],
         "links": [
@@ -323,7 +323,7 @@ export const docs: Doc[] = [
         "steps": [
           "Import an independently approved testnet FT policy on Private notes. Create and confirm a passphrase, then generate a note locally. No wallet or API is needed for generation.",
           "Download the encrypted note and reopen that file with its passphrase to verify the full policy and commitment. Keep the file and passphrase separately; locking or leaving requires the backup to reopen it.",
-          "Enter the matching Core API and your receipt root, or generate a fresh random reference for a deposit without evidence. Optionally choose a vault; the default scan verifies up to 20 registry records.",
+          "Enter the matching Settlement API and your receipt root, or generate a fresh random reference for a deposit without evidence. Optionally choose a vault; the default scan verifies up to 20 registry records.",
           "Prepare and inspect the public deposit plan. Download it and import it in Settlements with the same policy, then approve each registration, storage and payment call. A plan does not reserve capacity or confirm payment.",
           "Keep the encrypted note for withdrawal proving in Local proofs or the CLI. Browser note backups work directly with shared-spend-args or group-spend-args; private notes and passwords never reach the API."
         ],
@@ -350,7 +350,7 @@ export const docs: Doc[] = [
         "id": "withdraw",
         "title": "Pay a recipient",
         "paragraphs": [
-          "For invoices, choose a unit in checkout, open your saved original-group encrypted note and generate its proof locally. The signed recipient and unit reference are derived automatically. Select an eligible original-group vault. Standalone Local proofs and Core CLI remain alternatives.",
+          "For invoices, choose a unit in checkout, open your saved original-group encrypted note and generate its proof locally. The signed recipient and unit reference are derived automatically. Select an eligible original-group vault. Standalone Local proofs and settlement CLI remain alternatives.",
           "The note provides the principal. The fee payer separately covers the withdrawal protocol fee and applicable NEAR costs. The recipient receives the full fixed-denomination principal."
         ]
       },
@@ -555,7 +555,7 @@ export const docs: Doc[] = [
         "id": "organization-dashboard",
         "title": "Track your organization’s payments",
         "paragraphs": [
-          "For persisted team records, open Organization → Invoice payments and explicitly save signed JSON. Search/filter the complete saved snapshot, verify finalized-index observations against an independently trusted Core API/policy and export all filtered rows as CSV or JSON. The optional local encrypted library stays separate.",
+          "For persisted team records, open Organization → Invoice payments and explicitly save signed JSON. Search/filter the complete saved snapshot, verify finalized-index observations against an independently trusted Settlement API/policy and export all filtered rows as CSV or JSON. The optional local encrypted library stays separate.",
           "The dashboard shows finalized successful payments with index block/time and linked transaction details. Unchecked, unavailable, stale, incomplete and reused-reference cases remain explicit. Exported status is an indexed snapshot, not current-chain freshness, complete business history or tax acceptance."
         ]
       }
@@ -572,14 +572,14 @@ export const docs: Doc[] = [
         "title": "Import your approved groups",
         "paragraphs": [
           "In Settlements, open Choose from approved groups and import your independently obtained directory. It contains 1–8 pinned policies, unique group IDs and an explicit depositsEnabled preference. Every entry shares the same network, token and denomination. The browser workspace accepts testnet FT groups.",
-          "The file is validated locally and stays in memory. It contains no API origins, private notes or passwords. Enter each group’s HTTPS Core API separately; localhost HTTP is supported for local use. Importing the directory makes no network requests."
+          "The file is validated locally and stays in memory. It contains no API origins, private notes or passwords. Enter each group’s HTTPS Settlement API separately; localhost HTTP is supported for local use. Importing the directory makes no network requests."
         ]
       },
       {
         "id": "check",
         "title": "Check capacity before selecting",
         "steps": [
-          "Enter the Core API for a group and choose Check. The API policy must match every independently approved pin.",
+          "Enter the Settlement API for a group and choose Check. The API policy must match every independently approved pin.",
           "Review the reported block, remaining output slots and whether the first verified member can accept a deposit.",
           "Choose Use for deposits for an enabled group with observed capacity. Selection checks the API again.",
           "Download the selected policy for local CLI preparation, connect your wallet and unlock that group’s encrypted journal."
@@ -707,7 +707,7 @@ export const docs: Doc[] = [
         "id": "local-library",
         "title": "Encrypted terms stay client-held",
         "paragraphs": [
-          "The invoice library encrypts saved signed requests with AES-256-GCM and a passphrase-derived key. It uses its own authenticated storage format and merchant/network namespace, separate from the operation journal. Saving, opening, searching and backing up library entries sends no terms to Core.",
+          "The invoice library encrypts saved signed requests with AES-256-GCM and a passphrase-derived key. It uses its own authenticated storage format and merchant/network namespace, separate from the operation journal. Saving, opening, searching and backing up library entries sends no terms to the service.",
           "This archive verifies signed-term integrity locally. It does not certify legal identity, current merchant key permissions, payment completion or statutory retention. Shared payment links and individual signed JSON exports still reveal their terms to holders."
         ]
       },
@@ -820,7 +820,7 @@ export const docs: Doc[] = [
         "title": "Run the read-only service",
         "paragraphs": [
           "Use an actual reviewed policy and matching RPC. The API defaults to loopback. Set an exact Front CORS origin; a hosted HTTPS Front needs a reachable HTTPS API. Send public operation data, never wallet secrets or private notes.",
-          "Core does not automatically load .env files. Start the index worker separately before attaching its SQLite database. The default API address is 127.0.0.1:3001; it has no signing key, private-note upload, proving or broadcast endpoint."
+          "The settlement service does not automatically load .env files. Start the index worker separately before attaching its SQLite database. The default API address is 127.0.0.1:3001; it has no signing key, private-note upload, proving or broadcast endpoint."
         ],
         "code": {
           "label": "Terminal · from Core",
@@ -1260,7 +1260,7 @@ export const docs: Doc[] = [
         "id": "corporate-payments",
         "title": "Corporate payment approval",
         "steps": [
-          "Select Payments. Import the independently trusted testnet FT policy and matching Core settlement API origin.",
+          "Select Payments. Import the independently trusted testnet FT policy and matching Settlement API origin.",
           "As an Owner, Admin or Operator, open Prepare a new payment. Import the public withdrawal plan generated locally from the original note, set its title and request independent approval. The creator must be its fee payer.",
           "A different Owner/Admin opens the request, independently trusts the same policy and reviews recipient, full principal, additive 0.15% fee, reference, expiry and exact prerequisite calls. Choose Approve exact payment; self-approval is refused.",
           "The creator refreshes Payments and unlocks the encrypted corporate operation journal. Review and sign each exact prerequisite/payment. Current memberships, independent approval and complete call content are checked immediately before provider dispatch.",
@@ -1450,7 +1450,7 @@ export const docs: Doc[] = [
         "paragraphs": [
           "Open Organization, sign in, choose your team and select Invoice payments. Owners, Admins and Operators can explicitly save merchant-signed JSON; Auditors can read/check/export; Viewers cannot load invoices. The full authorized snapshot is signature-verified and loaded in bounded pages before display.",
           "Search titles, references, IDs, merchants and recipients. Filter payment status, asset, group and inclusive UTC issue dates. The table shows 20 rows per page. CSV/JSON exports include all filtered rows across pages, exact atomic amounts, linked finalized record/transaction identifiers and checkpoint metadata. Exports contain readable business details; protect downloaded files.",
-          "Under Settlement source, independently import the trusted policy and enter its matching Core API. Check payments reads every loaded invoice matching that exact policy, at most one per second. Large collections take longer and can be cancelled. Source changes discard previous observations; other groups stay unchecked. Current private read access is checked before publishing each result or exporting.",
+          "Under Settlement source, independently import the trusted policy and enter its matching Settlement API. Check payments reads every loaded invoice matching that exact policy, at most one per second. Large collections take longer and can be cancelled. Source changes discard previous observations; other groups stay unchecked. Current private read access is checked before publishing each result or exporting.",
           "Only matching finalized successful withdrawals count. Wallet callbacks and redirects never mark paid. Unknown/error observations stay Unchecked or Unavailable; index/browser observations older than five minutes become Stale index. Incomplete coverage and reused v2 unit references need review. Every result retains its observed height/time and chainFreshnessChecked: false.",
           "Historical signed invoice records can be reconciled after a merchant key rotation; checkout still requires a current merchant signing key. Organization switching, page-hide and revoked access clear cached private data and reject late responses. No plaintext browser invoice/status cache is created."
         ]
@@ -1486,7 +1486,7 @@ export const docs: Doc[] = [
         "title": "Pay workers and contractors",
         "paragraphs": [
           "Open Organization → Payouts. A run groups 1–20 public corporate withdrawal plans under one exact trusted testnet FT policy and fee payer. Every row spends a distinct funded note, derives its principal and added 0.15% fee from policy and needs another Owner/Admin’s independent approval. Worker/contractor categories are declarations, not employment or tax verification.",
-          "Import the independently trusted policy/Core API and a saved core-payout-manifest-v1 file containing stable batch/row IDs and public calls. The SDK stages rows idempotently before committing immutable ordered batch links. Retry the same file after a partial/lost response. Private notes, witnesses and wallet keys are not accepted.",
+          "Import the independently trusted policy/Settlement API and a saved core-payout-manifest-v1 file containing stable batch/row IDs and public calls. The SDK stages rows idempotently before committing immutable ordered batch links. Retry the same file after a partial/lost response. Private notes, witnesses and wallet keys are not accepted.",
           "Review each recipient’s full principal, added token fee, permitted prerequisite calls and maximum attachments. Include independently reviewed initial/later storage prepayment variants when needed; preflight cannot silently raise an approved charge. The creator cannot self-approve. Existing row expiry and maker/approver membership revisions remain active.",
           "The creator unlocks one encrypted original-group journal, reviews the selected recipient and explicitly signs each next exact call. Other approved rows remain independent. An accepted failed withdrawal can retry only its original recipient/nullifier with additional NEAR storage, without a second withdrawal token fee. No action silently resends an entire run.",
           "Reconcile recipient payouts reads and binds every final contract state separately. Unobserved/unknown results are not failed-payment instructions. Completed journal rows stay closed even if later reads regress; reports preserve last confirmed observations while flagging stale/unavailable/inconsistent results. CSV/JSON export separates quotes, historically confirmed principal and principal not yet confirmed.",

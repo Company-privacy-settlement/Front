@@ -19,3 +19,8 @@ body .docs-shell .docs-article :is(.docs-topic-grid>a,.docs-page-links>a):hover{
 body .docs-shell .docs-article :is(.docs-topic-grid span,.docs-page-links small,.docs-table-scroll td){color:var(--muted)}
 body .docs-shell .docs-article :is(.docs-table-scroll,.docs-section,.docs-guide-source){border-color:var(--line)}
 body .docs-shell .docs-deployment code{background:transparent}
+
+/* Payment and receipt panels share the application palette and readable code colors. */
+body .invoice-note-payment .invoice-note-quote,body .note-commitment,body .receipt-root{background:#132019;border-color:#304c39;color:#c2e8cf}
+body .invoice-note-payment .invoice-note-quote :is(h3,h4,strong,code){color:#d8eee0}
+body .invoice-payment-confirmed{background:#173c28;border:1px solid #2a6c45;color:#a3efc2}

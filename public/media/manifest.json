@@ -1,137 +1,160 @@
 {
-  "format": "core-hackathon-media-v1",
+  "format": "money-station-media-v2",
+  "brand": "Money Station",
   "language": "en",
   "recordedAt": "2026-11-14",
-  "durationSeconds": 179.061,
+  "durationSeconds": 103.558,
+  "frontSourceBase": "439384def38caa7296531c45c8900f85ebd9360c",
+  "design": "Money Station black/green, animated headlines, actual UI and short English captions",
   "narration": {
     "kind": "synthetic",
     "voice": "en-US-AriaNeural",
     "tool": "edge-tts 7.3.1"
   },
-  "scope": "Labelled browser wallet/API fixtures; actual local Groth16 proof; deterministic tax outline; separately recorded public native NEAR CLI testnet evidence. No live browser-wallet USDC, AI-provider or professional approval claim.",
+  "scope": "Actual app UI. Sample wallet/API and chain-context fixtures; actual local Groth16 proof, encrypted receipt and source-bound outline. Real unmodified wallet selector without authentication. No public USDC, live tax/AI provider or professional approval is represented.",
   "nativeEvidence": {
     "repository": "Company-privacy-settlement/Core",
     "path": "docs/evidence/testnet-wallet-2026-11-14.json",
-    "sha256": "e009bd0f600b23e0fabe30064ee3211446682946126d1b341aace34b5981a681"
+    "sha256": "e009bd0f600b23e0fabe30064ee3211446682946126d1b341aace34b5981a681",
+    "shownInVideo": false
   },
   "chapters": [
     {
-      "id": "intro",
-      "title": "Private settlement. Shared confidence.",
-      "start": 0.0,
-      "end": 11.917673223,
-      "scope": "CORE · NEAR HACKATHON PROTOTYPE",
-      "narration": "Meet Core: private business settlement on NEAR, with evidence you choose to share. Built for business invoices, worker payments, and contractor payouts."
+      "id": "privacy-pain",
+      "kind": "graphic",
+      "title": "Business is private.",
+      "start": 0,
+      "end": 8.758,
+      "scope": null,
+      "narration": "Invoices, payroll, and supplier relationships. Business details should stay with the people who need them."
     },
     {
-      "id": "architecture",
-      "title": "Distributed principal. Shared proof.",
-      "start": 11.917673223,
-      "end": 26.018118606999998,
-      "scope": "PROTOCOL ARCHITECTURE · PUBLIC METADATA REMAINS VISIBLE",
-      "narration": "Principal stays in independent vaults. A shared zero knowledge note authorizes a funded vault to pay, without naming the input note. A global nullifier prevents a second spend."
+      "id": "paperwork-pain",
+      "kind": "graphic",
+      "title": "Fast money.",
+      "start": 8.758,
+      "end": 16.34,
+      "scope": null,
+      "narration": "Moving money is only half the job. Finance teams still need a clear paper trail."
+    },
+    {
+      "id": "brand",
+      "kind": "graphic",
+      "title": "Private payments.",
+      "start": 16.34,
+      "end": 23.561999999999998,
+      "scope": null,
+      "narration": "Meet Money Station. Private business payments, with evidence you choose to share."
     },
     {
       "id": "invoice",
-      "title": "Start with a signed invoice",
-      "start": 26.018118606999998,
-      "end": 38.22341999899999,
-      "scope": "CONTROLLED BROWSER DEMO · FIXTURE WALLET AND API",
-      "narration": "The recipient creates a signed invoice. Checkout verifies the request, payment unit, merchant, and trusted group before a payer selects an encrypted note."
+      "kind": "ui",
+      "title": "Start with an invoice.",
+      "start": 23.561999999999998,
+      "end": 32.562,
+      "scope": "Sample wallet & API",
+      "narration": "Create a signed payment request. Share one link with your customer or business partner."
+    },
+    {
+      "id": "wallet",
+      "kind": "ui",
+      "title": "Connect. Keep control.",
+      "start": 32.562,
+      "end": 39.562,
+      "scope": "Actual wallet selector · No payment signed",
+      "narration": "Connect a supported wallet. Your signing keys stay with your wallet provider."
+    },
+    {
+      "id": "note",
+      "kind": "ui",
+      "title": "Choose your private note.",
+      "start": 39.562,
+      "end": 47.562,
+      "scope": "Sample wallet & API",
+      "narration": "Open an encrypted note from its original payment group. Its secrets stay on your device."
     },
     {
       "id": "proof",
-      "title": "Generate the proof locally",
-      "start": 38.22341999899999,
-      "end": 52.20449036399999,
-      "scope": "REAL LOCAL GROTH16 PROOF · FIXTURE CHAIN CONTEXT",
-      "narration": "Here, the browser generates a real Groth sixteen proof using verified proving files. Note secrets and the note password stay local. Proof generation can also be cancelled."
+      "kind": "ui",
+      "title": "Prove it. Privately.",
+      "start": 47.562,
+      "end": 56.562,
+      "scope": "Actual local proof · Sample chain context",
+      "narration": "Generate the proof locally. Authorize the payout without revealing the input note."
     },
     {
       "id": "review",
-      "title": "Review before every signature",
-      "start": 52.20449036399999,
-      "end": 66.929087117,
-      "scope": "CONTROLLED BROWSER DEMO · NO PUBLIC USDC TRANSFER",
-      "narration": "Review the amount and the added fifteen basis point fee. The recipient receives the full principal. Storage and network gas are separate, and each required wallet call is reviewed individually."
+      "kind": "ui",
+      "title": "Review. Then approve.",
+      "start": 56.562,
+      "end": 65.562,
+      "scope": "Sample wallet & API",
+      "narration": "Check the recipient, full principal, and added fee. Approve each required wallet call."
     },
     {
       "id": "confirmation",
-      "title": "Confirm from finalized observations",
-      "start": 66.929087117,
-      "end": 82.94881078899999,
-      "scope": "FIXTURE FINALITY OBSERVATION · NOT A LIVE WALLET RECEIPT",
-      "narration": "The payment view reconciles finalized observations. An uncertain response stays unresolved until checked, avoiding an automatic second payment. This browser walkthrough uses a test wallet and API fixtures."
+      "kind": "ui",
+      "title": "Follow the confirmation.",
+      "start": 65.562,
+      "end": 74.536,
+      "scope": "Sample finalized-state response",
+      "narration": "Track the original payment through confirmation. An uncertain response never triggers an automatic second payment."
     },
     {
-      "id": "draft",
-      "title": "Turn evidence into a cited draft",
-      "start": 82.94881078899999,
-      "end": 98.87291035099999,
-      "scope": "SOURCE-BOUND OUTLINE DEMO · NO LIVE AI OR PROFESSIONAL APPROVAL",
-      "narration": "Teams can prepare cited tax and procedure drafts from verified rule calculations and selected evidence. This example uses deterministic outline mode. Unsupported obligations remain visible for review."
+      "id": "evidence",
+      "kind": "ui",
+      "title": "Share only what’s needed.",
+      "start": 74.536,
+      "end": 84.536,
+      "scope": "Local receipt disclosure · Sample record",
+      "narration": "Choose the amount, asset, or invoice reference to disclose. Keep unrelated business information private."
     },
     {
-      "id": "review-state",
-      "title": "Separate preparation from approval",
-      "start": 98.87291035099999,
-      "end": 114.00510387399999,
-      "scope": "DEMO ORGANIZATION · INDEPENDENT REVIEW REQUIRED",
-      "narration": "Submit an immutable revision for another authorized reviewer. The author cannot approve their own preparation. Changes require a new revision, and source or permission changes invalidate reliance."
-    },
-    {
-      "id": "native-evidence",
-      "title": "Fourteen real testnet transactions",
-      "start": 114.00510387399999,
-      "end": 128.044009677,
-      "scope": "RECORDED PUBLIC TESTNET EVIDENCE · NATIVE NEAR · CLI WALLET",
-      "narration": "Separately, the native NEAR software wallet run recorded fourteen real public testnet transactions. Two deposits of point one NEAR reached keyless vaults, followed by successful payouts."
-    },
-    {
-      "id": "recovery",
-      "title": "A real failure. The original destination.",
-      "start": 128.044009677,
-      "end": 144.647963049,
-      "scope": "RECORDED PUBLIC TESTNET EVIDENCE · RETRYABLE TO COMPLETE",
-      "narration": "A missing recipient caused an actual failed transfer. After activating that same recipient, recovery kept the original nullifier, vault, amount, and destination. The retry charged no second protocol fee."
-    },
-    {
-      "id": "boundaries",
-      "title": "A prototype with explicit boundaries",
-      "start": 144.647963049,
-      "end": 167.12177238599998,
-      "scope": "PRIVACY DEPENDS ON PARTICIPATION AND METADATA",
-      "narration": "The read only verifier rechecks receipts, signatures, code, keys, and historical balances. This does not establish effective anonymity. Browser wallet and USDC public testnet qualification, live hosting, and production review remain separate."
+      "id": "finance",
+      "kind": "ui",
+      "title": "Ready for finance.",
+      "start": 84.536,
+      "end": 94.536,
+      "scope": "Source-bound outline · Independent review required",
+      "narration": "Prepare a cited tax procedure draft, then request independent review. Keep preparation separate from approval."
     },
     {
       "id": "closing",
-      "title": "Inspect. Run. Verify.",
-      "start": 167.12177238599998,
-      "end": 179.060663912,
-      "scope": "CORE · CONTRACT · FRONT · ENGLISH-FIRST DOCUMENTATION",
-      "narration": "Explore the three repositories, follow the quick start, and verify the published transaction evidence. Core: private settlement, shared confidence."
+      "kind": "graphic",
+      "title": "Business money.",
+      "start": 94.536,
+      "end": 103.558,
+      "scope": null,
+      "narration": "Money Station. Private payments. Clear proof. Your business stays yours."
     }
   ],
   "files": [
     {
-      "file": "core-hackathon-demo-en.mp4",
-      "bytes": 4022261,
-      "sha256": "470b347813c020921719b87534138620c44b5f588db79b0c80143b9e09e7b96c"
+      "file": "money-station-demo-en.mp4",
+      "bytes": 3511951,
+      "sha256": "2ecabdfa20137cc2442841fca5b56c0883cc59e66de1b3405c58a60a9e607f1a"
     },
     {
-      "file": "core-hackathon-demo-en.srt",
-      "bytes": 3043,
-      "sha256": "3c490d4a1dfd5ea6baef8825ac1441e0771b6a5797dfc3c1e15d8c5760b930e8"
+      "file": "money-station-demo-en.srt",
+      "bytes": 1973,
+      "sha256": "8cd398a162ff716ce43b2f5a09a92005fb8f6a1298e96f390b2cc53b567c168e"
     },
     {
-      "file": "core-hackathon-demo-en.vtt",
-      "bytes": 3051,
-      "sha256": "c4381346b489f04dc3e501c927b75ff82906d2fe81abc9f945746acf6b272f06"
+      "file": "money-station-demo-en.vtt",
+      "bytes": 1981,
+      "sha256": "e3fc25bb5f9ecc66f7beb1159a0ddbec3ad6e9fc0a96c49c1d7d0bbfd51fc97b"
     },
     {
-      "file": "core-hackathon-demo-poster.png",
-      "bytes": 321630,
-      "sha256": "6da9b1801c792d27196ab75b1725fc69ed099a53bbed70a4a52965cf63b07b19"
+      "file": "money-station-demo-poster.png",
+      "bytes": 497320,
+      "sha256": "0a75b8e7aa6283f765a07aae07e9846b48dbca49767af0c7df22a455cecd8a0b"
     }
-  ]
+  ],
+  "legacyAliases": {
+    "core-hackathon-demo-en.mp4": "money-station-demo-en.mp4",
+    "core-hackathon-demo-en.srt": "money-station-demo-en.srt",
+    "core-hackathon-demo-en.vtt": "money-station-demo-en.vtt",
+    "core-hackathon-demo-poster.png": "money-station-demo-poster.png"
+  },
+  "compositionLeadSeconds": 0.08
 }

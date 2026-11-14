@@ -1,0 +1,103 @@
+1
+00:00:00,550 --> 00:00:03,883
+Invoices, payroll, and supplier relationships.
+
+2
+00:00:03,883 --> 00:00:08,158
+Business details should stay with the people who need them.
+
+3
+00:00:09,308 --> 00:00:12,076
+Moving money is only half the job.
+
+4
+00:00:12,076 --> 00:00:15,740
+Finance teams still need a clear paper trail.
+
+5
+00:00:16,890 --> 00:00:18,332
+Meet Money Station.
+
+6
+00:00:18,332 --> 00:00:22,962
+Private business payments, with evidence you choose to share.
+
+7
+00:00:24,112 --> 00:00:26,443
+Create a signed payment request.
+
+8
+00:00:26,443 --> 00:00:30,376
+Share one link with your customer or business partner.
+
+9
+00:00:33,112 --> 00:00:35,150
+Connect a supported wallet.
+
+10
+00:00:35,150 --> 00:00:38,848
+Your signing keys stay with your wallet provider.
+
+11
+00:00:40,112 --> 00:00:44,163
+Open an encrypted note from its original payment group.
+
+12
+00:00:44,163 --> 00:00:46,520
+Its secrets stay on your device.
+
+13
+00:00:48,112 --> 00:00:50,168
+Generate the proof locally.
+
+14
+00:00:50,168 --> 00:00:54,280
+Authorize the payout without revealing the input note.
+
+15
+00:00:57,112 --> 00:01:01,173
+Check the recipient, full principal, and added fee.
+
+16
+00:01:01,173 --> 00:01:03,880
+Approve each required wallet call.
+
+17
+00:01:06,112 --> 00:01:09,435
+Track the original payment through confirmation.
+
+18
+00:01:09,435 --> 00:01:13,936
+An uncertain response never triggers an automatic second payment.
+
+19
+00:01:15,086 --> 00:01:19,568
+Choose the amount, asset, or invoice reference to disclose.
+
+20
+00:01:19,568 --> 00:01:22,910
+Keep unrelated business information private.
+
+21
+00:01:25,086 --> 00:01:30,236
+Prepare a cited tax procedure draft, then request independent review.
+
+22
+00:01:30,236 --> 00:01:33,222
+Keep preparation separate from approval.
+
+23
+00:01:35,086 --> 00:01:36,683
+Money Station.
+
+24
+00:01:36,683 --> 00:01:38,623
+Private payments.
+
+25
+00:01:38,623 --> 00:01:39,992
+Clear proof.
+
+26
+00:01:39,992 --> 00:01:42,958
+Your business stays yours.

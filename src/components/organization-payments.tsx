@@ -21,7 +21,7 @@ export function OrganizationPayments({organization,client,accountId,disabled,run
     if(id){const value=await verifyCorporatePayment(await client.request(`${base}/${id}`,'GET',undefined,signal),organization.id);check();setSelected(value);}
   }
   useEffect(()=>{if(!disabled&&!loaded.current&&can('payments.read')){loaded.current=true;void run(async(_c,s,check)=>{await refresh(check,s);check();setReady(true);});}},[disabled]);
-  async function verifyApi(p:Policy){if(canonical(await new HttpGateway(api).policy())!==canonical(p))throw new Error('Core API does not match your independently trusted policy');}
+  async function verifyApi(p:Policy){if(canonical(await new HttpGateway(api).policy())!==canonical(p))throw new Error('Settlement API does not match your independently trusted policy');}
   function decide(action:'approve'|'reject'|'cancel'){
     if(!selected)return;const displayed=selected;
     void run(async(_c,signal,check)=>{
@@ -36,9 +36,9 @@ export function OrganizationPayments({organization,client,accountId,disabled,run
   return <div className="corporate-payments" aria-label="Corporate payments">
     <h2>Corporate payments</h2><p>Prepare a payment, have a different owner or admin approve it, then sign the exact reviewed calls with the creator’s wallet.</p>
     {!ready&&<p role="status">Loading payment requests…</p>}
-    <label className="form-label">Core settlement API origin<input value={api} disabled={blocked} onChange={e=>setApi(e.target.value)}/></label>
+    <label className="form-label">Settlement API origin<input value={api} disabled={blocked} onChange={e=>setApi(e.target.value)}/></label>
     <label className="form-label">Trusted corporate policy JSON<input type="file" accept="application/json,.json" disabled={blocked} onChange={e=>{setPolicy(null);setPlan(null);void run(async(_c,_s,check)=>{const contents=await file(e);check();const p=parsePolicy(contents);if(p.network!=='testnet'||!p.tokenId)throw new Error('Choose a token settlement policy');setPolicy(p);});}}/></label>
-    {can('payments.create')&&<details className="corporate-create"><summary>Prepare a new payment</summary><p>Generate its proof in Local proofs or the Core CLI first. Import only the public withdrawal plan.</p>
+    {can('payments.create')&&<details className="corporate-create"><summary>Prepare a new payment</summary><p>Generate its proof in Local proofs or the settlement CLI first. Import only the public withdrawal plan.</p>
       <label className="form-label">Corporate payment title<input value={title} maxLength={120} disabled={blocked} onChange={e=>setTitle(e.target.value)}/></label>
       <label className="form-label">Public corporate withdrawal plan<input type="file" accept="application/json,.json" disabled={blocked||!policy} onChange={e=>{setPlan(null);void run(async(_c,_s,check)=>{const input=await file(e);check();const p=await preparedPayment(input,policy!,accountId);check();if(p.reference.kind!=='withdrawal')throw new Error('Choose a withdrawal plan');setPlan(p.payment);});}}/></label>
       {plan&&<p className="small-note">Public withdrawal plan loaded. No payment has been sent.</p>}
