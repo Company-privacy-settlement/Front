@@ -1,4 +1,4 @@
-export type DocSection = { id: string; title: string; paragraphs?: string[]; bullets?: string[]; steps?: string[]; code?: { label: string; text: string }; table?: { headings: string[]; rows: string[][] }; diagram?: boolean };
+export type DocSection = { id: string; title: string; paragraphs?: string[]; bullets?: string[]; steps?: string[]; code?: { label: string; text: string }; table?: { headings: string[]; rows: string[][] }; diagram?: boolean; deployment?: 'addresses'|'verification'|'transactions'; links?: {label:string;href:string}[] };
 export type Doc = { slug: string; title: string; description: string; source: string; sections: DocSection[] };
 export const docHref = (slug: string) => slug ? '/docs/' + slug + '/' : '/docs/';
 export const docs: Doc[] = [
@@ -21,9 +21,15 @@ export const docs: Doc[] = [
         "title": "Before you start",
         "bullets": [
           "Obtain a deployment policy independently from your group operator. Check its network, registry, token, denomination, fee recipient, and contract/verifier hashes.",
-          "Use a compatible NEAR testnet wallet and fund the accounts needed by your deployment. No funded public deployment is bundled with this site.",
+          "Use a compatible wallet and fund the accounts required by your independently reviewed deployment. A native NEAR reference group is published under Contract addresses; browser checkout still needs a separately configured FT group and its services.",
           "Run the matching read-only Core API and finalized index. Keep wallet keys, private notes, passwords, and business documents outside API requests.",
           "Keep encrypted private-note backups and a separate encrypted browser-operation backup. The journal is not a backup of spendable notes."
+        ],
+        "links": [
+          {
+            "label": "View contract addresses",
+            "href": "/docs/deployments/#addresses"
+          }
         ]
       },
       {
@@ -48,6 +54,10 @@ export const docs: Doc[] = [
               "Local FT notes, encrypted backups and public deposit preparation."
             ],
             [
+              "/prove/",
+              "Standalone browser proof generation, artifact integrity and cancellation."
+            ],
+            [
               "/invoices/",
               "Recipient-signed requests and optional encrypted local invoice library."
             ],
@@ -68,21 +78,29 @@ export const docs: Doc[] = [
               "Wallet-authenticated organizations, invitations, member roles, ownership and audit history through a separate Organization API."
             ],
             [
+              "/rules/",
+              "Date- and jurisdiction-bound rule previews and independently signed component reviews."
+            ],
+            [
+              "/docs/deployments/",
+              "Reference contract/vault addresses, policy pins and recorded settlement evidence."
+            ],
+            [
               "/app/",
               "Legacy routes redirect to the corresponding Docs guide."
             ]
           ]
         },
         "paragraphs": [
-          "The website and its ten guides default to English; repository READMEs also support Korean and Simplified Chinese. Current hosted access is owner-private, including checkout links. External customers need suitable site access and an independently configured funded deployment."
+          "The website and these guides default to English; repository READMEs also support Korean and Simplified Chinese. Current hosted access is owner-private, including checkout links. External customers need suitable site access and an independently configured funded deployment."
         ]
       },
       {
         "id": "local-setup",
         "title": "Run local verification",
         "paragraphs": [
-          "Check out Core and Contract as siblings. Core requires Node.js 22.13.0 or later. Contract builds also require its pinned Rust toolchain and C/C++ build tools.",
-          "The FT sandbox uses a local TESTUSD fixture, not Circle-issued USDC. The latest recorded implementation validation on November 13, 2026 passed 192 Core tests, 98 Front browser cases and an FT sandbox run with 14 finalized records. These dated results are not a funded public-network real-wallet validation."
+          "Check out Core and Contract as siblings. Use Node.js 22.16 or later and the pinned Rust/C/C++ tooling for contract builds.",
+          "The November 14, 2026 Core validation passed 595 tests; the latest contract review passed 63 unit cases. Native NEAR public-testnet settlement has separate recorded evidence. Browser tests and local TESTUSD sandbox runs do not establish public USDC, a live backend or production readiness."
         ],
         "code": {
           "label": "Terminal · from your workspace",
@@ -140,7 +158,13 @@ export const docs: Doc[] = [
           "The forest creates keyless child vaults and maintains a shared append-only Poseidon tree, global spent nullifiers, and payout reservations. Deposit principal stays in the selected vault. The forest coordinates settlement and separate protocol/storage fees.",
           "A note deposited through vault A can withdraw from vault B’s available liquidity. One selected vault pays the proof-bound recipient directly. Principal does not travel through a sequence of vault-to-vault hops."
         ],
-        "diagram": true
+        "diagram": true,
+        "links": [
+          {
+            "label": "Inspect registry and vault addresses",
+            "href": "/docs/deployments/#addresses"
+          }
+        ]
       },
       {
         "id": "notes",
@@ -175,6 +199,105 @@ export const docs: Doc[] = [
           "The read-only settlement API serves one independently trusted on-chain group. The Organization API authenticates wallet principals and stores off-chain team membership in a separate database. Organization sessions and roles are never accepted as a private note, invoice signature or settlement policy.",
           "Owner, Admin, Operator, Viewer and Auditor control workspace access. They do not grant a signing key, change a keyless vault or approve a payment. Organization membership does not verify a legal entity or change this website’s owner-private access."
         ]
+      }
+    ]
+  },
+  {
+    "slug": "deployments",
+    "title": "Contract addresses",
+    "description": "Inspect the verified registry, independent vaults and fee account, with explorer links, code pins and public settlement evidence.",
+    "source": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/DEPLOYED_ADDRESSES.md",
+    "sections": [
+      {
+        "id": "addresses",
+        "title": "Native NEAR contract addresses",
+        "paragraphs": [
+          "This reference group settles fixed 0.1 NEAR notes on NEAR testnet. It is a native-asset v2 deployment, separate from the browser FT/USDC checkout flow. Addresses below were checked read-only at one canonical FINAL block.",
+          "Use reviewed deposit/withdrawal calls and the matching policy. A plain asset transfer to these accounts is not a protocol deposit. The fee recipient is listed separately from the contracts."
+        ],
+        "deployment": "addresses"
+      },
+      {
+        "id": "verification",
+        "title": "Code, policy and snapshot",
+        "paragraphs": [
+          "Compare these pins with a policy obtained independently from the group operator. The downloadable policy contains no tokenId because this group holds native NEAR. Its contract and vault key lists were empty at verification."
+        ],
+        "deployment": "verification"
+      },
+      {
+        "id": "scope",
+        "title": "What this deployment establishes",
+        "table": {
+          "headings": [
+            "Area",
+            "Recorded status"
+          ],
+          "rows": [
+            [
+              "Native NEAR CLI settlement",
+              "Public deposits, cross-vault payout and original-recipient recovery are recorded."
+            ],
+            [
+              "Browser wallet and public USDC",
+              "Not qualified. A separately funded token-bound v3 group and real wallet execution are still required."
+            ],
+            [
+              "Core / indexer / Organization / relay HTTPS",
+              "No accepted hosted backend is bundled with this static website."
+            ],
+            [
+              "KYB and tax providers",
+              "Adapters and rule gates exist; actual account/case/reviewer qualification remains blocked."
+            ],
+            [
+              "Production safety",
+              "Development proving material; no independent production audit or reviewed production setup."
+            ]
+          ]
+        },
+        "paragraphs": [
+          "Current website access remains owner-private. Publishing reference addresses does not configure a wallet policy, provision liquidity or grant site access to an invoice recipient."
+        ],
+        "links": [
+          {
+            "label": "Browser USDC qualification",
+            "href": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/BROWSER_USDC_TESTNET.md"
+          },
+          {
+            "label": "Backend hosting prerequisites",
+            "href": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/PRODUCTION_HOSTING.md"
+          }
+        ]
+      },
+      {
+        "id": "transactions",
+        "title": "Recorded settlement evidence",
+        "paragraphs": [
+          "These transactions belong to the original native qualification. Their receipts and historical balances are documented separately from the current address snapshot. Explorer availability alone is not a verification of the code or an audit."
+        ],
+        "deployment": "transactions",
+        "links": [
+          {
+            "label": "Native run and read-only verifier",
+            "href": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/TESTNET_WALLET.md"
+          },
+          {
+            "label": "Contract and corporate payment review",
+            "href": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/REVIEW-2026-11-14-PAYMENT-SECURITY.md"
+          }
+        ]
+      },
+      {
+        "id": "reverify",
+        "title": "Reverify the recorded native run",
+        "paragraphs": [
+          "Run from the Core repository with installed dependencies. The verifier is read-only and needs no wallet key, private note or funded account. It checks the recorded historical snapshot; the current address snapshot above is a separate observation."
+        ],
+        "code": {
+          "label": "Terminal · Core",
+          "text": "npm run testnet:verify-wallet -- docs/evidence/testnet-wallet-2026-11-14.json \\\n  e009bd0f600b23e0fabe30064ee3211446682946126d1b341aace34b5981a681 \\\n  /tmp/new-wallet-reverification.json"
+        }
       }
     ]
   },
@@ -514,7 +637,7 @@ export const docs: Doc[] = [
         "id": "public",
         "title": "What remains visible",
         "paragraphs": [
-          "Small groups, address reuse, funding provenance, and matching timing can correlate deposits and payouts. The protocol does not provide network-layer anonymity or measure an effective anonymity set."
+          "Small groups, address reuse, funding provenance and matching timing can correlate deposits and payouts. Published candidate, timing and funding observations do not establish an effective anonymity set or network-layer anonymity."
         ],
         "table": {
           "headings": [
@@ -602,6 +725,23 @@ export const docs: Doc[] = [
           "Full backups use a separate encrypted receipt format. Locking, page-hide and cached return clear private workspace state; pending cryptographic or file work cannot reopen it. Keep the downloaded file and passphrase separately.",
           "Invoice unit references and arbitrary receipt roots are distinct bindings. A generic action may commit to a receipt root; invoice checkout requires the signed-derived unit reference. Receipt integrity does not establish invoice payment, and substituting its root breaks checkout binding."
         ]
+      },
+      {
+        "id": "measurement",
+        "title": "Separate artificial activity from participation",
+        "paragraphs": [
+          "The bounded native cover experiment finalized four operator-owned transactions and returned its principal. Its synthetic withdrawal had six all-history output candidates, three after excluding labelled artificial outputs. Independent participants added: zero. These mechanical candidate counts are not a measured customer privacy benefit."
+        ],
+        "links": [
+          {
+            "label": "Privacy baseline and methodology",
+            "href": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/PRIVACY_BASELINE.md"
+          },
+          {
+            "label": "Bounded cover experiment",
+            "href": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/COVER_TRAFFIC.md"
+          }
+        ]
       }
     ]
   },
@@ -646,7 +786,14 @@ export const docs: Doc[] = [
           "Each company and linked person must complete the configured review. Company GREEN alone does not approve incomplete UBO KYC. RETRY or awaitingUser requests supplementation; open the secure flow for the actual requests. Missing owners, unsupported structures and changed levels require review instead of inferred approval.",
           "Validity is bounded by the earliest required provider review date and operator policy. Refresh cannot extend the original expiry. Deactivation/deletion events and explicit local revocation close the case; old GREEN cannot reopen it. Stale/provider-unavailable records are not valid approvals. Start a fresh application after expiry or revocation.",
           "Authenticated raw-body webhooks only invalidate status. The service fetches current provider data, binds client/environment/levels and fences concurrent owner changes or revocation. Minimal case snapshots are encrypted; provider links and browser sessions stay in memory. Backups revoke all restored cases.",
-          "The connector needs an operator-contracted Sumsub account, configured KYB/KYC levels, owner-only secrets/encryption keys and a reachable HTTPS callback. Development used local provider fixtures, with no real company/person review. Sandbox decisions do not establish legal identity. This feature issues no on-chain credential and does not enforce KYB inside permissionless settlement contracts."
+          "The connector needs an operator-contracted Sumsub account, configured KYB/KYC levels, owner-only secrets/encryption keys and a reachable HTTPS callback. Development used local provider fixtures, with no real company/person review. Sandbox decisions do not establish legal identity. This feature issues no on-chain credential and does not enforce KYB inside permissionless settlement contracts.",
+          "The latest adapter review added provider deleted-flag revocation, signed company-structure invalidation and TLS enforcement. Actual-provider qualification is still blocked: account configuration, authorized existing cases and a real HTTPS webhook journey have not been supplied. Controlled response tests are not real company review."
+        ],
+        "links": [
+          {
+            "label": "Actual-provider qualification status",
+            "href": "https://github.com/Company-privacy-settlement/Core/blob/main/docs/PROVIDER_QUALIFICATION.md"
+          }
         ]
       },
       {
@@ -656,7 +803,8 @@ export const docs: Doc[] = [
           "Open Rules for date/jurisdiction/relationship-based component preparation. Seven source-checked candidates cover US federal FICA and potential NEC reporting for 2025/2026, explicitly classified UAE standard VAT, and distinct mainland/ADGM statutory gratuity candidates. Exact fiat minor-unit arithmetic and rational service fractions are exported with sources, assumptions, inputs and catalog hashes.",
           "Preview is explicitly unapproved. Reviewed evaluation requires an Ed25519 signature of the exact catalog/rule and an independently received reviewer-policy digest. Key/review dates and supplied revocations are checked. No professional reviewer or trusted key is bundled; current consolidated-source gaps require comparison before operational approval.",
           "Changing facts clears old results. Local report verification recomputes calculation integrity separately from current review acceptance; facts and reviewer qualification remain externally established. No salary/fiat conversion, payment authorization, full tax liability or statutory filing is inferred.",
-          "US state/local taxes, federal income withholding, special worker/payee classes, corporate tax and pension/savings substitutions need additional reviewed rules. ADGM is a separate employment regime; unsupported dates/classifications stay unresolved. Organization → Tax drafts now prepares cited documents from these reports and literal selected-receipt bindings. Its optional AI arranges verified IDs, while independent review still requires the operator-pinned current signed rule policy."
+          "US state/local taxes, federal income withholding, special worker/payee classes, corporate tax and pension/savings substitutions need additional reviewed rules. ADGM is a separate employment regime; unsupported dates/classifications stay unresolved. Organization → Tax drafts now prepares cited documents from these reports and literal selected-receipt bindings. Its optional AI arranges verified IDs, while independent review still requires the operator-pinned current signed rule policy.",
+          "A fresh source check matched four of six exact official document hashes and recorded two retrieval failures. No independent reviewer policy or external signed review was supplied. Source bytes, current legal applicability and professional review are distinct checks; no tax-provider or filing acceptance is implied."
         ]
       }
     ]
@@ -1070,8 +1218,14 @@ export const docs: Doc[] = [
         "id": "limits",
         "title": "Current protocol limits",
         "paragraphs": [
-          "Groups use fixed denominations and 256 total outputs, including private transfers. Withdrawal does not recycle capacity. Groups remain separate proof/privacy domains. Arbitrary-amount private payments, automatic private cross-group migration and a bundled funded public deployment remain outside the implementation.",
+          "Groups use fixed denominations and 256 total outputs, including private transfers. Withdrawal does not recycle capacity. Groups remain separate proof/privacy domains. Arbitrary-amount private payments, automatic private cross-group migration and a bundled funded browser FT deployment remain outside this release. A separate native NEAR reference group is documented with its recorded qualification.",
           "Production use needs independent contract/circuit/SDK review and a reviewed trusted setup. The Sumsub connector is available through Organization → Verification; actual provider qualification, full jurisdiction legal advice and statutory filing remain separate. Source-bound Tax drafts provide limited internal preparation with independent review."
+        ],
+        "links": [
+          {
+            "label": "Deployment status and addresses",
+            "href": "/docs/deployments/#scope"
+          }
         ]
       }
     ]

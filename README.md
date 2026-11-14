@@ -44,7 +44,7 @@ Repository and Site access follow their existing permissions. Demo media is stor
 | Private workspaces | Notes, proof verification/cancellation, selected evidence and encrypted local journals. |
 | Organization | Members/roles, invoice dashboard, payment approval, payouts, webhooks and verification workflows. |
 | Tax drafts | Source-bound outlines, optional configured AI planning, immutable revisions and independent review. |
-| Documentation | English-first landing and ten web guides; English/Korean/Simplified Chinese READMEs. |
+| Documentation | English-first landing and eleven web guides; English/Korean/Simplified Chinese READMEs. |
 
 ## Run locally
 
@@ -67,7 +67,9 @@ Routes: `/docs/`, `/invoices/`, `/pay/`, `/notes/`, `/prove/`, `/evidence/`, `/o
 
 [Testnet run and transaction links](https://github.com/Company-privacy-settlement/Core/blob/main/docs/TESTNET_WALLET.md) · [Public evidence](https://github.com/Company-privacy-settlement/Core/blob/main/docs/evidence/testnet-wallet-2026-11-14.json)
 
-Latest recorded engineering gate: **513 Core tests** passed, with SDK/type builds and compiled service restart/backup/recovery. Browser fixtures and public native execution are separate evidence categories.
+[Contract and vault addresses](https://core-private-settlement-0574c4.jiheon6768.chatgpt.site/docs/deployments/) · [Address record and verification pins](https://github.com/Company-privacy-settlement/Core/blob/main/docs/DEPLOYED_ADDRESSES.md). Registry and two vaults were rechecked at FINAL block **277653473** on 2026-11-14. This native NEAR testnet reference is separate from browser USDC settlement.
+
+Latest recorded engineering gate: **595 Core tests** passed, with SDK/type builds and compiled service restart/backup/recovery. Browser fixtures and public native execution are separate evidence categories.
 
 ## Architecture and fees
 

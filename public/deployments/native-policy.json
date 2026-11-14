@@ -1,0 +1,9 @@
+{
+  "network": "testnet",
+  "registry": "c14f-c1b494d1.testnet",
+  "denomination": "100000000000000000000000",
+  "feeRecipient": "treasury.core14-0574c4-ebed76bb2c.testnet",
+  "registryWasmSha256": "79ed58b8cc65ee1b58692e104b1efc2f4779144229602575b0f8785910c017b9",
+  "vaultWasmSha256": "56f4b88e171ec1781a7856b06b659a9664d0036c20a203bbc4d910ae93c9f412",
+  "verifierSha256": "296120fd8a431089e51bfe703d2c42df9836d3df687120ef251ee91403f6ad45"
+}

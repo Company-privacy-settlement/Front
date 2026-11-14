@@ -5,12 +5,13 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowUpRight, ChevronRight, Menu, Search, X } from 'lucide-react';
 import { Brand } from './brand';
 import { docs, docHref } from '@/lib/docs';
+import { deploymentReference } from '@/lib/deployment-reference';
 
 function DocsNavigation() {
   const path = usePathname();
   const [query, setQuery] = useState('');
   useEffect(() => { setQuery(''); }, [path]);
-  const results = docs.filter(doc => JSON.stringify(doc).toLowerCase().includes(query.trim().toLowerCase()));
+  const results = docs.filter(doc => (JSON.stringify(doc)+(doc.slug==='deployments'?JSON.stringify(deploymentReference):'')).toLowerCase().includes(query.trim().toLowerCase()));
   return <>
     <div className="docs-search"><Search size={15}/><input type="search" aria-label="Search documentation" placeholder="Search documentation" value={query} onChange={e => setQuery(e.target.value)}/>{query && <button aria-label="Clear documentation search" onClick={() => setQuery('')}><X size={14}/></button>}</div>
     <nav aria-label="Documentation">{results.map(doc => <Link href={docHref(doc.slug)} key={doc.slug} aria-current={path === docHref(doc.slug) ? 'page' : undefined}>{doc.title}<ChevronRight size={13}/></Link>)}</nav>

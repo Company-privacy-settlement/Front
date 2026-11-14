@@ -1,0 +1,89 @@
+{
+  "format": "money-station-deployment-addresses-v1",
+  "network": "testnet",
+  "asset": {
+    "symbol": "NEAR",
+    "tokenId": null,
+    "denominationAtomic": "100000000000000000000000",
+    "denominationDisplay": "0.1 NEAR"
+  },
+  "verification": {
+    "verifiedAt": "2026-11-14T11:55:07.819Z",
+    "snapshot": {
+      "height": 277653473,
+      "hash": "DtDeWuqVGdsCKKmZ8xCuKd1DeHfUsTHw9yCwhdkc7L2t"
+    },
+    "rpcUrl": "https://test.rpc.fastnear.com",
+    "registryAndVaultBindingsChecked": true,
+    "registryAndVaultsKeyless": true,
+    "assurance": "Read-only public RPC observations at a canonical FINAL snapshot; not a light-client proof or an independent audit."
+  },
+  "registry": {
+    "label": "Shared registry",
+    "accountId": "c14f-c1b494d1.testnet",
+    "wasmSha256": "79ed58b8cc65ee1b58692e104b1efc2f4779144229602575b0f8785910c017b9",
+    "accessKeyCount": 0,
+    "protocol": "core-shared-registry-v2"
+  },
+  "vaults": [
+    {
+      "label": "Vault A",
+      "accountId": "v0bea43bb3832da6145a7d07deb5bca4b.c14f-c1b494d1.testnet",
+      "wasmSha256": "56f4b88e171ec1781a7856b06b659a9664d0036c20a203bbc4d910ae93c9f412",
+      "accessKeyCount": 0,
+      "availableNotes": 0,
+      "reservedNotes": 0
+    },
+    {
+      "label": "Vault B",
+      "accountId": "vef1c6d6d5654e7c07536611490443d52.c14f-c1b494d1.testnet",
+      "wasmSha256": "56f4b88e171ec1781a7856b06b659a9664d0036c20a203bbc4d910ae93c9f412",
+      "accessKeyCount": 0,
+      "availableNotes": 0,
+      "reservedNotes": 0
+    }
+  ],
+  "feeRecipient": {
+    "label": "Fee recipient",
+    "accountId": "treasury.core14-0574c4-ebed76bb2c.testnet",
+    "role": "Treasury account; not a vault or deposit address."
+  },
+  "state": {
+    "vaultCount": 2,
+    "totalOutputCount": 6,
+    "capacity": 256,
+    "outstandingNotes": 0,
+    "journalRecords": 16
+  },
+  "policyFileSha256": "f6ca5b87c5ae8140f791d84d9464aec60f32f0da58a9cf050b46ad30bd371595",
+  "policy": {
+    "network": "testnet",
+    "registry": "c14f-c1b494d1.testnet",
+    "denomination": "100000000000000000000000",
+    "feeRecipient": "treasury.core14-0574c4-ebed76bb2c.testnet",
+    "registryWasmSha256": "79ed58b8cc65ee1b58692e104b1efc2f4779144229602575b0f8785910c017b9",
+    "vaultWasmSha256": "56f4b88e171ec1781a7856b06b659a9664d0036c20a203bbc4d910ae93c9f412",
+    "verifierSha256": "296120fd8a431089e51bfe703d2c42df9836d3df687120ef251ee91403f6ad45"
+  },
+  "transactions": [
+    {
+      "label": "Deploy and initialize",
+      "hash": "44d1ejinSv6sdAMGEm8jDLQ3B3typdqGs5Di6bH2krv5"
+    },
+    {
+      "label": "Cross-vault payout",
+      "hash": "E89i9KhiAhcQYBPBdo77pTavdPWpmqXeugsRN3gvGgUE"
+    },
+    {
+      "label": "Original-recipient recovery",
+      "hash": "Y445NDQDRJsEwYGn8yreiv1vcVUKj8wNp27xDH1w19u"
+    }
+  ],
+  "qualification": {
+    "nativeCliSettlement": true,
+    "browserUsdcSettlement": false,
+    "hostedBackendAccepted": false,
+    "productionQualified": false
+  },
+  "safety": "UNSAFE_LOCAL_DEVELOPMENT_ONLY"
+}
