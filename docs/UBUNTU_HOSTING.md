@@ -38,6 +38,35 @@ systemd-analyze verify ops/ubuntu/money-station.service
 
 These checks do not install the system service, test its live cgroup restrictions or reload the host's Nginx. Those require an administrator.
 
+## Run the frontend before administrator installation
+
+The verified Money Station export now runs continuously as owner `jiheon` at `127.0.0.1:3330`, alongside the separate API/indexer and Organization API. The loopback server requires `Host: moneystation.site`; use the normal domain after the root gateway is installed. Direct public-IP access is not enabled.
+
+```bash
+# Run as the deployment owner, using the independently retained archive digest.
+python3 ops/ubuntu/manage-frontend.py prepare \
+  --archive /absolute/money-station-ubuntu.tar.gz --sha256 <archive-sha256>
+python3 /home/jiheon/.local/share/money-station/frontend/control.py start
+python3 /home/jiheon/.local/share/money-station/frontend/control.py autostart
+python3 ops/ubuntu/verify.py --origin http://127.0.0.1:3330
+# Exercises controlled restart, full stop/start and worker-crash recovery:
+python3 tests/manual/ubuntu-frontend.py --output /tmp/new-frontend-acceptance.json
+```
+
+The owner-only deployment root is `/home/jiheon/.local/share/money-station/frontend/`. Preparation verifies a private archive copy, safely extracts regular files and renders the existing static Nginx configuration. Startup verifies the retained archive digest, every exported file, manifest and Nginx configuration. The Nginx process runs in separate user/mount/PID namespaces with no host-home mount, a read-only export and private temporary/runtime directories. It has no wallet/provider secrets. A rotated log, single-supervisor lock, owner-scoped process checks and bounded worker restart backoff support operation. The owner reboot entry preserves the existing backend entry and other crontab lines. Actual host reboot has not been tested.
+
+This owner profile has an open-file limit and lower scheduling priority; it does not claim the root systemd profile's memory/CPU cgroup limits. `stop`, `start`, `restart` and `status` affect only its managed frontend. Preserve `config.json` and prior release directories for rollback. If supervisor code changes, stop the old manager and start the updated one; worker restart alone does not reload Python code.
+
+## Promote the running owner frontend to the root service
+
+```bash
+# In the root terminal, from the reviewed ops directory:
+bash ops/ubuntu/promote-frontend.sh /absolute/money-station-ubuntu.tar.gz <archive-sha256>
+```
+
+Promotion gracefully stops the owner frontend to release port 3330, then invokes the existing verified root installer. An installation failure restores the owner frontend when no system frontend is active. A successful root installation removes only the owner's frontend reboot entry; the backend entry is retained. Promotion then runs the public DNS/ACME/HTTPS checks. Missing DNS leaves the installed HTTP frontend active and requests no certificate. The owner launcher also skips startup while the root `money-station.service` is active, preventing a duplicate listener after reboot. The prepared `.openai/apply-ubuntu.local.sh` uses frozen, digest-verified operations files and this promotion path.
+
+
 ## Install on Ubuntu before DNS
 
 ```bash
@@ -89,7 +118,7 @@ Activation now requires normal HTTPS checks for the frontend and both API readin
 
 ## Current activation status — 2026-11-14
 
-The chosen Ubuntu IPv4 is `64.227.151.164`. The operator reported direct Hostinger DNS setup. At the dated check, the `.site` authoritative nameserver and public resolvers still returned NXDOMAIN for `moneystation.site`; the runtime account also required a sudo password. Settlement/indexer and Organization APIs are now running on loopback and passed actual-RPC readiness, index advancement and controlled worker restart with retained databases/keys. Root frontend/Nginx installation and public certificate issuance remain pending. The live-backend namespace test also passed the shared API TLS routes, missing-session denial and bad-origin rejection. Local namespace tests use a temporary explicitly trusted test certificate; they do not establish a public certificate or live HTTPS acceptance.
+The chosen Ubuntu IPv4 is `64.227.151.164`. The operator reported direct Hostinger DNS setup. At the dated check, the `.site` authoritative nameserver and public resolvers still returned NXDOMAIN for `moneystation.site`; the runtime account also required a sudo password. Settlement/indexer and Organization APIs are now running on loopback and passed actual-RPC readiness, index advancement and controlled worker restart with retained databases/keys. The frontend also now runs as an isolated owner service on loopback port 3330. Live route/Docs/media checks, full stop/start and worker-crash recovery passed; owner reboot autostart is registered alongside the backend. Root frontend/Nginx installation and public certificate issuance remain pending. The live-backend namespace test also passed the shared API TLS routes, missing-session denial and bad-origin rejection. Local namespace tests use a temporary explicitly trusted test certificate; they do not establish a public certificate or live HTTPS acceptance.
 
 ## Roll back a release
 
