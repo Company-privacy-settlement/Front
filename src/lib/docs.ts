@@ -587,7 +587,7 @@ export const docs: Doc[] = [
   {
     "slug": "kyb",
     "title": "Business verification",
-    "description": "Prepare company information in stages, keeping provider review separate from wallet ownership.",
+    "description": "Prepare sample intake or connect company and beneficial-owner provider review through your organization.",
     "source": "https://github.com/Company-privacy-settlement/Front/blob/main/src/lib/kyb.ts",
     "sections": [
       {
@@ -619,13 +619,13 @@ export const docs: Doc[] = [
       },
       {
         "id": "provider",
-        "title": "What a provider integration must add",
-        "bullets": [
-          "Entity, beneficial-owner and identity review, screening, and follow-up evidence.",
-          "Authenticated case references and explicit review decisions.",
-          "A trusted issuer, signed subject binding, validity, and revocation/freshness checks.",
-          "Access-controlled encrypted document storage and a retention policy.",
-          "SDK trusted-issuer signature, subject, expiry and supplied-revocation checks are available separately; they do not perform live entity review or enforce admission in the current circuit."
+        "title": "Connect company and owner verification",
+        "paragraphs": [
+          "Organization → Verification connects the organization API to Sumsub. Owner/Admin starts a tenant-bound company application and generates a ten-minute secure provider link. Company details, ownership/control information, documents and individual KYC are collected by the provider. An Auditor can read minimal status; Operator/Viewer cannot access these records. The separate /kyb/ sample remains unsubmitted.",
+          "Each company and linked person must complete the configured review. Company GREEN alone does not approve incomplete UBO KYC. RETRY or awaitingUser requests supplementation; open the secure flow for the actual requests. Missing owners, unsupported structures and changed levels require review instead of inferred approval.",
+          "Validity is bounded by the earliest required provider review date and operator policy. Refresh cannot extend the original expiry. Deactivation/deletion events and explicit local revocation close the case; old GREEN cannot reopen it. Stale/provider-unavailable records are not valid approvals. Start a fresh application after expiry or revocation.",
+          "Authenticated raw-body webhooks only invalidate status. The service fetches current provider data, binds client/environment/levels and fences concurrent owner changes or revocation. Minimal case snapshots are encrypted; provider links and browser sessions stay in memory. Backups revoke all restored cases.",
+          "The connector needs an operator-contracted Sumsub account, configured KYB/KYC levels, owner-only secrets/encryption keys and a reachable HTTPS callback. Development used local provider fixtures, with no real company/person review. Sandbox decisions do not establish legal identity. This feature issues no on-chain credential and does not enforce KYB inside permissionless settlement contracts."
         ]
       },
       {
@@ -1041,7 +1041,7 @@ export const docs: Doc[] = [
         "title": "Current protocol limits",
         "paragraphs": [
           "Groups use fixed denominations and 256 total outputs, including private transfers. Withdrawal does not recycle capacity. Groups remain separate proof/privacy domains. Arbitrary-amount private payments, automatic private cross-group migration and a bundled funded public deployment remain outside the implementation.",
-          "Production use needs independent contract/circuit/SDK review and a reviewed trusted setup. Real KYB decisions, jurisdiction-specific AI preparation, and statutory filing remain separate integrations."
+          "Production use needs independent contract/circuit/SDK review and a reviewed trusted setup. The Sumsub connector is available through Organization → Verification; actual provider qualification, jurisdiction-specific AI preparation and statutory filing remain separate."
         ]
       }
     ]

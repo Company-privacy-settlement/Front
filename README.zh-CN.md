@@ -92,7 +92,7 @@ npm run test:e2e
 
 ## 企业验证与边界
 
-KYB 目前仅为美国、阿布扎比大陆或 ADGM 的示例资料流程。草稿仅在内存中，刷新或离开 KYB 布局即清除。不会读取或上传文件内容。准备结果明确标记 `verified: false`、`credentialIssued: false`、`providerSubmission: not_sent`。没有真实服务商审核或支付资格签发。美国州/联邦与 ADGM/大陆税务法律准备、确定性规则计算及 AI 草稿属于后续集成。
+`/kyb/` 路由为美国、阿布扎比大陆或 ADGM 的示例资料流程。草稿仅在内存中，刷新或离开 KYB 布局即清除。不会读取或上传文件内容。准备结果明确标记 `verified: false`、`credentialIssued: false`、`providerSubmission: not_sent`。没有真实服务商审核或支付资格签发。美国州/联邦与 ADGM/大陆税务法律准备、确定性规则计算及 AI 草稿属于后续集成。
 
 本金保存在独立金库，由共享票据授权一个有余额的金库直接支付，不会依次穿过多个金库。公开签名者、收款人、金额、时间、金库及引用仍可关联活动；增加金库本身不保证匿名性。协议与单机开发设置尚无生产安全审计。[隐私](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PRIVACY.md) · [服务边界](https://github.com/Company-privacy-settlement/Core/blob/main/docs/SERVICE.md#current-boundaries)。
 
@@ -109,3 +109,7 @@ KYB 目前仅为美国、阿布扎比大陆或 ADGM 的示例资料流程。草�
 **2026-11-14 付款 Webhook 验证：**含新增 24 项 Core 和 12 项浏览器用例的 **379 项 Core 测试**与 **194 项桌面/移动浏览器用例**通过，Node/浏览器 SDK、静态构建和编译服务恢复检查通过。使用本地索引/钱包/传输夹具，未向实际商户回调发送消息或部署公开后端。
 
 员工与承包商批量付款验证（**2026-11-14**）：**401 项 Core 测试**、**210 项桌面/移动浏览器用例**通过，其中新增 22 项 Core 和 16 项批量付款浏览器用例。类型检查、Node/浏览器 SDK、静态 Front 构建、编译服务重启/备份/恢复及文档检查均通过。钱包、RPC 和组织服务使用本地测试环境；结果不代表已验证真实资金的公网工资支付或真实移动钱包。
+
+Organization → Verification 新增 [Sumsub KYB/KYC 集成](https://github.com/Company-privacy-settlement/Core/blob/main/docs/VERIFICATION.md)，支持企业/实益所有人审核、安全补充资料、最小状态加密、签名回调及基于审核日期的到期/撤销。启用需要签约账户、审核级别和 HTTPS 回调；开发验证使用提供方测试环境模拟，未审核真实企业。独立 `/kyb/` 示例仍不提交。
+
+KYB/KYC 集成验证（**2026-11-14**）：**428 项 Core 测试**和 **224 项桌面/移动浏览器用例**通过，含新增 27 项 Core 和 14 项提供方流程浏览器用例。类型、Node/浏览器 SDK、静态 Front 构建、编译服务重启/备份/恢复、文档及 SDK 同步检查通过。使用本地提供方/RPC/钱包测试环境；未验证真实 Sumsub 账户、企业/个人审核、实际回调或公网后端。

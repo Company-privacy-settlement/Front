@@ -9,7 +9,7 @@ export function KybShell({ children }: { children: ReactNode }) {
   const path = usePathname().replace(/\/$/, ''), { draft, preparedAt } = useKyb(), readiness = kybReadiness(draft);
   const complete = Object.values(readiness).filter(issues => !issues.length).length;
   return <>
-    <div className="kyb-demo-notice"><span className="kyb-mode"><ShieldCheck size={14}/> Demo intake · Not verified</span><div><strong>Use sample information.</strong> Your draft stays in memory inside this workspace. Reloading or leaving clears it. No files or data are sent to a KYB provider.</div></div>
+    <div className="kyb-demo-notice"><span className="kyb-mode"><ShieldCheck size={14}/> Demo intake · Not verified</span><div><strong>Use sample information.</strong> Your draft stays in memory inside this workspace. Reloading or leaving clears it. No files or data are sent to a KYB provider. <Link href="/organization/">For provider review, open Organization → Verification.</Link></div></div>
     <div className="kyb-workspace">
       <aside className="kyb-steps"><div className="kyb-progress-heading"><strong>Verification steps</strong><span>{complete} / 3 intake sections ready</span><progress aria-label="KYB intake readiness" max={3} value={complete}/></div><nav aria-label="KYB steps">{kybSteps.map((step, index) => {
         const active = path === step.href.replace(/\/$/, '');

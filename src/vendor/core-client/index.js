@@ -320,13 +320,13 @@ function validateRecovery(input, policy, ref) {
 
 // sdk/client/organizations.ts
 var ORGANIZATION_ROLES = Object.freeze(["owner", "admin", "operator", "viewer", "auditor"]);
-var ORGANIZATION_PERMISSIONS = Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "ownership.transfer", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create", "webhooks.read", "webhooks.manage"]);
+var ORGANIZATION_PERMISSIONS = Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "ownership.transfer", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create", "webhooks.read", "webhooks.manage", "verification.read", "verification.manage"]);
 var ORGANIZATION_ROLE_PERMISSIONS = Object.freeze({
   owner: ORGANIZATION_PERMISSIONS,
-  admin: Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create", "webhooks.read", "webhooks.manage"]),
+  admin: Object.freeze(["organization.read", "organization.update", "members.read", "members.manage", "invitations.manage", "audit.read", "payments.read", "payments.create", "payments.approve", "payments.execute", "invoices.read", "invoices.create", "webhooks.read", "webhooks.manage", "verification.read", "verification.manage"]),
   operator: Object.freeze(["organization.read", "members.read", "payments.read", "payments.create", "payments.execute", "invoices.read", "invoices.create", "webhooks.read"]),
   viewer: Object.freeze(["organization.read"]),
-  auditor: Object.freeze(["organization.read", "members.read", "audit.read", "payments.read", "invoices.read", "webhooks.read"])
+  auditor: Object.freeze(["organization.read", "members.read", "audit.read", "payments.read", "invoices.read", "webhooks.read", "verification.read"])
 });
 function organizationOrigin(value2) {
   const u = new URL(value2);
@@ -3182,6 +3182,37 @@ var PayoutBatchSession = class {
     return o.session.reconcile(o.id, transaction);
   }
 };
+
+// sdk/client/verification.ts
+function verificationState(c, now = Date.now()) {
+  if (c.state === "revoked") return "revoked";
+  if (c.expiresAt && Date.parse(c.expiresAt) <= now) return "expired";
+  if (c.state === "approved" && (!c.checkedAt || now - Date.parse(c.checkedAt) > 3e5 || Date.parse(c.checkedAt) > now + 6e4)) return "stale";
+  return c.state;
+}
+var OrganizationVerificationClient = class {
+  constructor(client, organizationId) {
+    this.client = client;
+    this.base = `/v1/organizations/${corporateId(organizationId)}/verification`;
+  }
+  client;
+  base;
+  get(signal) {
+    return this.client.request(this.base, "GET", void 0, signal);
+  }
+  create(input, signal) {
+    return this.client.request(this.base, "POST", input, signal);
+  }
+  refresh(version, signal) {
+    return this.client.request(this.base + "/refresh", "POST", { version }, signal);
+  }
+  link(version, signal) {
+    return this.client.request(this.base + "/link", "POST", { version }, signal);
+  }
+  revoke(version, signal) {
+    return this.client.request(this.base + "/revoke", "POST", { version }, signal);
+  }
+};
 export {
   BrowserProver,
   CoreApiError,
@@ -3195,6 +3226,7 @@ export {
   OrganizationApiError,
   OrganizationClient,
   OrganizationInvoiceClient,
+  OrganizationVerificationClient,
   OrganizationWebhookClient,
   PayoutBatchClient,
   PayoutBatchSession,
@@ -3269,6 +3301,7 @@ export {
   requireOpenInvoice,
   sha256,
   validatePrivateNote,
+  verificationState,
   verifyCorporatePayment,
   verifyPaymentWebhook,
   verifyPayoutBatch,
