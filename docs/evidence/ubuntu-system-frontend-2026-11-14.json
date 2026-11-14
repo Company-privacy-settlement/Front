@@ -1,0 +1,37 @@
+{
+  "format": "money-station-system-frontend-acceptance-v1",
+  "status": "passed",
+  "checkedAt": "2026-11-14T21:00:45Z",
+  "sourceCommit": "4b98994a1d202af1c6d7ce349ec2bf9d34797048",
+  "releaseId": "4b98994a1d20-c23e00e56cd6",
+  "archiveSha256": "c23e00e56cd60c36c0b2a4801d3856ade0a00bd05072f321a8fbee28cd865d6b",
+  "serverIpv4": "64.227.151.164",
+  "frontDomain": "moneystation.site",
+  "apiDomain": "api.moneystation.site",
+  "systemService": {
+    "NRestarts": "1",
+    "CPUQuotaPerSecUSec": "500ms",
+    "MemoryMax": "134217728",
+    "TasksMax": "32",
+    "DynamicUser": "yes",
+    "ProtectHome": "yes",
+    "ProtectSystem": "strict",
+    "NoNewPrivileges": "yes",
+    "ActiveState": "active",
+    "SubState": "running"
+  },
+  "bootEnabled": true,
+  "loopbackStaticChecks": 28,
+  "hostGatewayChecks": 28,
+  "forcedMainProcessExitRecovered": true,
+  "ownerFrontendAutostartRemoved": true,
+  "backendAutostartPreserved": true,
+  "publicHttpsAccepted": false,
+  "dnsStatus": "NXDOMAIN",
+  "scope": {
+    "nativeNearTestnetBackendReady": true,
+    "browserWalletUsdcAccepted": false,
+    "hostRebootTested": false,
+    "externalHttpsTested": false
+  }
+}

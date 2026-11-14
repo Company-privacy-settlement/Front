@@ -40,7 +40,7 @@ These checks do not install the system service, test its live cgroup restriction
 
 ## Run the frontend before administrator installation
 
-The verified Money Station export now runs continuously as owner `jiheon` at `127.0.0.1:3330`, alongside the separate API/indexer and Organization API. The loopback server requires `Host: moneystation.site`; use the normal domain after the root gateway is installed. Direct public-IP access is not enabled.
+The owner profile can run the verified Money Station export at `127.0.0.1:3330`, alongside the separate API/indexer and Organization API. On the selected host it has now been promoted to the root-installed systemd profile below; its previous release/state remain available for rollback. The loopback server requires `Host: moneystation.site`; use the normal domain after the root gateway is installed. Direct public-IP access is not enabled.
 
 ```bash
 # Run as the deployment owner, using the independently retained archive digest.
@@ -60,7 +60,7 @@ This owner profile has an open-file limit and lower scheduling priority; it does
 ## Promote the running owner frontend to the root service
 
 ```bash
-# In the root terminal, from the reviewed ops directory:
+# In the root terminal, from the reviewed checkout:
 bash ops/ubuntu/promote-frontend.sh /absolute/money-station-ubuntu.tar.gz <archive-sha256>
 ```
 
@@ -118,7 +118,13 @@ Activation now requires normal HTTPS checks for the frontend and both API readin
 
 ## Current activation status — 2026-11-14
 
-The chosen Ubuntu IPv4 is `64.227.151.164`. The operator reported direct Hostinger DNS setup. At the dated check, the `.site` authoritative nameserver and public resolvers still returned NXDOMAIN for `moneystation.site`; the runtime account also required a sudo password. Settlement/indexer and Organization APIs are now running on loopback and passed actual-RPC readiness, index advancement and controlled worker restart with retained databases/keys. The frontend also now runs as an isolated owner service on loopback port 3330. [Recorded frontend acceptance](evidence/ubuntu-frontend-2026-11-14.json) pins static/controller source `3171217fba0cf0702ea46a204ec6a14e79ec849d` and release `3171217fba0c-ef9a87f5544d`; later evidence-only commits do not change that deployed export. Live route/Docs/media checks, full stop/start and worker-crash recovery passed; owner reboot autostart is registered alongside the backend. Root frontend/Nginx installation and public certificate issuance remain pending. The live-backend namespace test also passed the shared API TLS routes, missing-session denial and bad-origin rejection. Local namespace tests use a temporary explicitly trusted test certificate; they do not establish a public certificate or live HTTPS acceptance.
+The chosen Ubuntu IPv4 is `64.227.151.164`. The root-installed `money-station.service` is now **enabled and active**, serving the pinned export at loopback port 3330 through the actual host Nginx `moneystation.site` HTTP route. The service uses a dynamic user, read-only system/home protection and actual 128 MiB / 50% CPU / 32-task limits. Both loopback and host-route acceptance passed 28 checks each, covering landing, application, Docs, policy/address records and video byte ranges. An intentional main-process exit recovered through systemd restart and both route checks passed afterward. The owner frontend process/reboot entry was removed; the separate backend manager and its owner reboot entry were preserved.
+
+[Root-service acceptance](evidence/ubuntu-system-frontend-2026-11-14.json) pins Front `4b98994a1d202af1c6d7ce349ec2bf9d34797048` and release `4b98994a1d20-c23e00e56cd6`. The earlier [owner-service acceptance](evidence/ubuntu-frontend-2026-11-14.json) is retained as historical evidence. Evidence/documentation commits after the pinned runtime do not imply a different deployed export. Two real deployment issues were fixed: Nginx access logging no longer tries to reopen systemd's journald stdout socket, and the installer waits for the expected release after graceful gateway reload before running full acceptance.
+
+Settlement/indexer and Organization APIs remain ready on loopback ports 3331/3332. The real API HTTP host returns 426 `TLS_REQUIRED`; its data routes are exposed only after public HTTPS activation. Both live ACME host routes passed local Host-header probes. The operator reported direct Hostinger DNS setup, but public and authoritative checks still returned NXDOMAIN. The public DNS probe therefore stopped before requesting any certificate. HTTPS activation remains pending DNS, and no public HTTPS or external browser-wallet USDC acceptance is claimed. The namespace gateway test uses an explicitly trusted temporary certificate for local routing checks. Actual host reboot has not been tested.
+
+After DNS points both names to this host, rerun the prepared root command or `activate-https.sh`. Do not disable TLS verification or expose organization sessions over HTTP.
 
 ## Roll back a release
 
