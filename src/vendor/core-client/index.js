@@ -2196,8 +2196,8 @@ function localAvailability(signed, root, nullifier, operations, except, reuseExa
   for (const operation of operations) {
     if (operation.id === except || canonical(operation.policy) !== canonical(signed.invoice.policy) || operation.reference.kind !== "withdrawal") continue;
     const old = operation.reference;
-    const exact10 = old.nullifier === nullifier && old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root;
-    if (exact10 && reuseExact) continue;
+    const exact11 = old.nullifier === nullifier && old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root;
+    if (exact11 && reuseExact) continue;
     if (old.nullifier === nullifier) throw new Error("This note already has a local withdrawal. Reconcile the existing operation; do not spend it again.");
     if (old.expectedRecipient === signed.invoice.recipient && old.expectedDisclosureRoot === root && (signed.invoice.version === 2 || operation.outcome === "open")) throw new Error("This invoice unit already has a local payment. Reconcile that operation before selecting another note.");
   }
@@ -2602,8 +2602,8 @@ var HttpGateway = class {
   preflight(request) {
     return this.request("/v1/ft/preflight", request);
   }
-  observe(reference2) {
-    return this.request("/v1/settlements/status", reference2);
+  observe(reference2, options = {}) {
+    return this.request("/v1/settlements/status", reference2, options.signal);
   }
   verify(transaction, call) {
     return this.request("/v1/transactions/verify", { transaction, call });
@@ -2942,8 +2942,8 @@ async function verifyPaymentWebhook(body, headers, secrets, options = {}) {
   if (!valid) throw new Error("Invalid webhook authentication");
   const e = JSON.parse(body), d = e.data;
   if (e.version !== 1 || e.id !== id3 || e.type !== "invoice.payment_confirmed" || !uuid2(e.organizationId) || options.organizationId && e.organizationId !== options.organizationId || typeof e.createdAt !== "string" || !Number.isFinite(Date.parse(e.createdAt)) || organizationOrigin(e.producer) !== e.producer || !d || !uuid2(d.invoiceRecordId) || !uuid2(d.invoiceId) || !/^[a-f0-9]{64}$/.test(d.invoiceHash) || d.network !== "testnet" || !/^\d{1,42}$/.test(d.amountTokens) || BigInt(d.amountTokens) <= 0n || !/^\d{1,77}$/.test(d.nullifier) || !Number.isSafeInteger(d.recordIndex) || d.recordIndex < 0 || !Number.isSafeInteger(d.blockHeight) || d.blockHeight < 0 || !d.transaction || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(d.transaction.hash)) throw new Error("Invalid authenticated payment event");
-  const exact10 = (value2, keys) => Object.keys(value2).sort().join("|") === [...keys].sort().join("|");
-  if (!exact10(e, ["version", "id", "type", "organizationId", "createdAt", "producer", "data"]) || !exact10(d, ["invoiceRecordId", "invoiceId", "invoiceHash", "network", "registry", "asset", "recipient", "amountTokens", "nullifier", "recordIndex", "blockHeight", "transaction", "index"]) || !exact10(d.transaction, ["hash", "signer"]) || !d.index || !exact10(d.index, ["hash", "height", "updatedAt"]) || !/^[1-9][0-9]{0,41}$/.test(d.amountTokens) || !/^(0|[1-9][0-9]{0,76})$/.test(d.nullifier) || account(d.registry) !== d.registry || account(d.recipient) !== d.recipient || account(d.transaction.signer) !== d.transaction.signer || d.asset !== "NEAR" && account(d.asset) !== d.asset || new Date(e.createdAt).toISOString() !== e.createdAt || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(d.index.hash) || !Number.isSafeInteger(d.index.height) || d.index.height < d.blockHeight || typeof d.index.updatedAt !== "string" || !Number.isFinite(Date.parse(d.index.updatedAt)) || new Date(d.index.updatedAt).toISOString() !== d.index.updatedAt) throw new Error("Invalid authenticated payment event");
+  const exact11 = (value2, keys) => Object.keys(value2).sort().join("|") === [...keys].sort().join("|");
+  if (!exact11(e, ["version", "id", "type", "organizationId", "createdAt", "producer", "data"]) || !exact11(d, ["invoiceRecordId", "invoiceId", "invoiceHash", "network", "registry", "asset", "recipient", "amountTokens", "nullifier", "recordIndex", "blockHeight", "transaction", "index"]) || !exact11(d.transaction, ["hash", "signer"]) || !d.index || !exact11(d.index, ["hash", "height", "updatedAt"]) || !/^[1-9][0-9]{0,41}$/.test(d.amountTokens) || !/^(0|[1-9][0-9]{0,76})$/.test(d.nullifier) || account(d.registry) !== d.registry || account(d.recipient) !== d.recipient || account(d.transaction.signer) !== d.transaction.signer || d.asset !== "NEAR" && account(d.asset) !== d.asset || new Date(e.createdAt).toISOString() !== e.createdAt || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(d.index.hash) || !Number.isSafeInteger(d.index.height) || d.index.height < d.blockHeight || typeof d.index.updatedAt !== "string" || !Number.isFinite(Date.parse(d.index.updatedAt)) || new Date(d.index.updatedAt).toISOString() !== d.index.updatedAt) throw new Error("Invalid authenticated payment event");
   return e;
 }
 function id2(value2) {
@@ -2979,6 +2979,209 @@ var OrganizationWebhookClient = class {
     return this.client.request(`${this.base}/deliveries/${id2(deliveryId)}/retry`, "POST", { version }, signal);
   }
 };
+
+// sdk/client/payout-batches.ts
+var exact10 = (v, keys) => {
+  if (Object.keys(v).sort().join("|") !== [...keys].sort().join("|")) throw new Error("Unsupported payout batch fields");
+};
+function title(value2) {
+  if (typeof value2 !== "string" || value2.trim() !== value2 || value2.length < 2 || value2.length > 120 || /[\u0000-\u001f\u007f]/.test(value2)) throw new Error("Use a batch reference of 2\u2013120 characters");
+  return value2;
+}
+async function parsePayoutManifest(input) {
+  const m = object(JSON.parse(canonical(input)));
+  exact10(m, ["format", "requestId", "title", "entries"]);
+  if (m.format !== "core-payout-manifest-v1" || !Array.isArray(m.entries) || m.entries.length < 1 || m.entries.length > 20) throw new Error("Use a public payout manifest with 1\u201320 note payments");
+  const entries = [], intents = /* @__PURE__ */ new Set(), spends = /* @__PURE__ */ new Set();
+  let policy, payer;
+  for (const raw of m.entries) {
+    const row = object(raw);
+    exact10(row, ["intentId", "category", "content"]);
+    const intentId = corporateId(row.intentId);
+    if (!["worker", "contractor"].includes(String(row.category)) || intents.has(intentId)) throw new Error("Invalid or duplicate payout row");
+    const content = await corporateContent(row.content);
+    policy ??= content.policy;
+    payer ??= content.payer;
+    if (canonical(policy) !== canonical(content.policy) || payer !== content.payer) throw new Error("A payout batch uses one exact policy and fee payer");
+    const prepared = await preparedPayment({ tokenCall: content.payment }, content.policy, content.payer);
+    if (prepared.reference.kind !== "withdrawal" || spends.has(prepared.reference.nullifier)) throw new Error("Each payout row needs a distinct funded note");
+    spends.add(prepared.reference.nullifier);
+    intents.add(intentId);
+    entries.push({ intentId, category: row.category, content });
+  }
+  return { format: "core-payout-manifest-v1", requestId: corporateId(m.requestId), title: title(m.title), entries };
+}
+async function verifyPayoutBatch(input, org) {
+  const v = object(JSON.parse(canonical(input)));
+  exact10(v, ["payload", "contentHash", "payments"]);
+  const p = object(v.payload);
+  exact10(p, ["format", "organizationId", "batchId", "creatorAccount", "creatorMembershipVersion", "title", "createdAt", "policy", "rows"]);
+  corporateId(p.organizationId);
+  corporateId(p.batchId);
+  account(p.creatorAccount);
+  title(p.title);
+  const policy = parsePolicy(p.policy);
+  if (p.format !== "core-payout-batch-v1" || org !== void 0 && p.organizationId !== org || policy.network !== "testnet" || !policy.tokenId || !Number.isSafeInteger(p.creatorMembershipVersion) || Number(p.creatorMembershipVersion) < 1 || typeof p.createdAt !== "string" || !Number.isFinite(Date.parse(p.createdAt)) || new Date(p.createdAt).toISOString() !== p.createdAt || !Array.isArray(p.rows) || p.rows.length < 1 || p.rows.length > 20 || !Array.isArray(v.payments) || v.payments.length !== p.rows.length || v.contentHash !== await sha256(canonical(p))) throw new Error("Payout batch binding mismatch");
+  const payments = [], ids = /* @__PURE__ */ new Set(), intents = /* @__PURE__ */ new Set(), spends = /* @__PURE__ */ new Set();
+  for (let i = 0; i < p.rows.length; i++) {
+    const r = object(p.rows[i]);
+    exact10(r, ["intentId", "category", "paymentId", "contentHash"]);
+    corporateId(r.intentId);
+    corporateId(r.paymentId);
+    const payment = await verifyCorporatePayment(v.payments[i], String(p.organizationId));
+    if (!["worker", "contractor"].includes(String(r.category)) || ids.has(String(r.paymentId)) || intents.has(String(r.intentId)) || payment.payload.paymentId !== r.paymentId || payment.contentHash !== r.contentHash || payment.payload.creatorAccount !== p.creatorAccount || payment.payload.creatorMembershipVersion !== p.creatorMembershipVersion || canonical(payment.payload.content.policy) !== canonical(policy)) throw new Error("Payout recipient approval binding mismatch");
+    const prepared = await preparedPayment({ tokenCall: payment.payload.content.payment }, policy, payment.payload.content.payer);
+    if (prepared.reference.kind !== "withdrawal" || spends.has(prepared.reference.nullifier)) throw new Error("Duplicate payout note");
+    spends.add(prepared.reference.nullifier);
+    ids.add(String(r.paymentId));
+    intents.add(String(r.intentId));
+    payments.push(payment);
+  }
+  return { payload: p, contentHash: String(v.contentHash), payments };
+}
+var PayoutBatchClient = class {
+  constructor(client, organizationId) {
+    this.client = client;
+    this.organizationId = organizationId;
+    this.base = `/v1/organizations/${corporateId(organizationId)}/payout-batches`;
+  }
+  client;
+  organizationId;
+  base;
+  async list(signal) {
+    const v = await this.client.request(this.base, "GET", void 0, signal);
+    if (!v || !Array.isArray(v.items) || v.items.length > 25) throw new Error("Invalid batch list");
+    return Promise.all(v.items.map((b) => verifyPayoutBatch(b, this.organizationId)));
+  }
+  async get(id3, signal) {
+    return verifyPayoutBatch(await this.client.request(`${this.base}/${corporateId(id3)}`, "GET", void 0, signal), this.organizationId);
+  }
+  async stage(entry, signal) {
+    return verifyCorporatePayment(await this.client.request(this.base + "/stage", "POST", entry, signal), this.organizationId);
+  }
+  async create(input, signal, onProgress) {
+    const manifest = await parsePayoutManifest(input);
+    signal?.throwIfAborted();
+    for (let i = 0; i < manifest.entries.length; i++) {
+      await this.stage(manifest.entries[i], signal);
+      signal?.throwIfAborted();
+      onProgress?.(i + 1, manifest.entries.length);
+    }
+    return verifyPayoutBatch(await this.client.request(this.base, "POST", { requestId: manifest.requestId, title: manifest.title, intentIds: manifest.entries.map((r) => r.intentId) }, signal), this.organizationId);
+  }
+};
+function payoutBatchQuote(batch) {
+  const quotes = batch.payments.map((p) => corporateQuote(p.payload.content));
+  return { rows: quotes.length, principalTokens: quotes.reduce((n, q) => n + BigInt(q.principalTokens), 0n).toString(), quotedWithdrawalFeeTokens: quotes.reduce((n, q) => n + BigInt(q.feeTokens), 0n).toString(), maximumReviewedAttachedYoctoNear: quotes.reduce((n, q) => n + BigInt(q.maximumAttachedYoctoNear), 0n).toString() };
+}
+function parsePayoutObservation(input, reference2, policy) {
+  const v = object(input), ref = object(reference2), block3 = object(v.checkedAtBlock);
+  if (v.assetTokenId !== policy.tokenId || canonical(v.reference) !== canonical(reference2) || typeof block3.hash !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(block3.hash) || !Number.isSafeInteger(block3.height) || Number(block3.height) < 0 || typeof v.retryAvailable !== "boolean" || v.refunded !== false || v.refundAvailable !== false || v.refundCall !== null) throw new Error("Invalid finalized payout observation");
+  if (v.record === null) {
+    if (v.state !== "NotFound" || v.complete !== false || v.retryAvailable || v.retryCall !== null) throw new Error("Inconsistent absent payout");
+  } else {
+    const r = object(v.record);
+    if (r.vault !== ref.expectedVault || r.recipient !== ref.expectedRecipient || r.disclosure_root !== ref.expectedDisclosureRoot || r.state !== v.state || !["Pending", "Retryable", "Complete"].includes(String(r.state)) || !Number.isSafeInteger(r.attempt) || Number(r.attempt) < 1 || !Number.isSafeInteger(r.last_height) || Number(r.last_height) < 0 || Number(r.last_height) > Number(block3.height) || v.complete !== (r.state === "Complete")) throw new Error("Payout recipient or final state mismatch");
+    if (v.retryAvailable) {
+      if (v.complete || !(v.state === "Retryable" || Number(block3.height) >= Number(r.last_height) + 20)) throw new Error("Premature payout retry");
+    } else if (v.retryCall !== null) throw new Error("Unadvertised recovery call");
+  }
+  if (typeof v.complete !== "boolean") throw new Error("Invalid payout completion");
+  return v;
+}
+async function reconcilePayoutBatch(batch, gateway, apiOrigin, signal, previous = []) {
+  const fixed = await verifyPayoutBatch(batch), policy = fixed.payload.policy;
+  signal.throwIfAborted();
+  if (canonical(await gateway.policy({ signal })) !== canonical(policy)) throw new Error("Payout API differs from your trusted policy");
+  signal.throwIfAborted();
+  const result = [];
+  for (const payment of fixed.payments) {
+    signal.throwIfAborted();
+    const old = previous.find((r) => r.paymentId === payment.payload.paymentId), confirmed = old?.lastConfirmed ?? (old?.observation?.complete ? old.observation : null);
+    let row = { paymentId: payment.payload.paymentId, state: "unavailable", observation: null, lastConfirmed: confirmed ?? null, checkedAt: (/* @__PURE__ */ new Date()).toISOString(), apiOrigin };
+    try {
+      const prepared = await preparedPayment({ tokenCall: payment.payload.content.payment }, policy, payment.payload.content.payer), observation = parsePayoutObservation(await gateway.observe(prepared.reference, { signal }), prepared.reference, policy);
+      signal.throwIfAborted();
+      if (observation.retryCall) validateRecovery(observation.retryCall, policy, prepared.reference);
+      row = { ...row, observation, state: observation.complete ? "complete" : confirmed ? "inconsistent" : observation.retryAvailable ? "recoverable" : observation.state === "Pending" ? "pending" : "unobserved", lastConfirmed: observation.complete ? observation : confirmed ?? null };
+    } catch {
+      signal.throwIfAborted();
+    }
+    result.push(row);
+  }
+  return result;
+}
+function payoutReconciliationState(row, now = Date.now()) {
+  if (now - Date.parse(row.checkedAt) > 3e5 || Date.parse(row.checkedAt) > now + 6e4) return "stale";
+  return row.state;
+}
+function payoutSettlementSummary(batch, rows, now = Date.now()) {
+  const quote = payoutBatchQuote(batch), confirmed = batch.payments.filter((p) => rows.some((r) => r.paymentId === p.payload.paymentId && (r.lastConfirmed?.complete || r.observation?.complete))), paid = confirmed.reduce((n, p) => n + BigInt(p.payload.content.policy.denomination), 0n);
+  return { ...quote, confirmedRows: confirmed.length, confirmedPrincipalTokens: paid.toString(), unconfirmedPrincipalTokens: (BigInt(quote.principalTokens) - paid).toString(), needsReview: rows.filter((r) => ["unavailable", "stale", "inconsistent", "recoverable"].includes(payoutReconciliationState(r, now))).length };
+}
+function exportPayoutSettlement(batch, rows, format, now = Date.now()) {
+  const data = batch.payments.map((p, index) => {
+    const r = rows.find((row) => row.paymentId === p.payload.paymentId), c = p.payload.content, msg = JSON.parse(c.payment.args.msg), q = corporateQuote(c);
+    return { batchId: batch.payload.batchId, batchReference: batch.payload.title, rowReference: p.payload.content.title, organizationId: batch.payload.organizationId, paymentId: p.payload.paymentId, category: batch.payload.rows[index].category, recipient: msg.recipient, asset: c.policy.tokenId, principalTokens: q.principalTokens, quotedWithdrawalFeeTokens: q.feeTokens, maximumReviewedAttachedYoctoNear: q.maximumAttachedYoctoNear, approval: p.state, approvedBy: p.approvedBy, settlement: r ? payoutReconciliationState(r, now) : "unchecked", historicallyConfirmed: !!r?.lastConfirmed, checkedAt: r?.checkedAt ?? null, blockHash: r?.observation?.checkedAtBlock.hash ?? null, blockHeight: r?.observation?.checkedAtBlock.height ?? null, apiOrigin: r?.apiOrigin ?? null, chainFreshnessChecked: false };
+  });
+  if (format === "json") return JSON.stringify({ format: "core-payout-settlement-v1", exportedAt: new Date(now).toISOString(), summary: payoutSettlementSummary(batch, rows, now), rows: data }, null, 2) + "\n";
+  const columns = Object.keys(data[0]);
+  const cell = (v) => {
+    let s = v == null ? "" : String(v);
+    if (/^[\s\u0000-\u0020]*[=+@-]/.test(s)) s = "'" + s;
+    return '"' + s.replaceAll('"', '""') + '"';
+  };
+  return "\uFEFF" + [columns.map(cell).join(","), ...data.map((r) => columns.map((k) => cell(r[k])).join(","))].join("\r\n") + "\r\n";
+}
+var PayoutBatchSession = class {
+  constructor(journal, gateway, wallet, client, batch) {
+    this.journal = journal;
+    this.gateway = gateway;
+    this.wallet = wallet;
+    this.client = client;
+    this.batch = batch;
+  }
+  journal;
+  gateway;
+  wallet;
+  client;
+  batch;
+  sessions = /* @__PURE__ */ new Map();
+  generation = 0;
+  lock() {
+    this.generation++;
+    this.journal.lock();
+    this.sessions.clear();
+  }
+  async operation(paymentId) {
+    const mine = this.generation, current = await new PayoutBatchClient(this.client, this.batch.payload.organizationId).get(this.batch.payload.batchId);
+    if (mine !== this.generation) throw new Error("Payout journal locked");
+    if (current.contentHash !== this.batch.contentHash) throw new Error("Payout batch changed");
+    const payment = current.payments.find((p) => p.payload.paymentId === paymentId);
+    if (!payment) throw new Error("Recipient is not part of this payout batch");
+    const existing = this.sessions.get(paymentId);
+    if (existing) return existing;
+    const c = payment.payload.content, checkedGateway = { policy: (options) => this.gateway.policy(options), preflight: (request) => this.gateway.preflight(request), verify: (tx, call) => this.gateway.verify(tx, call), observe: async (reference2, options) => parsePayoutObservation(await this.gateway.observe(reference2, options), reference2, c.policy) }, session = new SettlementSession(this.journal, checkedGateway, this.wallet, c.policy, corporateSettlementGuards(this.client, payment)), operations = await this.journal.list();
+    if (mine !== this.generation) throw new Error("Payout journal locked");
+    const old = operations.find((o) => o.payer === c.payer && canonical(o.policy) === canonical(c.policy) && canonical(o.payment) === canonical(c.payment)), op = old ?? await session.importPlan({ tokenCall: c.payment });
+    if (mine !== this.generation) throw new Error("Payout journal locked");
+    const opened = { session, id: op.id };
+    this.sessions.set(paymentId, opened);
+    return opened;
+  }
+  async review(paymentId) {
+    const o = await this.operation(paymentId);
+    return o.session.review(o.id);
+  }
+  async submitReviewed(paymentId, callHash) {
+    const o = await this.operation(paymentId);
+    return o.session.submitReviewed(o.id, callHash);
+  }
+  async reconcile(paymentId, transaction) {
+    const o = await this.operation(paymentId);
+    return o.session.reconcile(o.id, transaction);
+  }
+};
 export {
   BrowserProver,
   CoreApiError,
@@ -2993,6 +3196,8 @@ export {
   OrganizationClient,
   OrganizationInvoiceClient,
   OrganizationWebhookClient,
+  PayoutBatchClient,
+  PayoutBatchSession,
   RECEIPT_FIELDS,
   SettlementSession,
   activityKinds,
@@ -3012,6 +3217,7 @@ export {
   encryptNoteBackup,
   encryptReceiptBackup,
   exportInvoiceDashboard,
+  exportPayoutSettlement,
   feeQuote,
   filterInvoiceDashboard,
   invoiceDashboardObservation,
@@ -3047,19 +3253,25 @@ export {
   parseIndexStatus,
   parseInvoice,
   parseOrganizationChallenge,
+  parsePayoutManifest,
   parsePolicy,
   parseProofBundle,
   parseProvingAction,
   parseProvingContext,
   parseRecipientReadiness,
   parseSignedInvoice,
+  payoutBatchQuote,
+  payoutReconciliationState,
+  payoutSettlementSummary,
   prepareInvoiceProof,
   preparedPayment,
+  reconcilePayoutBatch,
   requireOpenInvoice,
   sha256,
   validatePrivateNote,
   verifyCorporatePayment,
   verifyPaymentWebhook,
+  verifyPayoutBatch,
   verifyProvingAssets,
   verifyReceiptDisclosure,
   verifySignedInvoice,

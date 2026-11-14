@@ -12,6 +12,8 @@ Organization → Invoice payments 提供完整组织发票快照搜索、状态/
 
 Organization → Webhooks 管理最终付款回调、签名密钥轮换、尝试/失败历史与版本化重试。Owner/Admin 管理，Operator/Auditor 读取，Viewer 无权加载。浏览器不持久保存签名秘密。[工作器和接收端配置](https://github.com/Company-privacy-settlement/Core/blob/main/docs/WEBHOOKS.md)。
 
+Organization → Payouts 管理员工/承包商付款批次、逐收款人审批和费用、共享加密日志、原目标单独恢复及观察性对账导出。须独立导入可信测试网 FT 策略/API 与不同已充值票据的公开清单。[付款指南](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PAYOUT_BATCHES.md)。
+
 ## 工作区
 
 | 路径 | 当前功能 |
@@ -105,3 +107,5 @@ KYB 目前仅为美国、阿布扎比大陆或 ADGM 的示例资料流程。草�
 **2026-11-14 付款仪表板验证：**包含新增 13 项 Core 和 18 项浏览器用例的 **355 项 Core 测试**与 **182 项桌面/移动浏览器用例**通过，类型、Node/浏览器 SDK 和静态构建也通过。浏览器服务/钱包测试夹具不代表公开网络实际部署。
 
 **2026-11-14 付款 Webhook 验证：**含新增 24 项 Core 和 12 项浏览器用例的 **379 项 Core 测试**与 **194 项桌面/移动浏览器用例**通过，Node/浏览器 SDK、静态构建和编译服务恢复检查通过。使用本地索引/钱包/传输夹具，未向实际商户回调发送消息或部署公开后端。
+
+员工与承包商批量付款验证（**2026-11-14**）：**401 项 Core 测试**、**210 项桌面/移动浏览器用例**通过，其中新增 22 项 Core 和 16 项批量付款浏览器用例。类型检查、Node/浏览器 SDK、静态 Front 构建、编译服务重启/备份/恢复及文档检查均通过。钱包、RPC 和组织服务使用本地测试环境；结果不代表已验证真实资金的公网工资支付或真实移动钱包。

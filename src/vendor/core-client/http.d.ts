@@ -10,7 +10,9 @@ export declare class HttpGateway implements Gateway {
         signal?: AbortSignal;
     }): Promise<Policy>;
     preflight(request: Parameters<Gateway["preflight"]>[0]): Promise<Preflight>;
-    observe(reference: Reference): Promise<Observation>;
+    observe(reference: Reference, options?: {
+        signal?: AbortSignal;
+    }): Promise<Observation>;
     verify(transaction: TxRef, call: Call): Promise<Verification>;
     private trusted;
     groupCapacity(policy: Policy, options?: {

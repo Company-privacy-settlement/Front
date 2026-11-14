@@ -944,6 +944,18 @@ export const docs: Doc[] = [
           "Use the original raw request body; do not parse and re-serialize it before HMAC verification. Signature headers are Core-Event-Id, Core-Webhook-Timestamp, Core-Webhook-Key-Id and Core-Webhook-Signature. Retain deliberate previous keys during rotation. The authenticated event identifies one finalized payment, not a mutable aggregate invoice-paid flag.",
           "OrganizationWebhookClient manages callbacks, delivery pagination, attempt details and versioned retry/rotation. PaymentWebhookInbox is in the Node SDK; its synchronous SQL handler must not perform asynchronous external fulfillment. External work needs a separate transactional outbox/idempotency key. HMAC authenticates the integration; it is not independent light-client or legal/tax verification."
         ]
+      },
+      {
+        "id": "payout-batches",
+        "title": "Create and reconcile payout runs",
+        "code": {
+          "label": "Browser SDK",
+          "text": "const batches = new PayoutBatchClient(client, organizationId);\nconst batch = await batches.create(savedManifest, signal);\n// A different Owner/Admin approves each exact recipient request.\nconst run = new PayoutBatchSession(journal, gateway, wallet, client, batch);\nconst row = batch.payments[0].payload.paymentId;\nconst review = await run.review(row);\n// Review fee/recipient/call, then explicitly request wallet approval.\nawait run.submitReviewed(row, review.callHash);\nconst observations = await reconcilePayoutBatch(batch, gateway, gateway.url, signal);\nconst report = exportPayoutSettlement(batch, observations, 'json');"
+        },
+        "paragraphs": [
+          "A public manifest contains 1–20 entries with stable intentId, declared worker/contractor category and immutable CorporateContent. Mixed payer/policies and duplicate notes are rejected. All amounts are exact atomic strings, with token fees added on top of note principal. Arbitrary salary amounts/FX/withholding are outside the current fixed-denomination protocol.",
+          "PayoutBatchSession keeps a separate guarded operation for each recipient within one encrypted journal. It never batches invisible wallet signatures. Recovery binds the existing destination and shows additional storage. The same origin-bound current organization permissions and one-use corporate dispatch checks apply before each new payment."
+        ]
       }
     ]
   },
@@ -1269,6 +1281,18 @@ export const docs: Doc[] = [
           "Every attempt carries an HMAC-SHA-256 signature over the exact raw body, stable event ID, key ID and fresh Unix timestamp. The receiver must enforce the five-minute timestamp window and atomically deduplicate event IDs. A sender can retry after a lost acknowledgement even when the receiver already committed; acknowledge 2xx only after idempotent business work commits.",
           "Network/transient HTTP failures retry with bounded backoff up to eight attempts per cycle. Redirects and permanent errors become dead letters. Inspect attempt outcomes, safe error/status codes and next due time; a current Owner/Admin can explicitly redrive a dead/held delivery up to three cycles with the same event ID. Delivered jobs cannot be manually resent.",
           "Encrypted backups retain events and attempt/dedup history but pause restored callbacks and hold pending/in-flight sends. Current access review, explicit resume and held-job retry are required. Webhook metadata and protected database state remain visible to the service; signing secrets, callback paths and event bodies are encrypted at rest."
+        ]
+      },
+      {
+        "id": "payout-batches",
+        "title": "Pay workers and contractors",
+        "paragraphs": [
+          "Open Organization → Payouts. A run groups 1–20 public corporate withdrawal plans under one exact trusted testnet FT policy and fee payer. Every row spends a distinct funded note, derives its principal and added 0.15% fee from policy and needs another Owner/Admin’s independent approval. Worker/contractor categories are declarations, not employment or tax verification.",
+          "Import the independently trusted policy/Core API and a saved core-payout-manifest-v1 file containing stable batch/row IDs and public calls. The SDK stages rows idempotently before committing immutable ordered batch links. Retry the same file after a partial/lost response. Private notes, witnesses and wallet keys are not accepted.",
+          "Review each recipient’s full principal, added token fee, permitted prerequisite calls and maximum attachments. Include independently reviewed initial/later storage prepayment variants when needed; preflight cannot silently raise an approved charge. The creator cannot self-approve. Existing row expiry and maker/approver membership revisions remain active.",
+          "The creator unlocks one encrypted original-group journal, reviews the selected recipient and explicitly signs each next exact call. Other approved rows remain independent. An accepted failed withdrawal can retry only its original recipient/nullifier with additional NEAR storage, without a second withdrawal token fee. No action silently resends an entire run.",
+          "Reconcile recipient payouts reads and binds every final contract state separately. Unobserved/unknown results are not failed-payment instructions. Completed journal rows stay closed even if later reads regress; reports preserve last confirmed observations while flagging stale/unavailable/inconsistent results. CSV/JSON export separates quotes, historically confirmed principal and principal not yet confirmed.",
+          "Keep encrypted journal/note backups. Lost authorization or wallet responses require original-transaction reconciliation, never resetting consumed dispatch reservations. Restored organization data preserves batch links but invalidates old approvals and keeps note claims. These controls are an application workflow; the contracts retain permissionless fixed-destination proof execution."
         ]
       }
     ]

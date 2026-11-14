@@ -74,14 +74,18 @@ export type Verification = {
     transaction: TxRef;
 };
 export interface Gateway {
-    policy(): Promise<Policy>;
+    policy(options?: {
+        signal?: AbortSignal;
+    }): Promise<Policy>;
     preflight(request: {
         operation: "deposit" | "withdraw";
         payer: string;
         vault: string;
         recipient?: string;
     }): Promise<Preflight>;
-    observe(reference: Reference): Promise<Observation>;
+    observe(reference: Reference, options?: {
+        signal?: AbortSignal;
+    }): Promise<Observation>;
     verify(transaction: TxRef, call: Call): Promise<Verification>;
 }
 export interface WalletPort {

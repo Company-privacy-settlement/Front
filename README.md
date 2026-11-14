@@ -12,6 +12,8 @@ Organization → Invoice payments now provides complete-snapshot invoice search,
 
 Organization → Webhooks manages signed finalized-payment callbacks, secret rotation, delivery attempts, failures and versioned dead-letter/recovery retries. Owners/Admins manage; Operators/Auditors read; Viewers cannot load webhook data. Secrets remain transient in the browser. [Worker and receiver configuration](https://github.com/Company-privacy-settlement/Core/blob/main/docs/WEBHOOKS.md).
 
+Organization → Payouts manages worker/contractor runs, recipient-specific approval/fee review, a shared encrypted journal, individual original-destination recovery and observational settlement exports. Import an independently trusted testnet FT policy/API and a public manifest with distinct funded notes. [Payout guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/PAYOUT_BATCHES.md).
+
 ## Workspaces
 
 | Route | Current behavior |
@@ -105,3 +107,5 @@ There are no external analytics or remote-font requests. Wallet connection loads
 Payment dashboard validation on **2026-11-14**: **355 Core tests** and **182 desktop/mobile browser cases** passed, including 13 new Core and 18 browser dashboard cases; type checks, Node/browser SDK builds and the static Front build passed. Browser service/wallet fixtures do not establish a live public-network deployment.
 
 Signed webhook validation on **2026-11-14**: **379 Core tests** and **194 desktop/mobile browser cases** passed, including 24 new Core and 12 browser webhook cases. Node/browser SDK, static build and compiled service/recovery checks passed. Tests use local index/wallet/transport fixtures; no real merchant callback or public backend deployment was performed.
+
+Worker/contractor payout validation on **2026-11-14**: **401 Core tests** and **210 desktop/mobile browser cases** passed, including 22 new Core and 16 browser payout cases. Type checks, Node/browser SDK and static Front builds, compiled service restart/backup/recovery and documentation checks passed. Browser wallets, RPC and organization services are local fixtures; these results do not qualify funded public-network payroll or real mobile wallets.

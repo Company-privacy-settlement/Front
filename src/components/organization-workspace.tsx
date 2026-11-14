@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Building2, Check, LogOut, Plus, RefreshCw, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import { MerchantShell } from './merchant-shell';
+import { PayoutBatches } from './payout-batches';
 import { OrganizationWebhooks } from './organization-webhooks';
 import { InvoiceDashboard } from './invoice-dashboard';
 import { OrganizationPayments } from './organization-payments';
@@ -10,7 +11,7 @@ import { liveWallet, nearConnector } from '@/lib/wallet';
 import { ORGANIZATION_ROLES, ORGANIZATION_PERMISSIONS, ORGANIZATION_ROLE_PERMISSIONS, OrganizationApiError, OrganizationClient, nonceBytes, organizationOrigin, parseOrganizationChallenge,
   type Organization, type OrganizationAudit, type OrganizationInvitation, type OrganizationMember, type OrganizationPermission, type OrganizationRole, type OrganizationSession } from '@/vendor/core-client/index.js';
 
-type View = 'Overview' | 'Invoice payments' | 'Webhooks' | 'Payments' | 'Members' | 'Invitations' | 'Roles & permissions' | 'Audit log';
+type View = 'Overview' | 'Payouts' | 'Invoice payments' | 'Webhooks' | 'Payments' | 'Members' | 'Invitations' | 'Roles & permissions' | 'Audit log';
 type GrantRole = Exclude<OrganizationRole, 'owner'>;
 type Lists = { members: OrganizationMember[]; invites: OrganizationInvitation[]; audit: OrganizationAudit[]; cursor: number | null };
 const empty = (): Lists => ({ members: [], invites: [], audit: [], cursor: null });
@@ -128,10 +129,11 @@ export function OrganizationWorkspace() {
       {inbox.length > 0 && <section className="panel live-card"><h2>Your invitations</h2><p>These invitations are addressed to your signed-in wallet.</p><div className="organization-list">{inbox.map(invite => <div className="organization-row" key={invite.id}><div><strong>{invite.organizationName}</strong><span>{title(invite.role)} · Expires {new Date(invite.expiresAt).toLocaleDateString()}</span></div><div className="live-buttons"><button className="button button-dark" disabled={busy} onClick={() => void run(async (c, s, check) => { const result = await c.request<{ organization: Organization }>(`/v1/me/invitations/${invite.id}/accept`, 'POST', { version: invite.version }, s); check(); setView('Overview'); await reload(c, s, check, result.organization.id, 'Overview'); setNotice('Invitation accepted.'); })}>Accept invitation</button><button className="button button-outline" disabled={busy} onClick={() => mutate(`/v1/me/invitations/${invite.id}/decline`, 'POST', { version: invite.version }, 'Invitation declined.')}>Decline</button></div></div>)}</div></section>}
       {selected && <>
         <div className="organization-current"><div><h2>{selected.name}</h2><p>{session.accountId} · {title(selected.role)}</p></div><span>Business verification is separate</span></div>
-        <nav className="organization-tabs" aria-label="Organization settings">{(['Overview', 'Invoice payments', 'Webhooks', 'Payments', 'Members', 'Invitations', 'Roles & permissions', 'Audit log'] as View[]).map(tab => <button key={tab} aria-current={view === tab ? 'page' : undefined} disabled={busy} onClick={() => changeView(tab)}>{tab}</button>)}</nav>
+        <nav className="organization-tabs" aria-label="Organization settings">{(['Overview', 'Payouts', 'Invoice payments', 'Webhooks', 'Payments', 'Members', 'Invitations', 'Roles & permissions', 'Audit log'] as View[]).map(tab => <button key={tab} aria-current={view === tab ? 'page' : undefined} disabled={busy} onClick={() => changeView(tab)}>{tab}</button>)}</nav>
         <section className="panel live-card organization-detail">
           {view === 'Invoice payments' && credential.current && <InvoiceDashboard key={`${api}:${selected.id}:${session.accountId}:${selected.membershipVersion}:${selected.role}`} organization={selected} client={credential.current.client} accountId={session.accountId} disabled={busy} run={run}/>}
           {view === 'Webhooks' && credential.current && <OrganizationWebhooks key={`${api}:${selected.id}:${session.accountId}:${selected.membershipVersion}:${selected.role}`} organization={selected} client={credential.current.client} disabled={busy} run={run}/>}
+          {view === 'Payouts' && credential.current && <PayoutBatches key={`${api}:${selected.id}:${session.accountId}:${selected.membershipVersion}:${selected.role}`} organization={selected} client={credential.current.client} accountId={session.accountId} disabled={busy} run={run}/>}
           {view === 'Payments' && credential.current && <OrganizationPayments key={`${api}:${selected.id}:${session.accountId}`} organization={selected} client={credential.current.client} accountId={session.accountId} disabled={busy} run={run}/>}
           {view === 'Overview' && <><h2>Organization details</h2><p>Manage your workspace name and ownership.</p><dl className="organization-facts"><div><dt>Owner</dt><dd>{selected.ownerAccount}</dd></div><div><dt>Your role</dt><dd>{title(selected.role)}</dd></div><div><dt>Created</dt><dd>{new Date(selected.createdAt).toLocaleDateString()}</dd></div></dl>
             {allowed('organization.update') && <form onSubmit={e => { e.preventDefault(); mutate(`/v1/organizations/${selected.id}`, 'PATCH', { name: name.trim(), version: selected.version }, 'Organization name updated.'); }}><label className="form-label">Organization name<input value={name} required minLength={2} maxLength={120} disabled={busy} onChange={e => setName(e.target.value)}/></label><button className="button button-dark" disabled={busy || name.trim().length < 2 || name.trim() === selected.name}>Save name</button></form>}
