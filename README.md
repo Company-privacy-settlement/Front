@@ -16,6 +16,8 @@ Scheduled-delivery validation: **565 Core tests**, **8 Front unit tests**, real 
 
 An opt-in [cover-traffic experiment](https://github.com/Company-privacy-settlement/Core/blob/main/docs/COVER_TRAFFIC.md) now runs bounded operator-owned native notes on testnet. Four transactions finalized; the 0.1 NEAR principal returned to its operator. The synthetic probe had six historical output candidates, three after excluding labelled artificial outputs. Independent participants added: **0**. Budget/frequency limits persist across restart; this is not an anonymity claim.
 
+[Payment security review](https://github.com/Company-privacy-settlement/Core/blob/main/docs/REVIEW-2026-11-14-PAYMENT-SECURITY.md): fixed same-note reservation aliases across policy metadata, including legacy conflicts. Validation covers double spends, competing liquidity, failure accounting, immutable approval and revocation: **582 Core tests** and **63 contract tests**. Corporate approval remains an API/SDK control; public valid-proof execution is permissionless.
+
 ## The idea
 
 Businesses need to pay suppliers, employees and contractors without putting invoice terms and business records on-chain. Core combines signed payment requests, local proofs and reviewable evidence while keeping custody distributed across vaults.

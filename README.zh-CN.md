@@ -16,6 +16,8 @@ Front 仓库提供 Next.js 落地页、文档及应用。
 
 可选的 [Cover traffic 实验](https://github.com/Company-privacy-settlement/Core/blob/main/docs/COVER_TRAFFIC.md)仅在测试网使用运营者自己的原生票据。四笔交易已最终确认，0.1 NEAR 本金已返回运营者。合成提款的历史输出候选为六个，排除标记的人工输出后为三个。新增独立参与者为 **0**；预算与频率限制在重启后仍保留。这不证明有效匿名性。
 
+[支付安全检查](https://github.com/Company-privacy-settlement/Core/blob/main/docs/REVIEW-2026-11-14-PAYMENT-SECURITY.md)修复了通过策略元数据重复预留同一票据的问题，并处理历史冲突。双花、流动性竞争、失败记账、审批内容变更和权限撤销覆盖 **582 项 Core 测试**与 **63 项合约测试**。企业审批由 API/SDK 执行；有效证明的链上执行仍无需许可。
+
 ## 项目简介
 
 企业需要向供应商、员工和承包商付款，同时避免将发票条款及业务文档公开上链。Core 结合收款人签名请求、本地证明和可审核证据，并将本金分布在独立金库中。
