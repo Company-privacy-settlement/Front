@@ -1,0 +1,126 @@
+{
+  "format": "money-station-domain-activation-v1",
+  "status": "passed",
+  "checkedAt": "2026-11-14T22:04:46Z",
+  "frontSourceCommit": "cd9091984b458cd3d2be090a8d243ac0a063ec55",
+  "releaseId": "cd9091984b45-a67dd8e1ec30",
+  "archiveSha256": "a67dd8e1ec305141036454ae812235a0b40cf68ded7297dd9d7501a4b53e645c",
+  "publicBuildConfig": {
+    "organizationOrigin": "https://api.moneysation.site",
+    "paymentPolicyConfigured": false
+  },
+  "https": {
+    "format": "money-station-shared-https-acceptance-v1",
+    "status": "passed",
+    "checkedAt": "2026-11-14T22:04:46Z",
+    "frontOrigin": "https://moneysation.site",
+    "apiOrigin": "https://api.moneysation.site",
+    "certificates": {
+      "moneysation.site": {
+        "dnsNames": [
+          "api.moneysation.site",
+          "moneysation.site"
+        ],
+        "expires": "Feb 12 21:04:14 2027 GMT"
+      },
+      "api.moneysation.site": {
+        "dnsNames": [
+          "api.moneysation.site",
+          "moneysation.site"
+        ],
+        "expires": "Feb 12 21:04:14 2027 GMT"
+      }
+    },
+    "apiReadiness": {
+      "ready": true,
+      "readOnly": true,
+      "checkedAtBlock": {
+        "hash": "Hn4QD5N5cwAN49xnpine69GCHXuDxpMEHLmTM1urSJhx",
+        "height": 277716173
+      },
+      "deploymentVerified": true,
+      "checkedVaults": 1,
+      "index": {
+        "enabled": true,
+        "ageMs": 13989,
+        "lagBlocks": 25,
+        "indexedRecords": 16,
+        "provenanceChecked": false
+      },
+      "chainFreshnessChecked": false
+    },
+    "organizationReadiness": {
+      "ready": true,
+      "service": "core-organizations",
+      "network": "testnet",
+      "checkedAtBlock": {
+        "height": 277716176,
+        "hash": "FQt9HqDCaAbLS4puM7evGbkmULGH9rLEKvUDnUmfqWbB"
+      },
+      "databaseAvailable": true,
+      "checkedAt": "2026-11-14T22:04:42.046Z",
+      "identityClaimsVerified": false
+    },
+    "checks": [
+      "normal-dns-and-trusted-public-tls",
+      "exact-native-policy",
+      "actual-index-checkpoint-advanced",
+      "both-runtime-readiness",
+      "exact-cors-and-preflight",
+      "missing-session-denied",
+      "unrelated-and-previous-origins-denied",
+      "organization-challenge-binds-corrected-audience"
+    ],
+    "scope": {
+      "nativeNearTestnet": true,
+      "publicHttpsAcceptedFromDeploymentHost": true,
+      "independentRemoteHttpsProbe": false,
+      "realWalletSessionChecked": false,
+      "browserUsdcAccepted": false
+    }
+  },
+  "browser": {
+    "status": "passed",
+    "checkedAt": "2026-11-14T22:04:46.573Z",
+    "baseURL": "https://moneysation.site",
+    "cases": [
+      {
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "routes": 4,
+        "organizationOriginPreset": true,
+        "actualCrossOriginRequests": {
+          "core": 200,
+          "organization": 200,
+          "missingSession": 401
+        },
+        "pageErrors": 0
+      },
+      {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "routes": 4,
+        "organizationOriginPreset": true,
+        "actualCrossOriginRequests": {
+          "core": 200,
+          "organization": 200,
+          "missingSession": 401
+        },
+        "pageErrors": 0
+      }
+    ],
+    "realWalletSession": false
+  },
+  "certificateRenewal": {
+    "separateAcmeStore": true,
+    "timerEnabledAndActive": true,
+    "renewalServiceResult": "success",
+    "dryRunAndDeployHookPassed": true
+  },
+  "priorAddressWasConfigurationError": true,
+  "dnsChangedByAgent": false
+}

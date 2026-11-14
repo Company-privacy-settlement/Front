@@ -4,7 +4,7 @@
 
 Money Station is a private business payment service built on NEAR. The English-first landing, application and Docs use a shared black-and-green design. The wallet connects to the configured test network while repeated network badges are omitted from product chrome. [Service configuration and release gates](docs/MONEY_STATION_DEPLOYMENT.md).
 
-Ubuntu hosting for `moneystation.site`: [isolated service, release verification and pre-DNS routing](docs/UBUNTU_HOSTING.md). The frontend systemd service and actual HTTP domain route are deployed; settlement/indexer and Organization APIs are ready on loopback. Restart, isolation and route checks passed. Public HTTPS awaits working DNS.
+Live Ubuntu deployment: [Money Station](https://moneysation.site) · [Docs](https://moneysation.site/docs/) · [API readiness](https://api.moneysation.site/readyz). Public HTTPS, browser CORS, advancing native index and isolated services passed acceptance; dedicated certificate renewal is enabled. [Operations and evidence](docs/UBUNTU_HOSTING.md).
 
 Money Station frontend validation: **12 unit tests** and the full **280 desktop/mobile browser tests** passed. The English demo below uses Money Station’s black-and-green visual system, with labelled wallet/API fixtures and local proof generation.
 
@@ -91,7 +91,7 @@ The ZK statement hides which input note is spent. Signers, recipients, timing, f
 
 ## Scope and next steps
 
-**Hackathon / development prototype.** The setup is `UNSAFE_LOCAL_DEVELOPMENT_ONLY`. Public-testnet qualification covers native NEAR with a local Ed25519 software wallet. Real browser-wallet/USDC execution, hosted API HTTPS acceptance, observed remote Actions success and production security review remain open.
+**Hackathon / development prototype.** The setup is `UNSAFE_LOCAL_DEVELOPMENT_ONLY`. Public-testnet qualification covers native NEAR with a local Ed25519 software wallet. Real browser-wallet/USDC execution, wallet-authenticated hosted API workflows, observed remote Actions success and production security review remain open.
 
 Next priorities: externally hosted relay qualification, independent participation and stronger adversarial privacy measurements. Live KYB/AI providers, professional rule approval and statutory filing require separate qualification.
 

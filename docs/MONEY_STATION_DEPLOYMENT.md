@@ -40,4 +40,4 @@ Type checking, static export and 12 unit tests passed. The full 280-case desktop
 
 ## Ubuntu domain hosting
 
-[Isolated moneystation.site deployment](UBUNTU_HOSTING.md) provides a separate static service, exact-host Nginx route, verified release archive and DNS-independent acceptance checks. It preserves the Sites preview permissions. Domain DNS and HTTPS activation are separate steps; it does not provision the backend services or qualify browser settlement.
+[Isolated moneysation.site deployment](UBUNTU_HOSTING.md) provides a separate static service, exact-host Nginx route, verified release archive and DNS-independent acceptance checks. It preserves the Sites preview permissions. The confirmed frontend and shared API domains are now live over public HTTPS. This profile presets only the Organization API origin; the native reference API does not qualify browser USDC settlement. Dedicated TLS renewal, exact-origin CORS and real desktop/mobile browser requests passed the dated Ubuntu acceptance.

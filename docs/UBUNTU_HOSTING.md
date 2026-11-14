@@ -1,14 +1,14 @@
-# Isolated Ubuntu hosting: moneystation.site
+# Isolated Ubuntu hosting: moneysation.site
 
 This deployment serves the Money Station landing, Docs and application as a static frontend. Settlement/indexer and Organization APIs run as separate isolated loopback services with persistent private state. The relay retains its separate qualification requirements. The existing Sites preview and its sharing settings are unchanged.
 
 ```text
-moneystation.site :80 → existing host Nginx → 127.0.0.1:3330
+moneysation.site :80 → existing host Nginx → 127.0.0.1:3330
                                     money-station.service
                                     /srv/money-station/current/public
 ```
 
-The DNS-independent HTTP stage serves the exact `moneystation.site` frontend host. `api.moneystation.site` serves the ACME webroot but otherwise returns HTTP 426 until HTTPS activation. No DNS changes, certificate requests, default-server replacement or HTTP-to-HTTPS redirect happen during installation. The other Ubuntu virtual hosts keep their existing routes.
+The DNS-independent HTTP stage serves the exact `moneysation.site` frontend host. `api.moneysation.site` serves the ACME webroot but otherwise returns HTTP 426 until HTTPS activation. No DNS changes, certificate requests, default-server replacement or HTTP-to-HTTPS redirect happen during installation. The other Ubuntu virtual hosts keep their existing routes.
 
 ## Prepare a release as a normal user
 
@@ -40,7 +40,7 @@ These checks do not install the system service, test its live cgroup restriction
 
 ## Run the frontend before administrator installation
 
-The owner profile can run the verified Money Station export at `127.0.0.1:3330`, alongside the separate API/indexer and Organization API. On the selected host it has now been promoted to the root-installed systemd profile below; its previous release/state remain available for rollback. The loopback server requires `Host: moneystation.site`; use the normal domain after the root gateway is installed. Direct public-IP access is not enabled.
+The owner profile can run the verified Money Station export at `127.0.0.1:3330`, alongside the separate API/indexer and Organization API. On the selected host it has now been promoted to the root-installed systemd profile below; its previous release/state remain available for rollback. The loopback server requires `Host: moneysation.site`; use the normal domain after the root gateway is installed. Direct public-IP access is not enabled.
 
 ```bash
 # Run as the deployment owner, using the independently retained archive digest.
@@ -81,7 +81,7 @@ The installer verifies a root-owned copy of the archive, checks every file befor
 | `/srv/money-station/current` | Atomically selected release |
 | `/etc/money-station/nginx.conf` | Loopback static Nginx instance |
 | `/etc/systemd/system/money-station.service` | Dynamic service user and filesystem/resource restrictions |
-| `/etc/nginx/sites-available/moneystation.site.conf` | Exact-host route and its matching enabled symlink |
+| `/etc/nginx/sites-available/moneysation.site.conf` | Exact-host route and its matching enabled symlink |
 | `/var/www/money-station-acme/` | Dedicated future ACME webroot |
 | `/var/backups/money-station/` | Previous managed configurations and release target |
 
@@ -90,13 +90,13 @@ The installer verifies a root-owned copy of the archive, checks every file befor
 The installer checks the loopback service first, then reloads and checks the host route. Both checks exercise Docs, application routes, content types, policy hashes, cache controls, denied private paths and video byte ranges.
 
 ```bash
-curl --noproxy '*' --resolve moneystation.site:80:127.0.0.1 http://moneystation.site/healthz
+curl --noproxy '*' --resolve moneysation.site:80:127.0.0.1 http://moneysation.site/healthz
 python3 ops/ubuntu/verify.py --origin http://127.0.0.1
 systemctl status money-station.service --no-pager
 journalctl -u money-station.service --no-pager -n 30
 ```
 
-From another machine, `curl --resolve moneystation.site:80:<server-public-ip> http://moneystation.site/` tests the route without publishing DNS. The domain route is publicly reachable by Host header once the administrator installs it; it does not inherit the Sites preview's login gate. Organization records still require their separate authenticated API.
+From another machine, `curl --resolve moneysation.site:80:<server-public-ip> http://moneysation.site/` tests the route without publishing DNS. The domain route is publicly reachable by Host header once the administrator installs it; it does not inherit the Sites preview's login gate. Organization records still require their separate authenticated API.
 
 ## Connect DNS and HTTPS later
 
@@ -108,23 +108,25 @@ After both DNS names resolve to this server, activate their shared certificate a
 sudo bash ops/ubuntu/activate-https.sh
 ```
 
-The script requires the managed HTTP installation first. It verifies that a fresh public challenge file is reachable through both domain names before requesting a certificate. Certbot uses only the dedicated webroot and a certificate named `moneystation.site`; unrelated certificates and sites are unchanged. Both domains are included in its SANs. Renewal checks/reloads Nginx through a certificate-specific deploy hook. No operator email is invented.
+The script requires the managed HTTP installation first. It verifies that a fresh public challenge file is reachable through both domain names before requesting a certificate. Certbot uses only the dedicated webroot and a certificate named `moneysation.site` in the service-owned `/etc/letsencrypt/money-station` store; unrelated certificates and sites are unchanged. Both domains are included in its SANs. The enabled `money-station-cert-renew.timer` checks renewal twice daily with randomized delay. Its service uses the dedicated configuration, work and log directories and checks/reloads Nginx through a certificate-specific deploy hook. No operator email is invented.
 
-The HTTPS template sends the frontend to `127.0.0.1:3330`. The shared `api.moneystation.site` origin routes settlement/index queries to `127.0.0.1:3331` and `/v1/auth/*`, `/v1/me`, `/v1/organizations` and their child routes to the Organization API at `127.0.0.1:3332`. The organization probe aliases are `/healthz/organizations` and `/readyz/organizations`. The provider callback routes to the Organization API but needs separate protected provider configuration. Draft creation/revision allows 131,072 bytes, the provider callback 65,536 bytes and other API requests 8,192 bytes. Untrusted peer headers are stripped; upstream authentication and permission checks still apply.
+The HTTPS template sends the frontend to `127.0.0.1:3330`. The shared `api.moneysation.site` origin routes settlement/index queries to `127.0.0.1:3331` and `/v1/auth/*`, `/v1/me`, `/v1/organizations` and their child routes to the Organization API at `127.0.0.1:3332`. The organization probe aliases are `/healthz/organizations` and `/readyz/organizations`. The provider callback routes to the Organization API but needs separate protected provider configuration. Draft creation/revision allows 131,072 bytes, the provider callback 65,536 bytes and other API requests 8,192 bytes. Untrusted peer headers are stripped; upstream authentication and permission checks still apply.
 
-Both runtimes use the exact browser origin `https://moneystation.site`; organization signatures use the shared API audience `https://api.moneystation.site`. An absent upstream produces HTTP 503 with `API_UPSTREAM_UNAVAILABLE`. The API is not proxied over plaintext HTTP. HTTP requests redirect to HTTPS only after certificate installation. A later frontend release preserves the already managed HTTPS virtual host.
+Both runtimes use the exact browser origin `https://moneysation.site`; organization signatures use the shared API audience `https://api.moneysation.site`. An absent upstream produces HTTP 503 with `API_UPSTREAM_UNAVAILABLE`. The API is not proxied over plaintext HTTP. HTTP requests redirect to HTTPS only after certificate installation. A later frontend release preserves the already managed HTTPS virtual host.
 
 Activation now requires normal HTTPS checks for the frontend and both API readiness routes. Actual backend operations, owner autostart, isolated private storage and restart verification are documented in [Core's Ubuntu backend guide](https://github.com/Company-privacy-settlement/Core/blob/main/docs/UBUNTU_BACKEND.md). The frontend installer does not launch or replace those processes. Infrastructure readiness does not qualify real wallet sessions, browser USDC, external providers or a funded payment journey. The native reference policy is not a browser FT policy.
 
 ## Current activation status — 2026-11-14
 
-The chosen Ubuntu IPv4 is `64.227.151.164`. The root-installed `money-station.service` is now **enabled and active**, serving the pinned export at loopback port 3330 through the actual host Nginx `moneystation.site` HTTP route. The service uses a dynamic user, read-only system/home protection and actual 128 MiB / 50% CPU / 32-task limits. Both loopback and host-route acceptance passed 28 checks each, covering landing, application, Docs, policy/address records and video byte ranges. An intentional main-process exit recovered through systemd restart and both route checks passed afterward. The owner frontend process/reboot entry was removed; the separate backend manager and its owner reboot entry were preserved.
+The confirmed domains are **`moneysation.site`** and **`api.moneysation.site`**, both pointing to `64.227.151.164`. The previously configured `moneystation.site` spelling was corrected; the user's DNS for the confirmed names was already valid. The migration removed only the prior managed Money Station route, retained its private backup and preserved unrelated virtual hosts.
 
-[Root-service acceptance](evidence/ubuntu-system-frontend-2026-11-14.json) pins Front `4b98994a1d202af1c6d7ce349ec2bf9d34797048` and release `4b98994a1d20-c23e00e56cd6`. The earlier [owner-service acceptance](evidence/ubuntu-frontend-2026-11-14.json) is retained as historical evidence. Evidence/documentation commits after the pinned runtime do not imply a different deployed export. Two real deployment issues were fixed: Nginx access logging no longer tries to reopen systemd's journald stdout socket, and the installer waits for the expected release after graceful gateway reload before running full acceptance.
+The frontend is live at [https://moneysation.site](https://moneysation.site), with [Docs](https://moneysation.site/docs/). The shared API is live at [settlement readiness](https://api.moneysation.site/readyz) and [organization readiness](https://api.moneysation.site/readyz/organizations). Both returned 200 against actual NEAR testnet RPC. HTTP redirects to HTTPS. A normally trusted public certificate covers both names and expires on 2027-02-12. Its dedicated renewal timer is enabled/active, its service returned success, and a real staging renewal with deploy hooks passed.
 
-Settlement/indexer and Organization APIs remain ready on loopback ports 3331/3332. The real API HTTP host returns 426 `TLS_REQUIRED`; its data routes are exposed only after public HTTPS activation. Both live ACME host routes passed local Host-header probes. The operator reported direct Hostinger DNS setup, but public and authoritative checks still returned NXDOMAIN. The public DNS probe therefore stopped before requesting any certificate. HTTPS activation remains pending DNS, and no public HTTPS or external browser-wallet USDC acceptance is claimed. The namespace gateway test uses an explicitly trusted temporary certificate for local routing checks. Actual host reboot has not been tested.
+[HTTPS and browser acceptance](evidence/moneysation-https-2026-11-14.json) pins Front `cd9091984b458cd3d2be090a8d243ac0a063ec55` and release `cd9091984b45-a67dd8e1ec30`. Loopback, actual host HTTP and public HTTPS route checks each passed 28 checks. Desktop and mobile Chromium loaded landing, Docs, media and organization pages through real HTTPS without page errors or horizontal overflow. The organization API origin is preset to `https://api.moneysation.site`; actual browser requests passed CORS and returned 200 readiness / 401 without a session. Payment service fields remain unconfigured because the native reference policy is not an independently qualified browser USDC policy.
 
-After DNS points both names to this host, rerun the prepared root command or `activate-https.sh`. Do not disable TLS verification or expose organization sessions over HTTP.
+The root-installed `money-station.service` remains enabled/active with a dynamic user and 128 MiB / 50% CPU / 32-task limits. The separate backend manager and its owner reboot entry remain intact. HTTPS probes verified the exact native policy, an advancing index checkpoint, exact preflight/CORS, missing-session denial and rejection of unrelated/previous browser origins. A login challenge binds the corrected origin and API audience. No wallet signature or authenticated organization business write was performed. Historical [root HTTP acceptance](evidence/ubuntu-system-frontend-2026-11-14.json) and [owner acceptance](evidence/ubuntu-frontend-2026-11-14.json) retain the earlier address/runtime observations; later documentation commits do not change the deployed executable.
+
+Public HTTPS was checked using normal DNS/TLS from this host and Chromium. The independent web-fetch tool could not access the new URLs, so an independent off-host HTTPS probe is not claimed. Actual host reboot, browser-wallet USDC and external provider qualification remain separate. Never disable TLS verification for service use.
 
 ## Roll back a release
 

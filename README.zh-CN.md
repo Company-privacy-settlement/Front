@@ -4,7 +4,7 @@
 
 Money Station 是基于 NEAR 的企业隐私支付服务。落地页、应用和文档采用统一的黑绿设计，并以英语为默认语言。钱包使用配置的测试网络，产品界面不重复显示网络徽章。[服务配置与发布检查](docs/MONEY_STATION_DEPLOYMENT.md)。
 
-`moneystation.site` Ubuntu 托管：[隔离服务、发布校验与 DNS 连接前路由](docs/UBUNTU_HOSTING.md)。DNS 连接与 HTTPS 启用是独立步骤。 前端 systemd 服务及实际 HTTP 域名路由已部署；结算、索引器和组织 API 在回环地址就绪。自动恢复、隔离及路由检查通过，公共 HTTPS 等待 DNS 生效。
+Ubuntu 已上线：[Money Station](https://moneysation.site) · [Docs](https://moneysation.site/docs/) · [API 状态](https://api.moneysation.site/readyz)。公共 HTTPS、浏览器 CORS、原生索引推进及服务隔离验收通过，独立证书自动续期已启用。[运维与证据](docs/UBUNTU_HOSTING.md)。
 
 Money Station 前端验证：**12 项单元测试**和完整的 **280 项桌面/移动浏览器测试**通过。下方英文视频采用 Money Station 的黑绿设计，并明确标注钱包/API 测试环境与本地证明范围。
 
@@ -91,7 +91,7 @@ ZK 隐藏使用了哪一张输入票据。签名人、收款人、时间、固�
 
 ## 范围与后续工作
 
-**黑客松/开发原型**，设置为 `UNSAFE_LOCAL_DEVELOPMENT_ONLY`。公开测试网验证仅覆盖本地 Ed25519 软件钱包的原生 NEAR。真实浏览器钱包/USDC、外部 API HTTPS 验收、远程 Actions 成功及生产安全审核尚待完成。
+**黑客松/开发原型**，设置为 `UNSAFE_LOCAL_DEVELOPMENT_ONLY`。公开测试网验证仅覆盖本地 Ed25519 软件钱包的原生 NEAR。真实浏览器钱包/USDC、钱包认证企业流程验收、远程 Actions 成功及生产安全审核尚待完成。
 
 下一步优先外部托管中继验证、独立参与者与更严格的对抗性隐私测量。真实 KYB/AI 服务资格、专业规则批准和法定申报仍需独立验证。
 

@@ -4,7 +4,7 @@
 
 머니스테이션(Money Station)은 NEAR 기반 기업용 프라이버시 송금 서비스입니다. 랜딩·앱·Docs에 검정·초록 디자인을 적용하고, 영문을 기본으로 유지합니다. 지갑은 설정된 테스트 네트워크를 사용하며 제품 화면의 반복 네트워크 배지를 제거했습니다. [서비스 연결과 릴리스 검증](docs/MONEY_STATION_DEPLOYMENT.md).
 
-`moneystation.site` 우분투 호스팅: [격리 서비스·릴리스 검증·DNS 연결 전 라우트](docs/UBUNTU_HOSTING.md). 프론트 systemd 서비스와 실제 HTTP 도메인 라우트를 배포했고, 정산·인덱서·조직 API도 루프백에서 준비 상태입니다. 자동 복구·격리·라우트 검증을 통과했으며 공개 HTTPS는 DNS 연결을 기다리고 있습니다.
+우분투 배포: [Money Station](https://moneysation.site) · [Docs](https://moneysation.site/docs/) · [API 상태](https://api.moneysation.site/readyz). 공개 HTTPS·브라우저 CORS·네이티브 인덱스 진행·격리 서비스를 검증했고 전용 인증서 자동 갱신을 등록했습니다. [운영과 검증 기록](docs/UBUNTU_HOSTING.md).
 
 Money Station 프론트 검증: **단위 테스트 12개**, **데스크톱·모바일 전체 브라우저 테스트 280개**를 통과했습니다. 아래 영문 영상은 Money Station의 검정·초록 디자인으로 제작했으며, 지갑·API 테스트 환경과 로컬 증명 생성 범위를 표시합니다.
 
@@ -91,7 +91,7 @@ ZK는 사용한 입력 노트의 연결을 숨깁니다. 서명자·수취인·�
 
 ## 범위와 다음 단계
 
-**해커톤·개발 프로토타입**입니다. 설정은 `UNSAFE_LOCAL_DEVELOPMENT_ONLY`입니다. 공개 테스트넷 검증 범위는 로컬 Ed25519 소프트웨어 지갑의 네이티브 NEAR입니다. 실제 브라우저 지갑·USDC 실행, 외부 API HTTPS 운영, 원격 Actions 성공과 프로덕션 보안 검토는 남아 있습니다.
+**해커톤·개발 프로토타입**입니다. 설정은 `UNSAFE_LOCAL_DEVELOPMENT_ONLY`입니다. 공개 테스트넷 검증 범위는 로컬 Ed25519 소프트웨어 지갑의 네이티브 NEAR입니다. 실제 브라우저 지갑·USDC 실행, 지갑 인증 기반 조직 업무 실증, 원격 Actions 성공과 프로덕션 보안 검토는 남아 있습니다.
 
 다음 우선순위는 외부 호스팅 릴레이 실증, 독립 참여자 확보와 공격자 모델에 따른 추가 프라이버시 측정입니다. 실제 KYB/AI 제공자 운영 검증·전문가 규칙 승인·법정 신고는 별도입니다.
 
