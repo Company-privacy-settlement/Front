@@ -37,3 +37,7 @@ Prepare and verify the accounts, funding, policy, contracts, DNS/TLS and exact f
 Type checking, static export and 12 unit tests passed. The full 280-case desktop/mobile browser suite passed with the repository's two-worker setting, including actual local WASM/Groth16 proving and injected wallet/API fixtures. A real unmodified NEAR Connect selector displayed supported providers; no human wallet login or payment signature was performed during that inspection.
 
 [Validation record](evidence/money-station-frontend-2026-11-14.json) · [Desktop landing](assets/money-station-landing-desktop.png) · [Mobile landing](assets/money-station-landing-mobile.png) · [Desktop workspace](assets/money-station-workspace-desktop.png) · [Mobile workspace](assets/money-station-workspace-mobile.png) · [Real wallet selector](assets/money-station-wallet-picker.png)
+
+## Ubuntu domain hosting
+
+[Isolated h2on.xyz deployment](UBUNTU_HOSTING.md) provides a separate static service, exact-host Nginx route, verified release archive and DNS-independent acceptance checks. It preserves the Sites preview permissions. Domain DNS and HTTPS activation are separate steps; it does not provision the backend services or qualify browser settlement.

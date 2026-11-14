@@ -92,7 +92,7 @@ export const docs: Doc[] = [
           ]
         },
         "paragraphs": [
-          "The website and these guides default to English; repository READMEs also support Korean and Simplified Chinese. Current hosted access is owner-private, including checkout links. External customers need suitable site access and an independently configured funded deployment."
+          "The website and these guides default to English; repository READMEs also support Korean and Simplified Chinese. The Sites preview is owner-private, including checkout links. Self-hosted access follows the host configuration. External customers need suitable access and an independently configured funded deployment."
         ]
       },
       {
@@ -197,7 +197,7 @@ export const docs: Doc[] = [
         "title": "Organization access is a separate service",
         "paragraphs": [
           "The read-only settlement API serves one independently trusted on-chain group. The Organization API authenticates wallet principals and stores off-chain team membership in a separate database. Organization sessions and roles are never accepted as a private note, invoice signature or settlement policy.",
-          "Owner, Admin, Operator, Viewer and Auditor control workspace access. They do not grant a signing key, change a keyless vault or approve a payment. Organization membership does not verify a legal entity or change this website’s owner-private access."
+          "Owner, Admin, Operator, Viewer and Auditor control workspace access. They do not grant a signing key, change a keyless vault or approve a payment. Organization membership does not verify a legal entity or change the hosting access policy."
         ]
       }
     ]
@@ -257,7 +257,7 @@ export const docs: Doc[] = [
           ]
         },
         "paragraphs": [
-          "Current website access remains owner-private. Publishing reference addresses does not configure a wallet policy, provision liquidity or grant site access to an invoice recipient."
+          "The Sites preview remains owner-private; self-hosted access is configured separately. Publishing reference addresses does not configure a wallet policy, provision liquidity or grant site access to an invoice recipient."
         ],
         "links": [
           {
@@ -1411,7 +1411,7 @@ export const docs: Doc[] = [
         "title": "Data and service boundary",
         "paragraphs": [
           "Organization data is kept off-chain in a separate authenticated SQLite service. Names, wallet membership and audit metadata are not application-encrypted; the host must protect its volume and backups. No private note, payment key, identity document or salary is submitted to this API.",
-          "The website remains owner-private. Organization membership does not grant access to this hosted site; the two access boundaries are separate. Public HTTPS hosting and a funded testnet wallet journey remain deployment tasks.",
+          "The Sites preview remains owner-private. Self-hosted access follows the host configuration; organization membership and hosting access are separate boundaries. Accepted HTTPS backend hosting and a funded testnet wallet journey remain deployment tasks.",
           "Account-based maker-checker approval is now available in Payments. Business verification, verified corporate signer mapping, contract-enforced approval, custom roles, SSO and automatic signing remain separate work. The public read-only settlement API continues to require independently trusted deployment policies."
         ]
       },

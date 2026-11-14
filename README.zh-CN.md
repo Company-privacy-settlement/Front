@@ -4,6 +4,8 @@
 
 Money Station 是 Core 结算协议的客户界面。落地页、应用和文档采用统一的黑绿设计，并以英语为默认语言。钱包使用配置的测试网络，产品界面不重复显示网络徽章。[服务配置与发布检查](docs/MONEY_STATION_DEPLOYMENT.md)。
 
+`h2on.xyz` Ubuntu 托管：[隔离服务、发布校验与 DNS 连接前路由](docs/UBUNTU_HOSTING.md)。DNS 连接与 HTTPS 启用是独立步骤。
+
 Money Station 前端验证：**12 项单元测试**和完整的 **280 项桌面/移动浏览器测试**通过。下方视频保留了较早的 Core 界面及其原有钱包/API 验证范围。
 
 基于 NEAR 的企业隐私结算：独立金库持有本金，共享零知识票据授权付款，选择披露证据用于对账。
