@@ -4,8 +4,8 @@ set -euo pipefail
 if [[ $EUID != 0 ]]; then echo 'Run the domain migration in a root terminal.' >&2; exit 1; fi
 if [[ $# != 2 || ! $2 =~ ^[0-9a-f]{64}$ ]]; then echo 'Usage: migrate-domain.sh <archive> <sha256>' >&2; exit 1; fi
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-legacy=/etc/nginx/sites-available/moneystation.site.conf
-legacy_link=/etc/nginx/sites-enabled/moneystation.site.conf
+legacy=/etc/nginx/sites-available/moneysation.site.conf
+legacy_link=/etc/nginx/sites-enabled/moneysation.site.conf
 if [[ ! -e $legacy && ! -L $legacy && ! -e $legacy_link && ! -L $legacy_link ]]; then
   exec /bin/bash "$script_dir/promote-frontend.sh" "$1" "$2"
 fi

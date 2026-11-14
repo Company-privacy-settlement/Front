@@ -72,7 +72,7 @@ def main(archive, sha, live_backends=False):
         config.write_text((ROOT / 'ops/ubuntu/static.nginx.conf').read_text()
                           .replace('@RELEASE_ID@', info['releaseId']).replace(':3330', f':{up}'))
         edge_config = work / 'edge.conf'
-        edge_config.write_text((ROOT / 'ops/ubuntu/moneysation.site.http.conf').read_text()
+        edge_config.write_text((ROOT / 'ops/ubuntu/moneystation.site.http.conf').read_text()
                                .replace('listen 80;', f'listen 127.0.0.1:{edge};')
                                .replace('listen [::]:80;', '')
                                .replace(':3330', f':{up}')
@@ -97,15 +97,15 @@ http {
 ''')
         subprocess.run(['openssl','req','-x509','-newkey','rsa:2048','-nodes','-days','1',
                         '-subj','/CN=Money Station local test only',
-                        '-addext','subjectAltName=DNS:moneysation.site,DNS:api.moneysation.site',
+                        '-addext','subjectAltName=DNS:moneystation.site,DNS:api.moneystation.site',
                         '-keyout',str(work/'test-key.pem'),'-out',str(work/'test-cert.pem')],
                        check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-        tls_config=(ROOT/'ops/ubuntu/moneysation.site.https.conf').read_text()
+        tls_config=(ROOT/'ops/ubuntu/moneystation.site.https.conf').read_text()
         tls_config=tls_config.replace('listen 80;',f'listen 127.0.0.1:{redirect};').replace('listen [::]:80;','')
         tls_config=tls_config.replace('listen 443 ssl;',f'listen 127.0.0.1:{tls} ssl;').replace('listen [::]:443 ssl;','')
         tls_config=tls_config.replace(':3330',f':{up}')
         if not live_backends:tls_config=tls_config.replace(':3331',f':{missing_api}').replace(':3332',f':{missing_api}')
-        tls_config=tls_config.replace('/etc/letsencrypt/money-station/live/moneysation.site/fullchain.pem','/etc/money-station/test-cert.pem').replace('/etc/letsencrypt/money-station/live/moneysation.site/privkey.pem','/etc/money-station/test-key.pem')
+        tls_config=tls_config.replace('/etc/letsencrypt/money-station/live/moneystation.site/fullchain.pem','/etc/money-station/test-cert.pem').replace('/etc/letsencrypt/money-station/live/moneystation.site/privkey.pem','/etc/money-station/test-key.pem')
         for label in ['money-station.access.log','money-station.error.log','money-station-api.error.log']:
             tls_config=tls_config.replace('/var/log/nginx/'+label,'/dev/stderr')
         (work/'tls.conf').write_text(tls_config)
@@ -156,16 +156,16 @@ http {
                 pass
             else:
                 raise AssertionError('An unrelated Host was accepted by the static service')
-            req = urllib.request.Request(f'http://127.0.0.1:{edge}/.well-known/acme-challenge/local-probe', headers={'Host': 'moneysation.site'})
+            req = urllib.request.Request(f'http://127.0.0.1:{edge}/.well-known/acme-challenge/local-probe', headers={'Host': 'moneystation.site'})
             with opener.open(req, timeout=3) as response:
                 assert response.read() == b'money-station-acme-probe'
             # The API domain serves only ACME over plaintext HTTP.
-            req=urllib.request.Request(f'http://127.0.0.1:{edge}/healthz',headers={'Host':'api.moneysation.site'})
+            req=urllib.request.Request(f'http://127.0.0.1:{edge}/healthz',headers={'Host':'api.moneystation.site'})
             try: opener.open(req,timeout=3)
             except urllib.error.HTTPError as response:
                 assert response.code==426 and json.load(response)=={'error':'TLS_REQUIRED'}
             else: raise AssertionError('The API accepted plaintext HTTP')
-            req=urllib.request.Request(f'http://127.0.0.1:{edge}/.well-known/acme-challenge/local-probe',headers={'Host':'api.moneysation.site'})
+            req=urllib.request.Request(f'http://127.0.0.1:{edge}/.well-known/acme-challenge/local-probe',headers={'Host':'api.moneystation.site'})
             with opener.open(req,timeout=3) as response:assert response.read()==b'money-station-acme-probe'
             trust=ssl.create_default_context(cafile=str(work/'test-cert.pem'))
             def secure_get(domain,path='/healthz',origin=None):
@@ -173,19 +173,19 @@ http {
                     with trust.wrap_socket(tcp,server_hostname=domain) as stream:
                         stream.sendall(('GET '+path+' HTTP/1.1\r\nHost: '+domain+('\r\nOrigin: '+origin if origin else '')+'\r\nConnection: close\r\n\r\n').encode())
                         response=http.client.HTTPResponse(stream);response.begin();return response.status,json.loads(response.read())
-            assert secure_get('moneysation.site')==(200,{'service':'money-station-front','status':'ok'})
+            assert secure_get('moneystation.site')==(200,{'service':'money-station-front','status':'ok'})
             if live_backends:
-                status,body=secure_get('api.moneysation.site','/readyz');assert status==200 and body['deploymentVerified'] and body['index']['enabled']
-                status,body=secure_get('api.moneysation.site','/readyz/organizations');assert status==200 and body['service']=='core-organizations'
-                status,body=secure_get('api.moneysation.site','/v1/organizations','https://moneysation.site');assert status==401 and body['error']=='SESSION_REQUIRED'
-                status,body=secure_get('api.moneysation.site','/v1/me','https://unrelated.invalid');assert status==403 and body['error']=='ORIGIN_DENIED'
+                status,body=secure_get('api.moneystation.site','/readyz');assert status==200 and body['deploymentVerified'] and body['index']['enabled']
+                status,body=secure_get('api.moneystation.site','/readyz/organizations');assert status==200 and body['service']=='core-organizations'
+                status,body=secure_get('api.moneystation.site','/v1/organizations','https://moneystation.site');assert status==401 and body['error']=='SESSION_REQUIRED'
+                status,body=secure_get('api.moneystation.site','/v1/me','https://unrelated.invalid');assert status==403 and body['error']=='ORIGIN_DENIED'
             else:
-                assert secure_get('api.moneysation.site')==(503,{'error':'API_UPSTREAM_UNAVAILABLE'})
-                assert secure_get('api.moneysation.site','/readyz/organizations')==(503,{'error':'API_UPSTREAM_UNAVAILABLE'})
+                assert secure_get('api.moneystation.site')==(503,{'error':'API_UPSTREAM_UNAVAILABLE'})
+                assert secure_get('api.moneystation.site','/readyz/organizations')==(503,{'error':'API_UPSTREAM_UNAVAILABLE'})
             class NoRedirect(urllib.request.HTTPRedirectHandler):
                 def redirect_request(self,*args,**kwargs):return None
             no_redirect=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect())
-            for domain in ['moneysation.site','api.moneysation.site']:
+            for domain in ['moneystation.site','api.moneystation.site']:
                 req=urllib.request.Request(f'http://127.0.0.1:{redirect}/healthz',headers={'Host':domain})
                 try:no_redirect.open(req,timeout=3)
                 except urllib.error.HTTPError as response:assert response.code==308 and response.headers['Location']=='https://'+domain+'/healthz'

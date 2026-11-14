@@ -4,11 +4,11 @@ set -euo pipefail
 umask 077
 if [[ $EUID != 0 ]]; then echo 'Administrator access is required for certificates and the host gateway.' >&2; exit 1; fi
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-target=/etc/nginx/sites-available/moneysation.site.conf
-enabled=/etc/nginx/sites-enabled/moneysation.site.conf
+target=/etc/nginx/sites-available/moneystation.site.conf
+enabled=/etc/nginx/sites-enabled/moneystation.site.conf
 webroot=/var/www/money-station-acme
 if [[ ! -f $target || -L $target || ! -L $enabled || $(readlink -f -- "$enabled") != "$target" ]] || ! head -1 "$target" | grep -q '^# Managed by Money Station$'; then
-  echo 'Install the managed moneysation.site HTTP route first.' >&2; exit 1
+  echo 'Install the managed moneystation.site HTTP route first.' >&2; exit 1
 fi
 command -v certbot >/dev/null
 systemctl is-active --quiet money-station.service
@@ -26,7 +26,7 @@ token='money-station-'+secrets.token_hex(16)
 p=directory/token;p.write_text(token);p.chmod(0o644)
 opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
 try:
-    for domain in ['moneysation.site','api.moneysation.site']:
+    for domain in ['moneystation.site','api.moneystation.site']:
         try: socket.getaddrinfo(domain,80,type=socket.SOCK_STREAM)
         except OSError: raise SystemExit('DNS is not visible yet for '+domain+'. No certificate was requested.')
         try:
@@ -53,8 +53,8 @@ for unit in money-station-cert-renew.service money-station-cert-renew.timer; do
 done
 certbot certonly --config-dir /etc/letsencrypt/money-station \
   --work-dir /var/lib/money-station-acme --logs-dir /var/log/money-station-acme \
-  --webroot -w "$webroot" --cert-name moneysation.site \
-  -d moneysation.site -d api.moneysation.site --non-interactive --agree-tos \
+  --webroot -w "$webroot" --cert-name moneystation.site \
+  -d moneystation.site -d api.moneystation.site --non-interactive --agree-tos \
   --register-unsafely-without-email --keep-until-expiring \
   --deploy-hook '/usr/sbin/nginx -t && /bin/systemctl reload nginx'
 backup=$(mktemp /var/backups/money-station/before-https.XXXXXX)
@@ -72,12 +72,12 @@ finish() {
 }
 trap finish EXIT
 changed=1
-install -m 0644 "$script_dir/moneysation.site.https.conf" "$target"
+install -m 0644 "$script_dir/moneystation.site.https.conf" "$target"
 /usr/sbin/nginx -t
 systemctl reload nginx
-python3 "$script_dir/verify.py" --origin https://moneysation.site --wait-seconds 10
-curl --noproxy '*' --fail --silent --show-error --max-time 20 -o /dev/null https://api.moneysation.site/readyz
-curl --noproxy '*' --fail --silent --show-error --max-time 20 -o /dev/null https://api.moneysation.site/readyz/organizations
+python3 "$script_dir/verify.py" --origin https://moneystation.site --wait-seconds 10
+curl --noproxy '*' --fail --silent --show-error --max-time 20 -o /dev/null https://api.moneystation.site/readyz
+curl --noproxy '*' --fail --silent --show-error --max-time 20 -o /dev/null https://api.moneystation.site/readyz/organizations
 systemd-analyze verify "$script_dir/money-station-cert-renew.service" "$script_dir/money-station-cert-renew.timer"
 install -m 0644 "$script_dir/money-station-cert-renew.service" /etc/systemd/system/money-station-cert-renew.service
 install -m 0644 "$script_dir/money-station-cert-renew.timer" /etc/systemd/system/money-station-cert-renew.timer
