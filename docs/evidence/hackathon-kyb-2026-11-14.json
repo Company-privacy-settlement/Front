@@ -1,0 +1,67 @@
+{
+  "format": "money-station-hackathon-kyb-acceptance-v1",
+  "status": "passed",
+  "frontSourceCommit": "524fdec58fe6a92e526b90cb39b321c767f01658",
+  "archiveSha256": "d84a43467feed1b63f211a50d59fe5917e514fc6f5bd44c6cec8bac1a9be2897",
+  "backendSourceCommit": "f4c9a4859a73c27be21a2a9a882508a31412231e",
+  "backendRuntime": "f4c9a4859a73-490c8cc1ba5b",
+  "validation": {
+    "coreTests": 600,
+    "frontUnitTests": 13,
+    "regularModeBrowserTests": 22,
+    "demoModeBrowserTests": 4
+  },
+  "liveBrowser": {
+    "status": "passed",
+    "checkedAt": "2026-11-14T23:01:32.193Z",
+    "url": "https://moneystation.site/kyb/status/",
+    "releaseId": "524fdec58fe6-d84a43467fee",
+    "cases": [
+      {
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "immediateApproval": true,
+        "exportIdentityClaimsFalse": true,
+        "continuesToPayments": true,
+        "noProviderSubmission": true,
+        "noHorizontalOverflow": true,
+        "readiness": {
+          "http": 200,
+          "ready": true,
+          "demoKybEnabled": true,
+          "identityClaimsVerified": false,
+          "anonymousStatus": 401
+        },
+        "pageErrors": 0
+      },
+      {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "immediateApproval": true,
+        "exportIdentityClaimsFalse": true,
+        "continuesToPayments": true,
+        "noProviderSubmission": true,
+        "noHorizontalOverflow": true,
+        "readiness": {
+          "http": 200,
+          "ready": true,
+          "demoKybEnabled": true,
+          "identityClaimsVerified": false,
+          "anonymousStatus": 401
+        },
+        "pageErrors": 0
+      }
+    ],
+    "realIdentityReviewPerformed": false
+  },
+  "scope": {
+    "hackathonDemoKybEnabled": true,
+    "realIdentityVerificationPerformed": false,
+    "realProviderCaseOverridden": false,
+    "realWalletSignaturePerformed": false
+  }
+}

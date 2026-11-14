@@ -8,7 +8,7 @@ Live Ubuntu deployment: [Money Station](https://moneystation.site) · [Docs](htt
 
 Hackathon KYB supports instant, explicitly labelled sample approval. Organization verification can use the same demo mode while retaining wallet login and roles. [Behavior and switches](https://github.com/Company-privacy-settlement/Core/blob/main/docs/HACKATHON_KYB.md).
 
-Money Station frontend validation: **12 unit tests** and the full **280 desktop/mobile browser tests** passed. The English demo below uses Money Station’s black-and-green visual system, with labelled wallet/API fixtures and local proof generation.
+Money Station frontend validation for this change: **13 unit tests**, **26 desktop/mobile browser cases**, and actual HTTPS demo approval/export/navigation checks passed. Earlier full-suite results remain in their dated evidence; the English demo uses labelled fixtures.
 
 Private business settlement on NEAR: independent vaults hold principal, shared zero-knowledge notes authorize payouts, and selective evidence supports reconciliation.
 
@@ -73,7 +73,7 @@ Routes: `/docs/`, `/invoices/`, `/pay/`, `/notes/`, `/prove/`, `/evidence/`, `/o
 
 [Contract and vault addresses](https://core-private-settlement-0574c4.jiheon6768.chatgpt.site/docs/deployments/) · [Address record and verification pins](https://github.com/Company-privacy-settlement/Core/blob/main/docs/DEPLOYED_ADDRESSES.md). Registry and two vaults were rechecked at FINAL block **277653473** on 2026-11-14. This native NEAR testnet reference is separate from browser USDC settlement.
 
-Latest recorded engineering gate: **595 Core tests** passed, with SDK/type builds and compiled service restart/backup/recovery. Browser fixtures and public native execution are separate evidence categories.
+Latest recorded engineering gate: **600 Core tests** passed, with SDK/type builds and compiled service restart/backup/recovery. Browser fixtures and public native execution are separate evidence categories.
 
 ## Architecture and fees
 

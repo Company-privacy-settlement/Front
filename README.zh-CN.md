@@ -8,7 +8,7 @@ Money Station 是基于 NEAR 的企业隐私支付服务。落地页、应用和
 
 Ubuntu 已上线：[Money Station](https://moneystation.site) · [Docs](https://moneystation.site/docs/) · [API 状态](https://api.moneystation.site/readyz)。公共 HTTPS、浏览器 CORS、原生索引推进及服务隔离验收通过，独立证书自动续期已启用。[运维与证据](docs/UBUNTU_HOSTING.md)。
 
-Money Station 前端验证：**12 项单元测试**和完整的 **280 项桌面/移动浏览器测试**通过。下方英文视频采用 Money Station 的黑绿设计，并明确标注钱包/API 测试环境与本地证明范围。
+Money Station 本次前端验证：**13 项单元测试**、**26 项桌面/移动端浏览器用例**及真实 HTTPS 即时批准、导出和支付页面跳转通过。历史全量测试结果保留在对应证据中。
 
 基于 NEAR 的企业隐私结算：独立金库持有本金，共享零知识票据授权付款，选择披露证据用于对账。
 
@@ -73,7 +73,7 @@ Routes: `/docs/`, `/invoices/`, `/pay/`, `/notes/`, `/prove/`, `/evidence/`, `/o
 
 [合约与金库地址](https://core-private-settlement-0574c4.jiheon6768.chatgpt.site/docs/deployments/) · [地址记录与校验值](https://github.com/Company-privacy-settlement/Core/blob/main/docs/DEPLOYED_ADDRESSES.md)。2026-11-14 在 FINAL 区块 **277653473** 重新核验了注册合约和两个金库。这是原生 NEAR 测试网参考部署，与浏览器 USDC 结算分开。
 
-最近记录的工程验证为 **595 项 Core 测试**、SDK/类型构建及编译服务重启/备份/恢复。浏览器测试环境与公开原生实交易证据分别记录。
+最近记录的工程验证为 **600 项 Core 测试**、SDK/类型构建及编译服务重启/备份/恢复。浏览器测试环境与公开原生实交易证据分别记录。
 
 ## 架构与费用
 
